@@ -36,21 +36,32 @@ PIO pio_qEnc = pio0;
 const uint sm_0 = 0;
 
 
-// PID
+// PID Speed
 // Structure to strore PID data and pointer to PID structure
-struct pid_controller ctrldata;
-pidc_t pid;
+struct pid_controller ctrldata_speed;
+pidc_t pid_speed;
 
 // Control loop input,output and setpoint variables
-float input = 0.0, output = 0.0;
-float setpoint = 750.0;
+float input_speed = 0.0, output_speed = 0.0;
+float setpoint_speed = 750.0;
 
 // Control loop gains
-float kp = 2.5, ki = 1.5, kd = 0.1;
-//float kp = 0.25, ki = 0.15, kd = 0.01;
+float kp_speed = 2.5, ki_speed = 1.5, kd_speed = 0.1;
 
-int i = 900;
-float j = 9.0;
+
+// PID Position
+// Structure to strore PID data and pointer to PID structure
+struct pid_controller ctrldata_pos;
+pidc_t pid_pos;
+
+// Control loop input,output and setpoint variables
+float input_pos = 0.0, output_pos = 0.0;
+float setpoint_pos = 750.0;
+
+// Control loop gains
+float kp_pos = 2.5, ki_pos = 1.5, kd_pos = 0.1;
+
+
 int speed = 150;
 double ramp = 0.0;
 
@@ -67,14 +78,14 @@ bool PID_timer_callback(struct repeating_timer *t) {
     enc_dif = enc_new - enc_old;
     // lcd_speed = &enc_dif;
 
-    setpoint = 750 + (sin(ramp) * 450);
+    setpoint_speed = 750 + (sin(ramp) * 450);
     // setpoint = 1000;
-    input = (enc_dif * 1000.0 / 4000.0) * 60.0;
+    input_speed = (enc_dif * 1000.0 / 4000.0) * 60.0;
 
     
-    pid_compute(pid);
+    pid_compute(pid_speed);
 
-    speed = (int)output / 4.0;
+    speed = (int)output_speed / 4.0;
     ramp += 0.008;
 
     pwm_set_chan_level(pwm_slice_0, PWM_CHAN_A, speed);
@@ -118,11 +129,18 @@ int main() {
 
     // *****   PID module part   *****
     // Prepare PID controller for operation
-    pid = pid_create(&ctrldata, &input, &output, &setpoint, kp, ki, kd);
+    pid_speed = pid_create(&ctrldata_speed, &input_speed, &output_speed, &setpoint_speed, kp_speed, ki_speed, kd_speed);
     // Set controler output limits from 0 to 200
-    pid_limits(pid, 0, 4000);
+    pid_limits(pid_speed, 0, 4000);
     // Allow PID to compute and change output
-    pid_auto(pid);
+    pid_auto(pid_speed);
+
+    // Position PID
+    pid_pos = pid_create(&ctrldata_pos, &input_pos, &output_pos, &setpoint_pos, kp_pos, ki_pos, kd_pos);
+    // Set controler output limits from 0 to 200
+    pid_limits(pid_pos, 0, 4000);
+    // Allow PID to compute and change output
+    pid_auto(pid_pos);
 
     
 
