@@ -9,6 +9,9 @@
 #include "lcd/generalOps.h"
 #include "lcd/presetChars.h"
 #include "lcd/presetMessages.h"
+
+// pwm
+#include "pwm/servo_pwm.h"
 #include <math.h>
 
 #include "hardware/pio.h"
@@ -20,7 +23,7 @@
 
 int LCDpins[14] = {12,13,14,15,18,19,20,21,16,17,11,20,4};
 volatile int new_value, enc_new, enc_old, enc_dif = 0;
-uint slice_num;
+uint pwm_slice_0;
 
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
@@ -74,8 +77,8 @@ bool PID_timer_callback(struct repeating_timer *t) {
     speed = (int)output / 4.0;
     ramp += 0.008;
 
-    pwm_set_chan_level(slice_num, PWM_CHAN_A, speed);
-    pwm_set_chan_level(slice_num, PWM_CHAN_B, 1024 - speed); 
+    pwm_set_chan_level(pwm_slice_0, PWM_CHAN_A, speed);
+    pwm_set_chan_level(pwm_slice_0, PWM_CHAN_B, 1024 - speed); 
 
     // printf("Takes: %lld\n", time_us_64() - t1);
     return true;
@@ -89,7 +92,7 @@ float enc2speed(int enc){
 
 bool LCD_timer_callback(struct repeating_timer *t) {
     printf("Speed: %.2f, Pos: %d\r", enc2speed(enc_dif), enc_new); 
-    float2LCD("14", enc2speed(enc_dif), 4);
+    // float2LCD("14", enc2speed(enc_dif), 4);
     return true;
 }
 
@@ -105,15 +108,12 @@ int main() {
 
     uint offset = pio_add_program(pio_qEnc, &quadrature_encoder_program);
     quadrature_encoder_program_init(pio_qEnc, sm_0, offset, PIN_AB_0, 0);
-     
-
+    
     // *****   PWM module part   *****
-    gpio_set_function(8, GPIO_FUNC_PWM);
-    // Find out which PWM slice is connected to GPIO 8 (it's slice 8)
-    slice_num = pwm_gpio_to_slice_num(8);
-    pwm_set_clkdiv(slice_num, 8); // PWM clock divider
-    pwm_set_wrap(slice_num, 1023);  // Set period of 1024 cycles (0 to 1023 inclusive)
-    pwm_set_enabled(slice_num, true);
+    pwm_slice_0 = pwm_chan_init(8);
+    pwm_slice_0 = pwm_chan_init(9);
+
+
 
 
     // *****   PID module part   *****
@@ -151,8 +151,8 @@ int main() {
     LCDwriteMessage("Out:");
 
     int pwm_value = 0;
-    pwm_set_chan_level(slice_num, PWM_CHAN_A, pwm_value);
-    pwm_set_chan_level(slice_num, PWM_CHAN_B, 1024 - pwm_value);
+    pwm_set_chan_level(pwm_slice_0, PWM_CHAN_A, pwm_value);
+    pwm_set_chan_level(pwm_slice_0, PWM_CHAN_B, 1024 - pwm_value);
 
     add_repeating_timer_ms(1, PID_timer_callback, NULL, &timer);
     add_repeating_timer_ms(250, LCD_timer_callback, NULL, &LCD_timer);

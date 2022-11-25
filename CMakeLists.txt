@@ -7,12 +7,13 @@ project(stickerCutter)
 pico_sdk_init()
 
 add_executable(stickerCutter
-    main.c
+    sticker_cutter.c
     lcd/LCDops.c
     lcd/generalOps.c
     lcd/presetChars.c
     lcd/presetMessages.c
     pid/PID.c
+    pwm/servo_pwm.c
 )
 
 pico_generate_pio_header(stickerCutter ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pio)
