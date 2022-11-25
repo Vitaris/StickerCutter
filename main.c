@@ -89,7 +89,7 @@ float enc2speed(int enc){
 
 bool LCD_timer_callback(struct repeating_timer *t) {
     printf("Speed: %.2f, Pos: %d\r", enc2speed(enc_dif), enc_new); 
-    //float2LCD("14", enc2speed(enc_dif), 4);
+    float2LCD("14", enc2speed(enc_dif), 4);
     return true;
 }
 

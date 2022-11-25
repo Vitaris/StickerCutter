@@ -17,18 +17,18 @@ int LCDdisplay = 0;
 
 void E_INSTRUCTION(){
     gpio_put(LCDpins[9], false);
-    sleep_ms(5);
+    busy_wait_ms(5);
     gpio_put(LCDpins[8], true);
-    sleep_ms(5);
+    busy_wait_ms(5);
     gpio_put(LCDpins[8], false);
 }
 void E_DATA(){
     gpio_put(LCDpins[9], true);
-    sleep_ms(5);
+    busy_wait_ms(5);
     gpio_put(LCDpins[8], true);
-    sleep_ms(5);
+    busy_wait_ms(5);
     gpio_put(LCDpins[8], false);
-    sleep_ms(5);
+    busy_wait_ms(5);
     gpio_put(LCDpins[9], false);
 }
 
@@ -73,13 +73,13 @@ void LCDsendRawInstruction(int RS_PIN, int RW_PIN, char binary[]){
 }
 
 void LCDinit(){
-    sleep_ms(8);
+    busy_wait_ms(8);
     //Increment mode for the cursor 0x06 - 0000 0110
     LCDsendRawInstruction(0,0,"00000110");
-    sleep_ms(8);
+    busy_wait_ms(8);
     //Display on, cursor on, blink on 0x0C - 0000 1111
     LCDsendRawInstruction(0,0,"00001111");
-    sleep_ms(8);
+    busy_wait_ms(8);
     //8-bit data bus, 2 line display 0x38 - 00111000
     if (LCDpins[12] == 1){
         LCDsendRawInstruction(0,0,"00110000");
@@ -89,13 +89,13 @@ void LCDinit(){
     detectLCD();
 }
 void LCDclear(){
-    sleep_ms(8);
+    busy_wait_ms(8);
     //Clear Dispaly 0x01 - 00000001
     LCDsendRawInstruction(0,0,"00000001");
-    sleep_ms(8);
+    busy_wait_ms(8);
     //Return Display if moved 0x02 - 00000010
     LCDsendRawInstruction(0,0,"00000010");
-    sleep_ms(8);
+    busy_wait_ms(8);
     //Move cursor to 0,0 0x80 - 10000000
 LCDsendRawInstruction(0,0,"10000000");
 }
@@ -105,7 +105,7 @@ void LCDgoto(char hexstring[]){
     decToBin(hexDec);
     gpio_put(LCDpins[7], true);
     E_INSTRUCTION();
-    sleep_ms(8);
+    busy_wait_ms(8);
 }
 
 /*
@@ -123,7 +123,7 @@ void LCDwriteMessage(char message[]){
             for (int i = 0; i < strlen(message); i++){
                 if (i == 16) {
                     LCDgoto("40");
-                    sleep_ms(3);
+                    busy_wait_ms(3);
                 }
                 int tmp = (int)message[i];
                 decToBin(tmp);
@@ -135,15 +135,15 @@ void LCDwriteMessage(char message[]){
                 switch (i){
                     case 16:
                         LCDgoto("40");
-                        sleep_ms(3);
+                        busy_wait_ms(3);
                         break;
                     case 32:
                         LCDgoto("14");
-                        sleep_ms(3);
+                        busy_wait_ms(3);
                         break;
                     case 48:
                         LCDgoto("54");
-                        sleep_ms(3);
+                        busy_wait_ms(3);
                         break;
                 }
                 int tmp = (int)message[i];
@@ -155,7 +155,7 @@ void LCDwriteMessage(char message[]){
             for (int i = 0; i < strlen(message); i++){
                 if (i == 20) {
                     LCDgoto("40");
-                    sleep_ms(3);
+                    busy_wait_ms(3);
                 }
                 int tmp = (int)message[i];
                 decToBin(tmp);
@@ -167,15 +167,15 @@ void LCDwriteMessage(char message[]){
                 switch (i){
                     case 20:
                         LCDgoto("40");
-                        //sleep_ms(3);
+                        //busy_wait_ms(3);
                         break;
                     case 40:
                         LCDgoto("14");
-                        //sleep_ms(3);
+                        //busy_wait_ms(3);
                         break;
                     case 60:
                         LCDgoto("54");
-                        //sleep_ms(3);
+                        //busy_wait_ms(3);
                         break;
                 }
                 int tmp = (int)message[i];
@@ -194,7 +194,7 @@ void LCDwriteMessage(char message[]){
             for (int i = 0; i < strlen(message); i++){
                 if (i == 16) {
                     LCDgoto("40");
-                    sleep_ms(3);
+                    busy_wait_ms(3);
                 }
                 int tmp = (int)message[i];
                 decToBin(tmp);
@@ -235,7 +235,7 @@ void LCDcreateCharacter(int charnum, char line1[], char line2[], char line3[], c
             LCDsendRawInstruction(1,0,line6);
             LCDsendRawInstruction(1,0,line7);
             LCDsendRawInstruction(1,0,line8);
-            sleep_ms(8);
+            busy_wait_ms(8);
             break;
         case 2:
             LCDsendRawInstruction(0,0,"01001000");
@@ -247,7 +247,7 @@ void LCDcreateCharacter(int charnum, char line1[], char line2[], char line3[], c
             LCDsendRawInstruction(1,0,line6);
             LCDsendRawInstruction(1,0,line7);
             LCDsendRawInstruction(1,0,line8);
-            sleep_ms(8);
+            busy_wait_ms(8);
             break;
         case 3:
             LCDsendRawInstruction(0,0,"01010000");
@@ -259,7 +259,7 @@ void LCDcreateCharacter(int charnum, char line1[], char line2[], char line3[], c
             LCDsendRawInstruction(1,0,line6);
             LCDsendRawInstruction(1,0,line7);
             LCDsendRawInstruction(1,0,line8);
-            sleep_ms(8);
+            busy_wait_ms(8);
             break;
         case 4:
             LCDsendRawInstruction(0,0,"01011000");
@@ -271,7 +271,7 @@ void LCDcreateCharacter(int charnum, char line1[], char line2[], char line3[], c
             LCDsendRawInstruction(1,0,line6);
             LCDsendRawInstruction(1,0,line7);
             LCDsendRawInstruction(1,0,line8);
-            sleep_ms(8);
+            busy_wait_ms(8);
             break;
         case 5:
             LCDsendRawInstruction(0,0,"01100000");
@@ -283,7 +283,7 @@ void LCDcreateCharacter(int charnum, char line1[], char line2[], char line3[], c
             LCDsendRawInstruction(1,0,line6);
             LCDsendRawInstruction(1,0,line7);
             LCDsendRawInstruction(1,0,line8);
-            sleep_ms(8);
+            busy_wait_ms(8);
             break;
         case 6:
             LCDsendRawInstruction(0,0,"01101000");
@@ -295,7 +295,7 @@ void LCDcreateCharacter(int charnum, char line1[], char line2[], char line3[], c
             LCDsendRawInstruction(1,0,line6);
             LCDsendRawInstruction(1,0,line7);
             LCDsendRawInstruction(1,0,line8);
-            sleep_ms(8);
+            busy_wait_ms(8);
             break;
         case 7:
             LCDsendRawInstruction(0,0,"01110000");
@@ -307,7 +307,7 @@ void LCDcreateCharacter(int charnum, char line1[], char line2[], char line3[], c
             LCDsendRawInstruction(1,0,line6);
             LCDsendRawInstruction(1,0,line7);
             LCDsendRawInstruction(1,0,line8);
-            sleep_ms(8);
+            busy_wait_ms(8);
             break;
         case 8:
             LCDsendRawInstruction(0,0,"01111000");
@@ -319,13 +319,13 @@ void LCDcreateCharacter(int charnum, char line1[], char line2[], char line3[], c
             LCDsendRawInstruction(1,0,line6);
             LCDsendRawInstruction(1,0,line7);
             LCDsendRawInstruction(1,0,line8);
-            sleep_ms(8);
+            busy_wait_ms(8);
             break;
     }
 }
 
 void LCDwriteCustomCharacter(int characterNum){
-    sleep_ms(8);
+    busy_wait_ms(8);
     switch (characterNum){
         case 1:
             LCDsendRawInstruction(1,0,"00000000");

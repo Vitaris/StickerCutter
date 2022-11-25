@@ -45,5 +45,5 @@ void binIns(char binaryFinal[]){
         }
         count ++;
     }
-    sleep_ms(3);
+    busy_wait_ms(3);
 }
