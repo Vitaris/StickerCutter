@@ -20,6 +20,7 @@
 
 int LCDpins[14] = {12,13,14,15,18,19,20,21,16,17,11,20,4};
 volatile int new_value, enc_new, enc_old, enc_dif = 0;
+uint slice_num;
 
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
@@ -39,10 +40,11 @@ pidc_t pid;
 
 // Control loop input,output and setpoint variables
 float input = 0.0, output = 0.0;
-float setpoint = 2000.0;
+float setpoint = 750.0;
 
 // Control loop gains
 float kp = 2.5, ki = 1.5, kd = 0.1;
+//float kp = 0.25, ki = 0.15, kd = 0.01;
 
 int i = 900;
 float j = 9.0;
@@ -53,25 +55,31 @@ float goal_speed = 400.0;
 float curr_speed = 0.0;
 float diff_speed = 0.0;
 
-int* lcd_speed;
+int *lcd_speed;
 
-bool repeating_timer_callback(struct repeating_timer *t) {
-        enc_old = enc_new;
-        enc_new = quadrature_encoder_get_count(pio_qEnc, sm_0);
-        enc_dif = enc_new - enc_old;
-        // lcd_speed = &enc_dif;
+bool PID_timer_callback(struct repeating_timer *t) {
+    // uint64_t t1 = time_us_64();
+    enc_old = enc_new;
+    enc_new = quadrature_encoder_get_count(pio_qEnc, sm_0);
+    enc_dif = enc_new - enc_old;
+    // lcd_speed = &enc_dif;
 
-        setpoint = 2000 + (sin(ramp) * 1500);
-        // setpoint = 1000;
-        input = (enc_dif * 1000.0 / 4000.0) * 60.0;
-        // printf("Repeat at %lld\n", time_us_64());
-        
-        pid_compute(pid);
+    setpoint = 750 + (sin(ramp) * 450);
+    // setpoint = 1000;
+    input = (enc_dif * 1000.0 / 4000.0) * 60.0;
 
-        speed = (int)output / 4.0;
-        ramp += 0.001;
-        return true;
-    }
+    
+    pid_compute(pid);
+
+    speed = (int)output / 4.0;
+    ramp += 0.008;
+
+    pwm_set_chan_level(slice_num, PWM_CHAN_A, speed);
+    pwm_set_chan_level(slice_num, PWM_CHAN_B, 1024 - speed); 
+
+    // printf("Takes: %lld\n", time_us_64() - t1);
+    return true;
+}
 
 float enc2speed(int enc){
     // 1000 - 1ms
@@ -79,7 +87,17 @@ float enc2speed(int enc){
     return ((enc * 1000.0) / 4000.0) * 60.0;
 }
 
+bool LCD_timer_callback(struct repeating_timer *t) {
+    printf("Speed: %.2f, Pos: %d\r", enc2speed(enc_dif), enc_new); 
+    //float2LCD("14", enc2speed(enc_dif), 4);
+    return true;
+}
+
+
+
+
 struct repeating_timer timer;
+struct repeating_timer LCD_timer;
 
 
 int main() {
@@ -92,7 +110,7 @@ int main() {
     // *****   PWM module part   *****
     gpio_set_function(8, GPIO_FUNC_PWM);
     // Find out which PWM slice is connected to GPIO 8 (it's slice 8)
-    uint slice_num = pwm_gpio_to_slice_num(8);
+    slice_num = pwm_gpio_to_slice_num(8);
     pwm_set_clkdiv(slice_num, 8); // PWM clock divider
     pwm_set_wrap(slice_num, 1023);  // Set period of 1024 cycles (0 to 1023 inclusive)
     pwm_set_enabled(slice_num, true);
@@ -136,11 +154,13 @@ int main() {
     pwm_set_chan_level(slice_num, PWM_CHAN_A, pwm_value);
     pwm_set_chan_level(slice_num, PWM_CHAN_B, 1024 - pwm_value);
 
-    add_repeating_timer_ms(1, repeating_timer_callback, NULL, &timer);
+    add_repeating_timer_ms(1, PID_timer_callback, NULL, &timer);
+    add_repeating_timer_ms(250, LCD_timer_callback, NULL, &LCD_timer);
 
     
     while (1)
     {
+        tight_loop_contents();
         // LCD
         // printf("Pos: %d\n", enc_new);
         // printf("dif: %d\n", enc_dif);
@@ -153,12 +173,14 @@ int main() {
         float2LCD("4A", pid->lastin, 4);
         float2LCD("22", output, 4); */
 
-        // float2LCD("14", enc2speed(*lcd_speed), 4);
-        printf("Speed: %.2f\r", enc2speed(enc_dif)); 
+        
+        // printf("Speed: %.2f, Pos: %d\r", enc2speed(enc_dif), enc_new); 
+        // float2LCD("14", enc2speed(enc_dif), 4);
+
         // PWM        
-        int pwm_value = new_value * 5;
+    /*     int pwm_value = new_value * 5;
         speed = (speed >= 900) ? 900: speed;
         pwm_set_chan_level(slice_num, PWM_CHAN_A, speed);
-        pwm_set_chan_level(slice_num, PWM_CHAN_B, 1024 - speed); 
+        pwm_set_chan_level(slice_num, PWM_CHAN_B, 1024 - speed);  */
     }
 }
