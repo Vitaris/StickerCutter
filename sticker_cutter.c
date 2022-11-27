@@ -36,7 +36,8 @@ PIO pio_qEnc = pio0;
 const uint sm_0 = 0;
 
 
-// PID Speed
+// ******   PID Speed    ******
+//
 // Structure to strore PID data and pointer to PID structure
 struct pid_controller ctrldata_speed;
 pidc_t pid_speed;
@@ -49,14 +50,15 @@ float setpoint_speed = 12.5;
 float kp_speed = 2.5, ki_speed = 1.5, kd_speed = 0.1;
 
 
-// PID Position
+// ******   PID Position    ******
+//
 // Structure to strore PID data and pointer to PID structure
 struct pid_controller ctrldata_pos;
 pidc_t pid_pos;
 
 // Control loop input,output and setpoint variables
 float input_pos = 0.0, output_pos = 0.0;
-float setpoint_pos = 12.5;
+float setpoint_pos = 0.0;
 
 // Control loop gains
 float kp_pos = 2.5, ki_pos = 1.5, kd_pos = 0.1;
@@ -72,11 +74,45 @@ float diff_speed = 0.0;
 int *lcd_speed;
 
 // Positon Controler
-float a = 96.0;
+float a = 6.0;
 float ramp_time = 0.0;
+bool noticed = false;
+bool start = false;
+uint64_t start_time;
+uint64_t meas_time;
+uint64_t sum_time = 0;
+
+float enc2speed(int enc){
+    // 1000 - 1ms
+    // 4000 - encoder tics per rev
+    return ((enc * 1000.0) / 4000.0);
+}
+
+int i = 0;
+uint64_t first_start = 0;
+uint64_t last_start = 0;
+uint64_t current_start = 0;
+float current_cycle_time;
+bool first_cycle = true;
 
 bool PID_timer_callback(struct repeating_timer *t) {
-    ramp_time += 0.001;
+    // current_start = time_us_64() - last_start;
+    current_cycle_time = (float)(time_us_64() - last_start) * 0.001;
+    // printf("cycle: %.2f\n", current_cycle_time); 
+    last_start = time_us_64();
+    if (first_cycle) {
+        first_start = time_us_64();
+        current_cycle_time = 1.0;
+        first_cycle = false;
+    }
+    ramp_time = (float)(time_us_64() - first_start) * 1.0e-6;
+
+    if (!start){
+        start_time = time_us_64();
+        start = true;
+    }
+
+
     // uint64_t t1 = time_us_64();
     enc_old = enc_new;
     enc_new = quadrature_encoder_get_count(pio_qEnc, sm_0);
@@ -85,37 +121,39 @@ bool PID_timer_callback(struct repeating_timer *t) {
 
     // setpoint_speed = 12.5 + (sin(ramp) * 8.0);
     // setpoint = 1000;
-    input_speed = (enc_dif * 1000.0 / 4000.0);
-    setpoint_speed = (ramp_time <= 24.0 / a) ? (a * ramp_time) : 24.0;
- 
+    input_speed = (enc_dif * 1000.0 / 4000.0) / current_cycle_time;
+    setpoint_speed = (ramp_time < 24.0 / a) ? (a * ramp_time) : 0.0;
+
+    // setpoint_pos = (ramp_time <= 24.0 / a) ? (0.5 * a * ramp_time^2) : 0.0;
+    setpoint_pos = (0.5 * a * pow(ramp_time, 2));
+     
     pid_compute(pid_speed);
 
     speed = (int)output_speed * 15.5; // 15.5 = 1024 / 66.6 [ot/s]
     ramp += 0.008;
 
-    if (ramp_time > 1.5)
+    if (ramp_time >= (float)24.0 / a && !noticed)
     {
-        ramp_time = 0.0;
-        setpoint_speed = 0.0;
+        printf("Pos: %d, time: %d, Speed: %.2f, Calculated pos: %.2f\n",  enc_new, time_us_64() - start_time,
+        (enc_dif * 1000.0 / 4000.0) / current_cycle_time, setpoint_pos); 
+        noticed = true;
     }
         
-    
 
     pwm_set_chan_level(pwm_slice_0, PWM_CHAN_A, speed);
     pwm_set_chan_level(pwm_slice_0, PWM_CHAN_B, 1024 - speed); 
 
     // printf("Takes: %lld\n", time_us_64() - t1);
+    i++;
+    sum_time += (time_us_64() - meas_time);
+    // printf("Avg time: %lld\n", sum_time / i); 
     return true;
 }
 
-float enc2speed(int enc){
-    // 1000 - 1ms
-    // 4000 - encoder tics per rev
-    return ((enc * 1000.0) / 4000.0);
-}
+
 
 bool LCD_timer_callback(struct repeating_timer *t) {
-    printf("Speed: %.2f, Pos: %d\r", enc2speed(enc_dif), enc_new); 
+    // printf("Speed: %.2f, Pos: %d\r", enc2speed(enc_dif), enc_new); 
     // float2LCD("14", enc2speed(enc_dif), 4);
     return true;
 }
@@ -125,7 +163,6 @@ bool LCD_timer_callback(struct repeating_timer *t) {
 
 struct repeating_timer timer;
 struct repeating_timer LCD_timer;
-
 
 int main() {
     stdio_init_all();
