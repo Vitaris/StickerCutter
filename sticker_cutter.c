@@ -61,8 +61,8 @@ float input_pos = 0.0, output_pos = 0.0;
 float setpoint_pos = 0.0;
 
 // Control loop gains
-float kp_pos = 2.5, ki_pos = 1.5, kd_pos = 0.1;
-
+float kp_pos = 1.5, ki_pos = 0.5, kd_pos = 0.01;
+// float kp_pos = 10.0, ki_pos = 5.0, kd_pos = 0.1;
 
 int speed = 150;
 double ramp = 0.0;
@@ -121,23 +121,35 @@ bool PID_timer_callback(struct repeating_timer *t) {
 
     // setpoint_speed = 12.5 + (sin(ramp) * 8.0);
     // setpoint = 1000;
-    input_speed = (enc_dif * 1000.0 / 4000.0) / current_cycle_time;
-    setpoint_speed = (ramp_time < 24.0 / a) ? (a * ramp_time) : 0.0;
+    
+    // setpoint_speed = (ramp_time < 24.0 / a) ? (a * ramp_time) : 0.0;
 
-    // setpoint_pos = (ramp_time <= 24.0 / a) ? (0.5 * a * ramp_time^2) : 0.0;
-    setpoint_pos = (0.5 * a * pow(ramp_time, 2));
-     
+    setpoint_pos = (ramp_time < 24.0 / a) ? (0.5 * a * pow(ramp_time, 2)) : (24.0 * ramp_time - 48);
+    input_pos = ((float)enc_new / 4000.0);
+
+    pid_compute(pid_pos);
+    
+    setpoint_speed = output_pos;
+    input_speed = (enc_dif * 1000.0 / 4000.0) / current_cycle_time;
     pid_compute(pid_speed);
+    
 
     speed = (int)output_speed * 15.5; // 15.5 = 1024 / 66.6 [ot/s]
     ramp += 0.008;
 
-    if (ramp_time >= (float)24.0 / a && !noticed)
+    if (ramp_time >= (float)24.0 / a && !noticed && false)
     {
-        printf("Pos: %d, time: %d, Speed: %.2f, Calculated pos: %.2f\n",  enc_new, time_us_64() - start_time,
-        (enc_dif * 1000.0 / 4000.0) / current_cycle_time, setpoint_pos); 
+        printf("Pos: %d, time: %d, Speed: %.2f, Calculated pos: %.2f, linear: %.2f\n",  enc_new, time_us_64() - start_time,
+        (enc_dif * 1000.0 / 4000.0) / current_cycle_time, (0.5 * a * pow(ramp_time, 2)), (0.5 * 24.0 * ramp_time)); 
         noticed = true;
     }
+
+    if (i == 100){
+        printf("Speed I: %.2f, Pos I: %.2f\r", pid_speed->iterm, pid_pos->iterm);
+        i = 0;
+    }
+  
+
         
 
     pwm_set_chan_level(pwm_slice_0, PWM_CHAN_A, speed);
