@@ -47,7 +47,7 @@ float input_speed = 0.0, output_speed = 0.0;
 float setpoint_speed = 12.5;
 
 // Control loop gains
-float kp_speed = 2.5, ki_speed = 1.5, kd_speed = 0.1;
+float kp_speed = 7.0, ki_speed = 3.0, kd_speed = 0.1;
 
 
 // ******   PID Position    ******
@@ -61,8 +61,8 @@ float input_pos = 0.0, output_pos = 0.0;
 float setpoint_pos = 0.0;
 
 // Control loop gains
-float kp_pos = 1.5, ki_pos = 0.5, kd_pos = 0.01;
-// float kp_pos = 10.0, ki_pos = 5.0, kd_pos = 0.1;
+// float kp_pos = 1.5, ki_pos = 0.5, kd_pos = 0.01;
+float kp_pos = 15.0, ki_pos = 7.0, kd_pos = 0.1;
 
 int speed = 150;
 double ramp = 0.0;
@@ -74,7 +74,8 @@ float diff_speed = 0.0;
 int *lcd_speed;
 
 // Positon Controler
-float a = 6.0;
+float a = 48.0;
+float p_speed = 6.0;
 float ramp_time = 0.0;
 bool noticed = false;
 bool start = false;
@@ -94,6 +95,11 @@ uint64_t last_start = 0;
 uint64_t current_start = 0;
 float current_cycle_time;
 bool first_cycle = true;
+float distance = 24.0;
+float t_ramp;
+float t_const;
+float s_ramp;
+float s_conts;
 
 bool PID_timer_callback(struct repeating_timer *t) {
     // current_start = time_us_64() - last_start;
@@ -103,6 +109,13 @@ bool PID_timer_callback(struct repeating_timer *t) {
     if (first_cycle) {
         first_start = time_us_64();
         current_cycle_time = 1.0;
+
+        // Pos regulator precomputation
+        t_ramp = p_speed / a;
+        s_ramp = 0.5 * p_speed * t_ramp;
+        s_conts = distance - (s_ramp * 2);
+        t_const = s_conts / p_speed;
+
         first_cycle = false;
     }
     ramp_time = (float)(time_us_64() - first_start) * 1.0e-6;
@@ -124,7 +137,30 @@ bool PID_timer_callback(struct repeating_timer *t) {
     
     // setpoint_speed = (ramp_time < 24.0 / a) ? (a * ramp_time) : 0.0;
 
-    setpoint_pos = (ramp_time < 24.0 / a) ? (0.5 * a * pow(ramp_time, 2)) : (24.0 * ramp_time - 48);
+    //setpoint_pos = (ramp_time < 24.0 / a) ? (0.5 * a * pow(ramp_time, 2)) : (24.0 * ramp_time - 48);
+
+    // setpoint pos
+    if (ramp_time < t_ramp)
+    {
+        setpoint_pos = (0.5 * a * pow(ramp_time, 2));
+    }
+    else if (ramp_time >= t_ramp && ramp_time < (t_ramp + t_const))
+    {
+        setpoint_pos = (p_speed * ramp_time - s_ramp);
+    }
+    else if (ramp_time >= (t_ramp + t_const) && ramp_time < (t_ramp * 2) + t_const)
+    {
+        setpoint_pos = (p_speed * ramp_time - s_ramp) - (0.5 * a * pow(ramp_time - t_ramp - t_const, 2));
+    }
+    else if (ramp_time >= (t_ramp * 2) + t_const)
+    {   
+        setpoint_pos = distance;
+    }
+  
+    
+    
+
+
     input_pos = ((float)enc_new / 4000.0);
 
     pid_compute(pid_pos);
@@ -145,7 +181,7 @@ bool PID_timer_callback(struct repeating_timer *t) {
     }
 
     if (i == 100){
-        printf("Speed I: %.2f, Pos I: %.2f\r", pid_speed->iterm, pid_pos->iterm);
+        printf("Pos: %.2f, speed: %.2f\r", input_pos, input_speed);
         i = 0;
     }
   
