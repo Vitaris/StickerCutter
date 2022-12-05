@@ -47,7 +47,7 @@ float input_speed = 0.0, output_speed = 0.0;
 float setpoint_speed = 12.5;
 
 // Control loop gains
-float kp_speed = 7.0, ki_speed = 3.0, kd_speed = 0.1;
+float kp_speed = 7.0, ki_speed = 2.5, kd_speed = 1.0;
 
 
 // ******   PID Position    ******
@@ -62,7 +62,7 @@ float setpoint_pos = 0.0;
 
 // Control loop gains
 // float kp_pos = 1.5, ki_pos = 0.5, kd_pos = 0.01;
-float kp_pos = 15.0, ki_pos = 7.0, kd_pos = 0.1;
+float kp_pos = 20.0, ki_pos = 15.0, kd_pos = 1.0;
 
 int speed = 150;
 double ramp = 0.0;
@@ -74,8 +74,8 @@ float diff_speed = 0.0;
 int *lcd_speed;
 
 // Positon Controler
-float a = 48.0;
-float p_speed = 6.0;
+float a = 900.0;
+float p_speed = 50.0;
 float ramp_time = 0.0;
 bool noticed = false;
 bool start = false;
@@ -95,7 +95,7 @@ uint64_t last_start = 0;
 uint64_t current_start = 0;
 float current_cycle_time;
 bool first_cycle = true;
-float distance = 24.0;
+float distance = 25.0;
 float t_ramp;
 float t_const;
 float s_ramp;
@@ -154,7 +154,7 @@ bool PID_timer_callback(struct repeating_timer *t) {
     }
     else if (ramp_time >= (t_ramp * 2) + t_const)
     {   
-        setpoint_pos = distance;
+        setpoint_pos = setpoint_pos;
     }
   
     
@@ -175,13 +175,13 @@ bool PID_timer_callback(struct repeating_timer *t) {
 
     if (ramp_time >= (float)24.0 / a && !noticed && false)
     {
-        printf("Pos: %d, time: %d, Speed: %.2f, Calculated pos: %.2f, linear: %.2f\n",  enc_new, time_us_64() - start_time,
+        printf("Pos: %d, Setpoint_pos: %d, time: %d, Speed: %.2f, Calculated pos: %.2f, linear: %.2f\n",  enc_new, setpoint_pos, time_us_64() - start_time,
         (enc_dif * 1000.0 / 4000.0) / current_cycle_time, (0.5 * a * pow(ramp_time, 2)), (0.5 * 24.0 * ramp_time)); 
         noticed = true;
     }
 
     if (i == 100){
-        printf("Pos: %.2f, speed: %.2f\r", input_pos, input_speed);
+        printf("Pos: %.2f, Setpoint_pos: %d, speed: %.2f\r", input_pos, setpoint_pos, input_speed);
         i = 0;
     }
   
