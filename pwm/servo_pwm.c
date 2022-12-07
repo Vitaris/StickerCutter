@@ -5,8 +5,9 @@
 #include "servo_pwm.h"
 
 
-uint pwm_chan_init(const int gpio_pin_num){
+uint pwm_chan_init(int gpio_pin_num){
     gpio_set_function(gpio_pin_num, GPIO_FUNC_PWM);
+    gpio_set_function(gpio_pin_num + 1, GPIO_FUNC_PWM);
 
     // Find out which PWM slice is connected to GPIO # (it's slice #)
     uint slice_num = pwm_gpio_to_slice_num(gpio_pin_num);
@@ -15,3 +16,17 @@ uint pwm_chan_init(const int gpio_pin_num){
     pwm_set_enabled(slice_num, true);
     return slice_num;
 }
+
+void set_two_chans_pwm(uint slice_num, int speed){
+    if (speed >= 0)
+    {
+        pwm_set_chan_level(slice_num, PWM_CHAN_A, speed);
+        pwm_set_chan_level(slice_num, PWM_CHAN_B, 0); 
+    }
+    else
+    {
+        pwm_set_chan_level(slice_num, PWM_CHAN_A, 0);
+        pwm_set_chan_level(slice_num, PWM_CHAN_B, -speed);
+    }
+}
+

@@ -35,6 +35,9 @@ const uint PIN_AB_1 = 4;
 PIO pio_qEnc = pio0;
 const uint sm_0 = 0;
 
+// BEST!
+// float kp_speed = 5.0, ki_speed = 4.0, kd_speed = 3.0;
+// float kp_pos = 4.0, ki_pos = 1.5, kd_pos = 0.01;
 
 // ******   PID Speed    ******
 //
@@ -44,10 +47,10 @@ pidc_t pid_speed;
 
 // Control loop input,output and setpoint variables
 float input_speed = 0.0, output_speed = 0.0;
-float setpoint_speed = 12.5;
+float setpoint_speed = 0.0;
 
 // Control loop gains
-float kp_speed = 7.0, ki_speed = 2.5, kd_speed = 1.0;
+float kp_speed = 2.0, ki_speed = 4.0, kd_speed = 3.0;
 
 
 // ******   PID Position    ******
@@ -62,7 +65,7 @@ float setpoint_pos = 0.0;
 
 // Control loop gains
 // float kp_pos = 1.5, ki_pos = 0.5, kd_pos = 0.01;
-float kp_pos = 20.0, ki_pos = 15.0, kd_pos = 1.0;
+float kp_pos = 3.0, ki_pos = 2.5, kd_pos = 6.0;
 
 int speed = 150;
 double ramp = 0.0;
@@ -74,8 +77,8 @@ float diff_speed = 0.0;
 int *lcd_speed;
 
 // Positon Controler
-float a = 900.0;
-float p_speed = 50.0;
+float a = 100.0;
+float p_speed = 40.0;
 float ramp_time = 0.0;
 bool noticed = false;
 bool start = false;
@@ -95,7 +98,7 @@ uint64_t last_start = 0;
 uint64_t current_start = 0;
 float current_cycle_time;
 bool first_cycle = true;
-float distance = 25.0;
+float distance = 50.0;
 float t_ramp;
 float t_const;
 float s_ramp;
@@ -154,7 +157,7 @@ bool PID_timer_callback(struct repeating_timer *t) {
     }
     else if (ramp_time >= (t_ramp * 2) + t_const)
     {   
-        setpoint_pos = setpoint_pos;
+        setpoint_pos = distance;
     }
   
     
@@ -181,15 +184,16 @@ bool PID_timer_callback(struct repeating_timer *t) {
     }
 
     if (i == 100){
-        printf("Pos: %.2f, Setpoint_pos: %d, speed: %.2f\r", input_pos, setpoint_pos, input_speed);
+        printf("%.2f;%.2f;%.2f\n", input_pos, setpoint_pos, input_speed);
         i = 0;
     }
   
-
+    set_two_chans_pwm(pwm_slice_0, speed);
         
-
+    /*
     pwm_set_chan_level(pwm_slice_0, PWM_CHAN_A, speed);
     pwm_set_chan_level(pwm_slice_0, PWM_CHAN_B, 1024 - speed); 
+    */
 
     // printf("Takes: %lld\n", time_us_64() - t1);
     i++;
@@ -220,7 +224,6 @@ int main() {
     
     // *****   PWM module part   *****
     pwm_slice_0 = pwm_chan_init(8);
-    pwm_slice_0 = pwm_chan_init(9);
 
 
 
@@ -229,14 +232,14 @@ int main() {
     // Prepare PID controller for operation
     pid_speed = pid_create(&ctrldata_speed, &input_speed, &output_speed, &setpoint_speed, kp_speed, ki_speed, kd_speed);
     // Set controler output limits from 0 to 200
-    pid_limits(pid_speed, 0, 66);
+    pid_limits(pid_speed, -66, 66);
     // Allow PID to compute and change output
     pid_auto(pid_speed);
 
     // Position PID
     pid_pos = pid_create(&ctrldata_pos, &input_pos, &output_pos, &setpoint_pos, kp_pos, ki_pos, kd_pos);
     // Set controler output limits from 0 to 200
-    pid_limits(pid_pos, 0, 66);
+    pid_limits(pid_pos, -66, 66);
     // Allow PID to compute and change output
     pid_auto(pid_pos);
 
@@ -266,9 +269,7 @@ int main() {
     LCDgoto("1E");
     LCDwriteMessage("Out:");
 
-    int pwm_value = 0;
-    pwm_set_chan_level(pwm_slice_0, PWM_CHAN_A, pwm_value);
-    pwm_set_chan_level(pwm_slice_0, PWM_CHAN_B, 1024 - pwm_value);
+    set_two_chans_pwm(pwm_slice_0, 0);
 
     add_repeating_timer_ms(1, PID_timer_callback, NULL, &timer);
     add_repeating_timer_ms(250, LCD_timer_callback, NULL, &LCD_timer);

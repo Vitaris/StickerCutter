@@ -19,8 +19,9 @@ add_executable(stickerCutter
 pico_generate_pio_header(stickerCutter ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pio)
 pico_generate_pio_header(stickerCutter ${CMAKE_CURRENT_LIST_DIR}/pio_rotary_encoder.pio)
 
-# pico_enable_stdio_usb(picoLCD 1)
-# pico_enable_stdio_uart(picoLCD 1)
+# enable usb output, disable uart output
+pico_enable_stdio_usb(stickerCutter 1)
+pico_enable_stdio_uart(stickerCutter 0)
 
 pico_add_extra_outputs(stickerCutter)
 
