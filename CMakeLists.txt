@@ -14,6 +14,7 @@ add_executable(stickerCutter
     lcd/presetMessages.c
     pid/PID.c
     pwm/servo_pwm.c
+    pos_controller/pos_controller.c
 )
 
 pico_generate_pio_header(stickerCutter ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pio)

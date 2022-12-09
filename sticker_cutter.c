@@ -12,6 +12,7 @@
 
 // pwm
 #include "pwm/servo_pwm.h"
+#include "pos_controller/pos_controller.h"
 #include <math.h>
 
 #include "hardware/pio.h"
@@ -67,14 +68,7 @@ float setpoint_pos = 0.0;
 // float kp_pos = 1.5, ki_pos = 0.5, kd_pos = 0.01;
 float kp_pos = 50.0, ki_pos = 0.0, kd_pos = 0.0;
 
-int speed = 150;
-double ramp = 0.0;
-
-float goal_speed = 400.0;
-float curr_speed = 0.0;
-float diff_speed = 0.0;
-
-int *lcd_speed;
+int speed;
 
 // Positon Controler
 float a = 100.0;
@@ -128,19 +122,9 @@ bool PID_timer_callback(struct repeating_timer *t) {
         start = true;
     }
 
-
-    // uint64_t t1 = time_us_64();
     enc_old = enc_new;
     enc_new = quadrature_encoder_get_count(pio_qEnc, sm_0);
     enc_dif = enc_new - enc_old;
-    // lcd_speed = &enc_dif;
-
-    // setpoint_speed = 12.5 + (sin(ramp) * 8.0);
-    // setpoint = 1000;
-    
-    // setpoint_speed = (ramp_time < 24.0 / a) ? (a * ramp_time) : 0.0;
-
-    //setpoint_pos = (ramp_time < 24.0 / a) ? (0.5 * a * pow(ramp_time, 2)) : (24.0 * ramp_time - 48);
 
     // setpoint pos
     if (ramp_time < t_ramp)
@@ -160,45 +144,23 @@ bool PID_timer_callback(struct repeating_timer *t) {
         setpoint_pos = distance;
     }
   
-    
-    
-
-
     input_pos = ((float)enc_new / 4000.0);
-
     pid_compute(pid_pos);
     
     setpoint_speed = output_pos;
     input_speed = (enc_dif * 1000.0 / 4000.0) / current_cycle_time;
     pid_compute(pid_speed);
-    
 
     speed = (int)output_speed * 15.5; // 15.5 = 1024 / 66.6 [ot/s]
-    ramp += 0.008;
-
-    if (ramp_time >= (float)24.0 / a && !noticed && false)
-    {
-        printf("Pos: %d, Setpoint_pos: %d, time: %d, Speed: %.2f, Calculated pos: %.2f, linear: %.2f\n",  enc_new, setpoint_pos, time_us_64() - start_time,
-        (enc_dif * 1000.0 / 4000.0) / current_cycle_time, (0.5 * a * pow(ramp_time, 2)), (0.5 * 24.0 * ramp_time)); 
-        noticed = true;
-    }
 
     if (i == 100){
         printf("%.8f;%.2f;%.2f\n", input_pos, setpoint_pos, input_speed);
         i = 0;
     }
+    i++;
   
     set_two_chans_pwm(pwm_slice_0, speed);
-        
-    /*
-    pwm_set_chan_level(pwm_slice_0, PWM_CHAN_A, speed);
-    pwm_set_chan_level(pwm_slice_0, PWM_CHAN_B, 1024 - speed); 
-    */
 
-    // printf("Takes: %lld\n", time_us_64() - t1);
-    i++;
-    sum_time += (time_us_64() - meas_time);
-    // printf("Avg time: %lld\n", sum_time / i); 
     return true;
 }
 
