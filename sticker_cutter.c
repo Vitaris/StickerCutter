@@ -37,7 +37,7 @@ const uint sm_0 = 0;
 
 // BEST!
 // float kp_speed = 5.0, ki_speed = 4.0, kd_speed = 3.0;
-// float kp_pos = 4.0, ki_pos = 1.5, kd_pos = 0.01;
+// float kp_pos = 50.0, ki_pos = 0.0, kd_pos = 0.0;
 
 // ******   PID Speed    ******
 //
@@ -50,7 +50,7 @@ float input_speed = 0.0, output_speed = 0.0;
 float setpoint_speed = 0.0;
 
 // Control loop gains
-float kp_speed = 2.0, ki_speed = 4.0, kd_speed = 3.0;
+float kp_speed = 5.0, ki_speed = 4.0, kd_speed = 3.0;
 
 
 // ******   PID Position    ******
@@ -65,7 +65,7 @@ float setpoint_pos = 0.0;
 
 // Control loop gains
 // float kp_pos = 1.5, ki_pos = 0.5, kd_pos = 0.01;
-float kp_pos = 3.0, ki_pos = 2.5, kd_pos = 6.0;
+float kp_pos = 50.0, ki_pos = 0.0, kd_pos = 0.0;
 
 int speed = 150;
 double ramp = 0.0;
@@ -78,7 +78,7 @@ int *lcd_speed;
 
 // Positon Controler
 float a = 100.0;
-float p_speed = 40.0;
+float p_speed = 20.0;
 float ramp_time = 0.0;
 bool noticed = false;
 bool start = false;
@@ -184,7 +184,7 @@ bool PID_timer_callback(struct repeating_timer *t) {
     }
 
     if (i == 100){
-        printf("%.2f;%.2f;%.2f\n", input_pos, setpoint_pos, input_speed);
+        printf("%.8f;%.2f;%.2f\n", input_pos, setpoint_pos, input_speed);
         i = 0;
     }
   
