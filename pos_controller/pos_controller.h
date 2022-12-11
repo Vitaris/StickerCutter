@@ -17,8 +17,10 @@
 #ifndef POS_CONTROLLER_H
 #define POS_CONTROLLER_H
 
+#include "hardware/timer.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 /**
  * Structure that holds Positional controller data, multiple instances are
@@ -26,12 +28,33 @@
  */
 struct pos_controller {
 
+	// IO
+	float * in_pos;
+	float * out_pos;
+
 	// Controller state
 	bool positioning_request;
 	bool in_positioning;
 	bool positioning_done;
 
+	// Time vars
+	float current_cycle_time;
+	uint64_t last_start_time;
+
+	// Path generator
 	float requested_pos;
+	float current_pos;
+	uint64_t start_time;
+	float ramp_time;
+	float t_ramp; 
+	float s_ramp; 
+	float s_conts;
+	float t_const;
+
+	// Default movement
+	float speed; 	// Desired motor speed
+	float acc;		// Motor acceleration
+
 
 	// Input, output and setpoint
 	float * input; //!< Current Process Value
@@ -74,7 +97,7 @@ extern "C" {
 	 *
 	 * @return returns a pidc_t controller handle
 	 */
-	posc_t pos_control_create(posc_t pos, float* in_speed, float* out_pos, float acc, float speed);
+	posc_t pos_control_create(posc_t pos, float* out, float acc, float speed);
 
 	/**
 	 * @brief Creates a new PID controller
@@ -92,9 +115,10 @@ extern "C" {
 	 *
 	 * @return returns a pidc_t controller handle
 	 */
-	void pos_compute(posc_t pid);
+	float pos_compute(posc_t pos, float in_pos);
 
 	void pos_goto(posc_t pid, float position);
+	void compute_path(posc_t pos, float input_pos);
 
 #ifdef	__cplusplus
 }

@@ -51,7 +51,7 @@ float input_speed = 0.0, output_speed = 0.0;
 float setpoint_speed = 0.0;
 
 // Control loop gains
-float kp_speed = 5.0, ki_speed = 4.0, kd_speed = 3.0;
+float kp_speed = 4.0, ki_speed = 2.0, kd_speed = 1.0;
 
 
 // ******   PID Position    ******
@@ -66,9 +66,15 @@ float setpoint_pos = 0.0;
 
 // Control loop gains
 // float kp_pos = 1.5, ki_pos = 0.5, kd_pos = 0.01;
-float kp_pos = 50.0, ki_pos = 0.0, kd_pos = 0.0;
+float kp_pos = 30.0, ki_pos = 0.0, kd_pos = 0.0;
 
 int speed;
+
+
+// Pos ctrl
+struct pos_controller pos_data;
+posc_t pos;
+float test_pos;
 
 // Positon Controler
 float a = 100.0;
@@ -99,66 +105,33 @@ float s_ramp;
 float s_conts;
 
 bool PID_timer_callback(struct repeating_timer *t) {
-    // current_start = time_us_64() - last_start;
-    current_cycle_time = (float)(time_us_64() - last_start) * 0.001;
-    // printf("cycle: %.2f\n", current_cycle_time); 
-    last_start = time_us_64();
-    if (first_cycle) {
-        first_start = time_us_64();
-        current_cycle_time = 1.0;
-
-        // Pos regulator precomputation
-        t_ramp = p_speed / a;
-        s_ramp = 0.5 * p_speed * t_ramp;
-        s_conts = distance - (s_ramp * 2);
-        t_const = s_conts / p_speed;
-
-        first_cycle = false;
-    }
-    ramp_time = (float)(time_us_64() - first_start) * 1.0e-6;
-
-    if (!start){
-        start_time = time_us_64();
-        start = true;
-    }
-
+    // Encoder reading
     enc_old = enc_new;
     enc_new = quadrature_encoder_get_count(pio_qEnc, sm_0);
     enc_dif = enc_new - enc_old;
 
-    // setpoint pos
-    if (ramp_time < t_ramp)
-    {
-        setpoint_pos = (0.5 * a * pow(ramp_time, 2));
-    }
-    else if (ramp_time >= t_ramp && ramp_time < (t_ramp + t_const))
-    {
-        setpoint_pos = (p_speed * ramp_time - s_ramp);
-    }
-    else if (ramp_time >= (t_ramp + t_const) && ramp_time < (t_ramp * 2) + t_const)
-    {
-        setpoint_pos = (p_speed * ramp_time - s_ramp) - (0.5 * a * pow(ramp_time - t_ramp - t_const, 2));
-    }
-    else if (ramp_time >= (t_ramp * 2) + t_const)
-    {   
-        setpoint_pos = distance;
-    }
-  
     input_pos = ((float)enc_new / 4000.0);
+    pos_compute(pos, input_pos);
+
+    setpoint_pos = test_pos;
+
     pid_compute(pid_pos);
     
     setpoint_speed = output_pos;
-    input_speed = (enc_dif * 1000.0 / 4000.0) / current_cycle_time;
+    input_speed = (enc_dif * 1000.0 / 4000.0) / pos->current_cycle_time;
     pid_compute(pid_speed);
+
 
     speed = (int)output_speed * 15.5; // 15.5 = 1024 / 66.6 [ot/s]
 
+    // Printf 10 values/s
     if (i == 100){
-        printf("%.8f;%.2f;%.2f\n", input_pos, setpoint_pos, input_speed);
+        printf("%.8f;%.2f;%.2f;%.2f\n", input_pos, setpoint_pos, input_speed, test_pos);
         i = 0;
     }
     i++;
-  
+
+    // Set motor PWMs
     set_two_chans_pwm(pwm_slice_0, speed);
 
     return true;
@@ -173,8 +146,6 @@ bool LCD_timer_callback(struct repeating_timer *t) {
 }
 
 
-
-
 struct repeating_timer timer;
 struct repeating_timer LCD_timer;
 
@@ -187,7 +158,7 @@ int main() {
     // *****   PWM module part   *****
     pwm_slice_0 = pwm_chan_init(8);
 
-
+    pos = pos_control_create(&pos_data, &test_pos, a, p_speed);
 
 
     // *****   PID module part   *****
@@ -235,6 +206,10 @@ int main() {
 
     add_repeating_timer_ms(1, PID_timer_callback, NULL, &timer);
     add_repeating_timer_ms(250, LCD_timer_callback, NULL, &LCD_timer);
+
+
+    // Position ctrl
+    pos_goto(pos, 50.0);
 
     
     while (1)
