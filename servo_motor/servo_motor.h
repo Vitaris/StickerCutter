@@ -14,23 +14,59 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef POS_CONTROLLER_H
-#define POS_CONTROLLER_H
+#ifndef SERVO_MOTOR_H
+#define SERVO_MOTOR_H
 
 #include "hardware/timer.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
 
-/**
- * Structure that holds Positional controller data, multiple instances are
- * posible using different structures for each controller
- */
-struct pos_controller {
+// Quadrature encoder
+#include "hardware/pio.h"
+#include "quadrature_encoder.pio.h"
 
-	// IO
-	float * in_pos;
-	float * out_pos;
+#include "servo_pwm.h"
+// #include "pid/PID.h"
+#include "../pid/PID.h"
+#include "pos_controller.h"
+
+
+struct servo_motor {
+
+	// Servo motor consist of:
+	// pwm, encoder, pid, pos_controller
+
+	// Encoder
+	float enc_position;
+	float enc_velocity;
+	int32_t enc_old;
+	uint sm;
+
+
+	// PWM
+	uint pwm_slice;
+	
+	// PID
+	// Position
+	struct pid_controller ctrldata_pos;
+	pidc_t pid_pos;
+	float in_pos;
+	float out_pos;
+	float set_pos;
+
+	// PID
+	// Velocity
+	struct pid_controller ctrldata_vel;
+	pidc_t pid_vel;
+	float in_vel;
+	float out_vel;
+	float set_vel;
+
+	// Positional controller
+	struct pos_controller pos_ctrData;
+	posc_t pos;
+	float generated_pos;
 
 	// Controller state
 	bool positioning_request;
@@ -56,24 +92,10 @@ struct pos_controller {
 	float acc;		// Motor acceleration
 
 
-	// Input, output and setpoint
-	float * input; //!< Current Process Value
-	float * output; //!< Corrective Output from PID Controller
-	float * setpoint; //!< Controller Setpoint
-	// Tuning parameters
-	float Kp; //!< Stores the gain for the Proportional term
-	float Ki; //!< Stores the gain for the Integral term
-	float Kd; //!< Stores the gain for the Derivative term
-	// Output minimum and maximum values
-	float omin; //!< Maximum value allowed at the output
-	float omax; //!< Minimum value allowed at the output
-	// Variables for PID algorithm
-	float iterm; //!< Accumulator for integral term
-	float lastin; //!< Last input value for differential term
 
 };
 
-typedef struct pos_controller * posc_t;
+typedef struct servo_motor * servo_t;
 
 /*-------------------------------------------------------------*/
 /*		Function prototypes				*/
@@ -81,23 +103,8 @@ typedef struct pos_controller * posc_t;
 #ifdef	__cplusplus
 extern "C" {
 #endif
-	/**
-	 * @brief Creates a new PID controller
-	 *
-	 * Creates a new pid controller and initializes it�s input, output and internal
-	 * variables. Also we set the tuning parameters
-	 *
-	 * @param pid A pointer to a pid_controller structure
-	 * @param in Pointer to float value for the process input
-	 * @param out Poiter to put the controller output value
-	 * @param set Pointer float with the process setpoint value
-	 * @param kp Proportional gain
-	 * @param ki Integral gain
-	 * @param kd Diferential gain
-	 *
-	 * @return returns a pidc_t controller handle
-	 */
-	posc_t pos_control_create(posc_t pos, float* out, float acc, float speed);
+
+	static int add_encoder_pio();
 
 	/**
 	 * @brief Creates a new PID controller
@@ -115,10 +122,29 @@ extern "C" {
 	 *
 	 * @return returns a pidc_t controller handle
 	 */
-	float pos_compute(posc_t pos, float in_pos);
+	servo_t servo_motor_create(servo_t motor, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin);
 
-	void pos_goto(posc_t pid, float position);
-	void compute_path(posc_t pos, float input_pos);
+	/**
+	 * @brief Creates a new PID controller
+	 *
+	 * Creates a new pid controller and initializes it�s input, output and internal
+	 * variables. Also we set the tuning parameters
+	 *
+	 * @param pid A pointer to a pid_controller structure
+	 * @param in Pointer to float value for the process input
+	 * @param out Poiter to put the controller output value
+	 * @param set Pointer float with the process setpoint value
+	 * @param kp Proportional gain
+	 * @param ki Integral gain
+	 * @param kd Diferential gain
+	 *
+	 * @return returns a pidc_t controller handle
+	 */
+	void motor_compute(servo_t motor);
+
+	void motor_goto(servo_t motor, float position);
+
+	float enc2speed(int32_t enc);
 
 #ifdef	__cplusplus
 }

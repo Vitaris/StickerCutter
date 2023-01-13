@@ -24,9 +24,9 @@ pidc_t pid_create(pidc_t pid, float* in, float* out, float* set, float kp, float
 	pid->input = in;
 	pid->output = out;
 	pid->setpoint = set;
-	pid->automode = false;
+	pid->automode = true;
 
-	pid_limits(pid, 0, 255);
+	pid_limits(pid, -1024, 1024);
 
 	pid_direction(pid, E_PID_DIRECT);
 	pidc_tune(pid, kp, ki, kd);
