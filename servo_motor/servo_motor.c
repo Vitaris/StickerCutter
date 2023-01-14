@@ -34,7 +34,7 @@ servo_t servo_motor_create(servo_t motor, uint pio_ofset, uint sm, uint encoder_
 	motor->pid_vel = pid_create(&motor->ctrldata_vel, &motor->in_vel, &motor->out_vel, &motor->set_vel, 5.0, 4.0, 3.0);
 
 	// Positional controller
-	motor->pos = pos_control_create(&motor->pos_ctrData, &motor->generated_pos, 200.0, 40.0);
+	motor->pos = pos_control_create(&motor->pos_ctrData, &motor->generated_pos, 200.0, 30.0);
 
 
 	return motor;

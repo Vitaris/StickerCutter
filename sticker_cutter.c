@@ -24,6 +24,9 @@
 #include "hardware/timer.h"
 #include "pid/PID.h"
 
+// Multicore
+#include "pico/multicore.h"
+
 
 // LCD
 int LCDpins[14] = {12,13,14,15,18,19,20,21,16,17,11,20,4};
@@ -43,6 +46,45 @@ servo_t test_servo_1;
 servo_t test_servo_2;
 int i = 0;
 int j = 0;
+
+void core1_entry() {
+
+    // LCD
+    //Initialize all needed pins as defined in LCDpins, set them as
+    // outputs and then pull them low
+    for(int gpio = 0; gpio < 11; gpio++){
+        gpio_init(LCDpins[gpio]);
+        gpio_set_dir(LCDpins[gpio], true);
+        gpio_put(LCDpins[gpio], false);
+    }
+
+    //Initialize and clear the LCD, prepping it for characters / instructions
+    LCDinit();
+    LCDclear();
+    busy_wait_ms(8);
+    LCDgoto("00");
+    LCDsendRawInstruction(0,0,"00001100");
+    LCDwriteMessage("Quadrature encoder:");
+
+    /* LCDgoto("1C");
+    LCDwriteMessage("RPM"); */
+
+    LCDgoto("40");
+    LCDwriteMessage("Pos:");
+    LCDgoto("14");
+    LCDwriteMessage("Speed:");
+
+    while (1)
+    {
+        float2LCD("45", test_servo_1->in_pos, 5);
+        float2LCD("1B", test_servo_1->in_vel, 5);
+        int2LCD("56", test_servo_1->enc_old, 5);
+        /*
+        ii++;
+        busy_wait_ms(1000);
+        */
+    }
+}
 
 
 bool PID_timer_callback(struct repeating_timer *t) {
@@ -93,35 +135,18 @@ int main() {
 
     stdio_init_all();
 
-    // LCD
-    //Initialize all needed pins as defined in LCDpins, set them as
-    // outputs and then pull them low
-    for(int gpio = 0; gpio < 11; gpio++){
-        gpio_init(LCDpins[gpio]);
-        gpio_set_dir(LCDpins[gpio], true);
-        gpio_put(LCDpins[gpio], false);
-    }
-
-    //Initialize and clear the LCD, prepping it for characters / instructions
-    LCDinit();
-    LCDclear();
-    sleep_ms(8);
-    LCDgoto("00");
-    LCDsendRawInstruction(0,0,"00001100");
-    LCDwriteMessage("Quadrature encoder:");
-
-    /* LCDgoto("1C");
-    LCDwriteMessage("RPM"); */
-
-    LCDgoto("48");
-    LCDwriteMessage("I:");
-    LCDgoto("1E");
-    LCDwriteMessage("Out:");
+    
 
     // Repeat timer
     add_repeating_timer_ms(1, PID_timer_callback, NULL, &timer);
     add_repeating_timer_ms(250, LCD_timer_callback, NULL, &LCD_timer);
 
+
+    
+
+    multicore_launch_core1(core1_entry);
+
+    busy_wait_ms(2500);
 
     // Position ctrl
     // pos_goto(pos, 50.0);
