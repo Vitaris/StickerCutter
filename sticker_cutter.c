@@ -4,11 +4,9 @@
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
-#include "pico/binary_info.h"
-#include "lcd/LCDops.h"
-#include "lcd/generalOps.h"
-#include "lcd/presetChars.h"
-#include "lcd/presetMessages.h"
+// #include "pico/binary_info.h"
+
+#include "lcd/ant_lcd.h"
 
 // pwm
 #include "servo_motor/servo_pwm.h"
@@ -27,9 +25,14 @@
 // Multicore
 #include "pico/multicore.h"
 
+// ADC
+#include "hardware/adc.h"
+
 
 // LCD
-int LCDpins[14] = {12,13,14,15,18,19,20,21,16,17,11,20,4};
+struct lcd_controller lcd_ctrl;
+lcd_t lcd;
+
 uint pwm_slice_0;
 
 // Base pin to connect the A phase of the encoder.
@@ -50,35 +53,19 @@ int j = 0;
 void core1_entry() {
 
     // LCD
-    //Initialize all needed pins as defined in LCDpins, set them as
-    // outputs and then pull them low
-    for(int gpio = 0; gpio < 11; gpio++){
-        gpio_init(LCDpins[gpio]);
-        gpio_set_dir(LCDpins[gpio], true);
-        gpio_put(LCDpins[gpio], false);
-    }
+    lcd = lcd_create(&lcd_ctrl, 10, 11, 12, 13, 14, 15, 16, 16, 2);
+    string2LCD(&lcd_ctrl, 3, 0, "StickerCutter!");
 
-    //Initialize and clear the LCD, prepping it for characters / instructions
-    LCDinit();
-    LCDclear();
-    busy_wait_ms(8);
-    LCDgoto("00");
-    LCDsendRawInstruction(0,0,"00001100");
-    LCDwriteMessage("Quadrature encoder:");
 
-    /* LCDgoto("1C");
-    LCDwriteMessage("RPM"); */
+    int adc_val;
 
-    LCDgoto("40");
-    LCDwriteMessage("Pos:");
-    LCDgoto("14");
-    LCDwriteMessage("Speed:");
-
-    while (1)
+    while (0)
     {
-        float2LCD("45", test_servo_1->in_pos, 5);
-        float2LCD("1B", test_servo_1->in_vel, 5);
-        int2LCD("56", test_servo_1->enc_old, 5);
+        // float2LCD("45", test_servo_1->in_pos, 5);
+        // float2LCD("1B", test_servo_1->in_vel, 5);
+        // int2LCD("56", test_servo_1->enc_old, 5);
+        adc_val = adc_read();
+        
         /*
         ii++;
         busy_wait_ms(1000);
@@ -119,7 +106,7 @@ bool PID_timer_callback(struct repeating_timer *t) {
 bool LCD_timer_callback(struct repeating_timer *t) {
     // printf("Speed: %.2f, Pos: %d\r", enc2speed(enc_dif), enc_new); 
     // float2LCD("14", enc2speed(enc_dif), 4);
-    return true;
+    return true; 
 }
 
 
@@ -141,7 +128,12 @@ int main() {
     add_repeating_timer_ms(1, PID_timer_callback, NULL, &timer);
     add_repeating_timer_ms(250, LCD_timer_callback, NULL, &LCD_timer);
 
+    adc_init();
 
+    // Make sure GPIO is high-impedance, no pullups etc
+    adc_gpio_init(26);
+    // Select ADC input 0 (GPIO26)
+    adc_select_input(0);
     
 
     multicore_launch_core1(core1_entry);
