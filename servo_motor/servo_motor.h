@@ -142,7 +142,7 @@ extern "C" {
 	 */
 	void motor_compute(servo_t motor);
 
-	void motor_goto(servo_t motor, float position);
+	void motor_goto(servo_t motor, float position, float speed);
 
 	float enc2speed(int32_t enc);
 

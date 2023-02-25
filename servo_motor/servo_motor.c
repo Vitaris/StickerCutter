@@ -21,10 +21,11 @@ servo_t servo_motor_create(servo_t motor, uint pio_ofset, uint sm, uint encoder_
 	// Encoder
 	quadrature_encoder_program_init(pio0, sm, pio_ofset, encoder_pin, 0);
 	motor->sm = sm;
+	
 	motor->enc_old = 0;
 			
 	// PWM
-	motor->pwm_slice = pwm_chan_init(pwm_pin);
+	// motor->pwm_slice = pwm_chan_init(pwm_pin);
 
 	// PID
 	// BEST!
@@ -59,7 +60,7 @@ void motor_compute(servo_t motor)
 	pid_compute(motor->pid_vel);
 
 	// PWM
-	set_two_chans_pwm(motor->pwm_slice, motor->out_vel);
+	//set_two_chans_pwm(motor->pwm_slice,motor->out_vel);
 }
 
 float enc2speed(int32_t enc_diff){
@@ -68,7 +69,7 @@ float enc2speed(int32_t enc_diff){
     return ((enc_diff * 1000.0) / 4000.0);
 }
 
-void motor_goto(servo_t motor, float position){
-	pos_goto(motor->pos, position);
+void motor_goto(servo_t motor, float position, float speed){
+	pos_goto(motor->pos, position, speed);
 }
 

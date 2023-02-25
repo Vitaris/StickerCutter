@@ -93,8 +93,9 @@ void compute_path(posc_t pos, float input_pos)
 
 }
 
-void pos_goto(posc_t pos, float position)
+void pos_goto(posc_t pos, float position, float speed)
 {
 	pos->requested_pos = position;
+	pos->speed = speed;
 	pos->positioning_request = true;
 }

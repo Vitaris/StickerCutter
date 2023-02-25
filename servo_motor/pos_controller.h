@@ -64,7 +64,7 @@ extern "C" {
 
 	posc_t pos_control_create(posc_t pos, float* out, float acc, float speed);
 	float pos_compute(posc_t pos, float in_pos);
-	void pos_goto(posc_t pid, float position);
+	void pos_goto(posc_t pos, float position, float speed);
 	void compute_path(posc_t pos, float input_pos);
 
 #ifdef	__cplusplus
