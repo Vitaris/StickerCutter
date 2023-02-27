@@ -10,7 +10,7 @@
 
 // pwm
 #include "servo_motor/servo_pwm.h"
-#include "servo_motor/pos_controller.h"
+// #include "servo_motor/pos_controller.h"
 #include <math.h>
 
 // Servo motor
@@ -33,6 +33,9 @@
 struct lcd_controller lcd_ctrl;
 lcd_t lcd;
 
+// Buttons
+#include "servo_motor/button.h"
+
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
 #define ENC_0 6
@@ -52,11 +55,26 @@ uint slice_num_1_A;
 struct servo_motor servo_ctrl_0;
 struct servo_motor servo_ctrl_1;
 
-struct repeating_timer PID_timer;
+struct repeating_timer servo_timer;
 struct repeating_timer LCD_timer;
 
 servo_t test_servo_0;
 servo_t test_servo_1;
+
+struct button button_data_F1;
+struct button button_data_F2;
+struct button button_data_Right;
+struct button button_data_Left;
+struct button button_data_In;
+struct button button_data_Out;
+
+button_t F1;
+button_t F2;
+button_t Right;
+button_t Left;
+button_t In;
+button_t Out;
+
 
 bool LCD_timer_callback(struct repeating_timer *t) 
 {
@@ -90,14 +108,26 @@ void core1_entry() {
         string2LCD(lcd, 10, 1, "S:");
         float2LCD(lcd, 12, 2, 6, test_servo_1->in_vel);
         string2LCD(lcd, 10, 2, "S:");
-        
+
+        if (F1->state == true)
+        {
+            string2LCD(lcd, 0, 3, "F1");
+        }
+        else
+        {
+            string2LCD(lcd, 0, 3, "--");
+        }
     }
 }
 
-bool PID_timer_callback(struct repeating_timer *t) {
+bool servo_timer_callback(struct repeating_timer *t) {
 
-    motor_compute(test_servo_0);
-    motor_compute(test_servo_1);
+    servo_compute(test_servo_0);
+    servo_compute(test_servo_1);
+
+    // Buttons
+    button_compute(F1);
+    button_compute(In);
     
     if (test_servo_0->out_vel >= 0)
     {
@@ -124,12 +154,23 @@ bool PID_timer_callback(struct repeating_timer *t) {
     return true;
 }
 
+
+
 int main() {
 
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
-    test_servo_0 = servo_motor_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0);
-    test_servo_1= servo_motor_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1);
+    // Init buttons
+    F1 = create_button(&button_data_F1, 5);
+    F2 = create_button(&button_data_F2, 2);
+    Right = create_button(&button_data_Right, 1);
+    Left = create_button(&button_data_Left, 3);
+    In = create_button(&button_data_In, 4);
+    Out = create_button(&button_data_Out, 0);
+
+    // Init servos
+    test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, false, &F1->state, &In->state);
+    test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, false, &F1->state, &In->state);
 
     // Temporary fix - PCB design error
     // PWM channel are coupled together, I should choose even number for first one
@@ -163,7 +204,7 @@ int main() {
     stdio_init_all();
 
     // Repeat timer
-    add_repeating_timer_ms(1, PID_timer_callback, NULL, &PID_timer);
+    add_repeating_timer_ms(1, servo_timer_callback, NULL, &servo_timer);
     
     // adc_init();
 
@@ -175,12 +216,17 @@ int main() {
 
     multicore_launch_core1(core1_entry);
 
+    // Set GPIO 5 to be an input
+    gpio_init(5);
+    gpio_set_dir(5, GPIO_IN);
+
+
     busy_wait_ms(1000);
 
     // Position ctrl
     // pos_goto(pos, 50.0);
-    motor_goto(test_servo_0, 50.0, 1.0);
-    motor_goto(test_servo_1, 50.0, 0.25);
+    // servo_goto(test_servo_0, 50.0, 10.0);
+    // servo_goto(test_servo_1, 50.0, 15.0);
 
     
     while (1)
