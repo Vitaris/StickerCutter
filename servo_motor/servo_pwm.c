@@ -5,7 +5,7 @@
 #include "servo_pwm.h"
 
 
-uint pwm_chan_init(int gpio_pin_num){
+uint pwm_chan_init(uint gpio_pin_num){
     gpio_set_function(gpio_pin_num, GPIO_FUNC_PWM);
     gpio_set_function(gpio_pin_num + 1, GPIO_FUNC_PWM);
 

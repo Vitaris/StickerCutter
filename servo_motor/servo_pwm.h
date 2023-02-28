@@ -13,7 +13,7 @@ extern "C" {
 		 * 
 		 * @return Slice number of pwm module
 		 */
-	uint pwm_chan_init(int gpio_pin_num);
+	uint pwm_chan_init(uint gpio_pin_num);
 
 	/**
 		 * @brief The BTS7960 H-Bridge DC motor module 

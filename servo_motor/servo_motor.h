@@ -29,7 +29,10 @@
 #include "servo_pwm.h"
 // #include "pid/PID.h"
 #include "../pid/PID.h"
-#include "pos_controller.h"
+// #include "pos_controller.h"
+#include "button.h"
+#define MAN false
+#define AUTO true
 
 
 struct servo_motor {
@@ -64,8 +67,6 @@ struct servo_motor {
 	float set_vel;
 
 	// Positional controller
-	struct pos_controller pos_ctrData;
-	posc_t pos;
 	float generated_pos;
 
 	// Controller state
@@ -87,19 +88,25 @@ struct servo_motor {
 	float s_conts;
 	float t_const;
 
+	// Servo controler 
+
 	// Default movement
 	float speed; 	// Desired motor speed
 	float acc;		// Motor acceleration
 
+	// Mode, 0 = Manual, 1 = Automatic
+	bool mode;
 
+	bool *man_plus;
+	bool *man_minus;
+
+	// 
 
 };
 
 typedef struct servo_motor * servo_t;
 
-/*-------------------------------------------------------------*/
-/*		Function prototypes				*/
-/*-------------------------------------------------------------*/
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
@@ -108,43 +115,60 @@ extern "C" {
 
 	/**
 	 * @brief Creates a new PID controller
-	 *
-	 * Creates a new pid controller and initializes it�s input, output and internal
-	 * variables. Also we set the tuning parameters
-	 *
-	 * @param pid A pointer to a pid_controller structure
-	 * @param in Pointer to float value for the process input
-	 * @param out Poiter to put the controller output value
-	 * @param set Pointer float with the process setpoint value
-	 * @param kp Proportional gain
-	 * @param ki Integral gain
-	 * @param kd Diferential gain
+	 * 
+	 * @param servo A pointer to a servo_motor structure
+	 * @param pio_ofset Offset of the pio to use
+	 * @param sm Offset of the state machine to use
+	 * @param encoder_pin First pin to use for the encoder, second pin is encoder_pin + 1
+	 * @param pwm_pin First PWM pin to use for the pwm, second pin is pwm_pin + 1
+	 * @param mode 0 = Manual, 1 = Automatic
+	 * @param man_plus 
+	 * @param man_minus
 	 *
 	 * @return returns a pidc_t controller handle
 	 */
-	servo_t servo_motor_create(servo_t motor, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin);
+	servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, bool mode, 
+							bool *man_plus, bool *man_minus);
 
 	/**
-	 * @brief Creates a new PID controller
+	 * @brief Computation function for teh servo motor, have to be called in a servo loop (1ms)
+	 * 
+	 * @param servo A pointer to a servo_motor structure
 	 *
-	 * Creates a new pid controller and initializes it�s input, output and internal
-	 * variables. Also we set the tuning parameters
-	 *
-	 * @param pid A pointer to a pid_controller structure
-	 * @param in Pointer to float value for the process input
-	 * @param out Poiter to put the controller output value
-	 * @param set Pointer float with the process setpoint value
-	 * @param kp Proportional gain
-	 * @param ki Integral gain
-	 * @param kd Diferential gain
-	 *
-	 * @return returns a pidc_t controller handle
 	 */
-	void motor_compute(servo_t motor);
+	void servo_compute(servo_t servo);
 
-	void motor_goto(servo_t motor, float position);
+	void servo_goto(servo_t servo, float position, float speed);
 
 	float enc2speed(int32_t enc);
+
+
+	/**
+	 * @brief Compute the path to follow
+	 * 
+	 * @param servo Pointer to the controller struct
+	 * @param input_pos Current position
+	 * 
+	 */
+	void compute_path(servo_t servo, float input_pos);
+
+	/**
+	 * @brief Compute the output position
+	 * 
+	 * @param servo Pointer to the controller struct
+	 * @param in_pos Current position 
+	 *
+	 */
+	float pos_compute(servo_t servo, float in_pos);
+
+	/**
+	 * @brief Compute the output position
+	 * 
+	 * @param servo Pointer to the controller struct
+	 * @param run Button state
+	 *
+	 */
+	float speed_compute(servo_t servo, bool plus, bool minus);
 
 #ifdef	__cplusplus
 }
@@ -152,3 +176,4 @@ extern "C" {
 
 #endif
 // End of Header file
+

@@ -55,16 +55,57 @@ struct pos_controller {
 
 typedef struct pos_controller * posc_t;
 
-/*-------------------------------------------------------------*/
-/*		Function prototypes				*/
-/*-------------------------------------------------------------*/
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
+	/**
+	 * @brief Positional controler initialization
+	 * 
+	 * @param pos Pointer to the controller struct
+	 * @param out Pointer to the output variable
+	 * @param acc Motor acceleration
+	 * @param speed Motor speed
+	 *
+	 */
 	posc_t pos_control_create(posc_t pos, float* out, float acc, float speed);
+
+	/**
+	 * @brief Compute the output position
+	 * 
+	 * @param pos Pointer to the controller struct
+	 * @param in_pos Current position 
+	 *
+	 */
 	float pos_compute(posc_t pos, float in_pos);
-	void pos_goto(posc_t pid, float position);
+
+	/**
+	 * @brief Compute the output position
+	 * 
+	 * @param pos Pointer to the controller struct
+	 * @param in_speed Current speed
+	 *
+	 */
+	float speed_compute(posc_t pos, bool run, float in_speed);
+
+	/**
+	 * @brief Function to request a positioning
+	 * 
+	 * @param pos Pointer to the controller struct
+	 * @param position Requested position
+	 * @param speed Requested speed
+	 *
+	 */
+	void pos_goto(posc_t pos, float position, float speed);
+
+	/**
+	 * @brief Compute the path to follow
+	 * 
+	 * @param pos Pointer to the controller struct
+	 * @param input_pos Current position
+	 * 
+	 */
 	void compute_path(posc_t pos, float input_pos);
 
 #ifdef	__cplusplus

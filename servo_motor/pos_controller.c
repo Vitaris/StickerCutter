@@ -71,6 +71,34 @@ float pos_compute(posc_t pos, float in_pos)
 	return *pos->out_pos;
 }
 
+float speed_compute(posc_t pos, bool run, float in_speed)
+{
+	if (run == true)
+	{
+		if (in_speed >= pos->speed)
+		{
+			return pos->speed;
+		}
+		else
+		{
+			return in_speed + pos->acc * pos->current_cycle_time;
+		}
+	}
+	else
+	{
+		if (in_speed <= 0.0)
+		{
+			return 0.0;
+		}
+		else
+		{
+			return in_speed - pos->acc * pos->current_cycle_time;
+		}
+	}
+}
+
+
+
 void compute_path(posc_t pos, float input_pos)
 {
 	// Input_pos is for continue movement
@@ -91,10 +119,4 @@ void compute_path(posc_t pos, float input_pos)
 		pos->t_const = 0.0;
 	}
 
-}
-
-void pos_goto(posc_t pos, float position)
-{
-	pos->requested_pos = position;
-	pos->positioning_request = true;
 }

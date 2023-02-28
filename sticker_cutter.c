@@ -4,15 +4,13 @@
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
-#include "pico/binary_info.h"
-#include "lcd/LCDops.h"
-#include "lcd/generalOps.h"
-#include "lcd/presetChars.h"
-#include "lcd/presetMessages.h"
+// #include "pico/binary_info.h"
+
+#include "lcd/ant_lcd.h"
 
 // pwm
 #include "servo_motor/servo_pwm.h"
-#include "servo_motor/pos_controller.h"
+// #include "servo_motor/pos_controller.h"
 #include <math.h>
 
 // Servo motor
@@ -27,130 +25,208 @@
 // Multicore
 #include "pico/multicore.h"
 
+// ADC
+#include "hardware/adc.h"
+
 
 // LCD
-int LCDpins[14] = {12,13,14,15,18,19,20,21,16,17,11,20,4};
-uint pwm_slice_0;
+struct lcd_controller lcd_ctrl;
+lcd_t lcd;
+
+// Buttons
+#include "servo_motor/button.h"
 
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
-const uint PIN_AB_0 = 2;
-const uint PIN_AB_1 = 4;
+#define ENC_0 6
+#define ENC_1 8
 
+// First pin of PWM couple.
+#define PWM_0 17
+#define PWM_1 19
 
+uint pwm_0_A;
+uint pwm_0_B;
+uint pwm_1_A;
+uint slice_num_0_A;
+uint slice_num_0_B;
+uint slice_num_1_A;
 
+struct servo_motor servo_ctrl_0;
 struct servo_motor servo_ctrl_1;
-struct servo_motor servo_ctrl_2;
 
+struct repeating_timer servo_timer;
+struct repeating_timer LCD_timer;
+
+servo_t test_servo_0;
 servo_t test_servo_1;
-servo_t test_servo_2;
-int i = 0;
-int j = 0;
+
+struct button button_data_F1;
+struct button button_data_F2;
+struct button button_data_Right;
+struct button button_data_Left;
+struct button button_data_In;
+struct button button_data_Out;
+
+button_t F1;
+button_t F2;
+button_t Right;
+button_t Left;
+button_t In;
+button_t Out;
+
+
+bool LCD_timer_callback(struct repeating_timer *t) 
+{
+    float2LCD(lcd, 0, 1, 8, 0.0);
+    float2LCD(lcd, 0, 2, 8, 0.0);
+    // float2LCD(lcd, 0, 2, 8, test_servo_1->in_pos);
+
+    return true;
+
+}
 
 void core1_entry() {
 
     // LCD
-    //Initialize all needed pins as defined in LCDpins, set them as
-    // outputs and then pull them low
-    for(int gpio = 0; gpio < 11; gpio++){
-        gpio_init(LCDpins[gpio]);
-        gpio_set_dir(LCDpins[gpio], true);
-        gpio_put(LCDpins[gpio], false);
-    }
+    lcd = lcd_create(&lcd_ctrl, 10, 11, 12, 13, 14, 15, 16, 16, 4);
+    string2LCD(lcd, 3, 0, "StickerCutter!");
 
-    //Initialize and clear the LCD, prepping it for characters / instructions
-    LCDinit();
-    LCDclear();
-    busy_wait_ms(8);
-    LCDgoto("00");
-    LCDsendRawInstruction(0,0,"00001100");
-    LCDwriteMessage("Quadrature encoder:");
+    // int adc_val;
+    // adc_val = adc_read();
 
-    /* LCDgoto("1C");
-    LCDwriteMessage("RPM"); */
-
-    LCDgoto("40");
-    LCDwriteMessage("Pos:");
-    LCDgoto("14");
-    LCDwriteMessage("Speed:");
+    // add_repeating_timer_ms(100, LCD_timer_callback, NULL, &LCD_timer);
 
     while (1)
     {
-        float2LCD("45", test_servo_1->in_pos, 5);
-        float2LCD("1B", test_servo_1->in_vel, 5);
-        int2LCD("56", test_servo_1->enc_old, 5);
-        /*
-        ii++;
-        busy_wait_ms(1000);
-        */
-    }
-}
+        float2LCD(lcd, 2, 1, 6, test_servo_0->in_pos);
+        string2LCD(lcd, 0, 1, "P:");
+        float2LCD(lcd, 2, 2, 6, test_servo_1->in_pos);
+        string2LCD(lcd, 0, 2, "P:");
 
+        float2LCD(lcd, 12, 1, 6, test_servo_0->in_vel);
+        string2LCD(lcd, 10, 1, "S:");
+        float2LCD(lcd, 12, 2, 6, test_servo_1->in_vel);
+        string2LCD(lcd, 10, 2, "S:");
 
-bool PID_timer_callback(struct repeating_timer *t) {
-
-    // Printf 10 values/s
-    if (i == 100){
-        printf("\x1b[2J"); // Clear screen
-        printf("+------------------------------------------+\n" 
-               " Pos:    %.8f  \n" 
-               " Speed:  %.2f  \n" 
-               " PID Vel out:  %.2f  \n" 
-               " Cycle time :  %.6f  \n" 
-               " j:  %d        \n" 
-               "+------------------------------------------+\n", 
-               test_servo_1->in_pos, test_servo_1->in_vel, test_servo_1->out_vel, test_servo_1->pos->current_cycle_time, j);
-        i = 0;
-        if (j == 0)
-            j = 1;
+        if (F1->state == true)
+        {
+            string2LCD(lcd, 0, 3, "F1");
+        }
         else
-            j = 0;
+        {
+            string2LCD(lcd, 0, 3, "--");
+        }
     }
-    i++;
+}
 
-    motor_compute(test_servo_1);
-    motor_compute(test_servo_2);
+bool servo_timer_callback(struct repeating_timer *t) {
+
+    servo_compute(test_servo_0);
+    servo_compute(test_servo_1);
+
+    // Buttons
+    button_compute(F1);
+    button_compute(In);
+    
+    if (test_servo_0->out_vel >= 0)
+    {
+        pwm_set_chan_level(slice_num_0_A, PWM_CHAN_B, test_servo_0->out_vel);
+        pwm_set_chan_level(slice_num_0_B, PWM_CHAN_A, 0); 
+    }
+    else
+    {
+        pwm_set_chan_level(slice_num_0_A, PWM_CHAN_B, 0);
+        pwm_set_chan_level(slice_num_0_B, PWM_CHAN_A, -test_servo_0->out_vel);
+    }
+
+    if (test_servo_1->out_vel >= 0)
+    {
+        pwm_set_chan_level(slice_num_0_B, PWM_CHAN_B, test_servo_1->out_vel);
+        pwm_set_chan_level(slice_num_1_A, PWM_CHAN_A, 0); 
+    }
+    else
+    {
+        pwm_set_chan_level(slice_num_0_B, PWM_CHAN_B, 0);
+        pwm_set_chan_level(slice_num_1_A, PWM_CHAN_A, -test_servo_1->out_vel);
+    }
 
     return true;
 }
 
 
-
-bool LCD_timer_callback(struct repeating_timer *t) {
-    // printf("Speed: %.2f, Pos: %d\r", enc2speed(enc_dif), enc_new); 
-    // float2LCD("14", enc2speed(enc_dif), 4);
-    return true;
-}
-
-
-struct repeating_timer timer;
-struct repeating_timer LCD_timer;
 
 int main() {
 
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
-    test_servo_1 = servo_motor_create(&servo_ctrl_1, offset, 0, PIN_AB_0, 8);
-    test_servo_2 = servo_motor_create(&servo_ctrl_2, offset, 1, PIN_AB_1, 10);
+    // Init buttons
+    F1 = create_button(&button_data_F1, 5);
+    F2 = create_button(&button_data_F2, 2);
+    Right = create_button(&button_data_Right, 1);
+    Left = create_button(&button_data_Left, 3);
+    In = create_button(&button_data_In, 4);
+    Out = create_button(&button_data_Out, 0);
+
+    // Init servos
+    test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, false, &F1->state, &In->state);
+    test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, false, &F1->state, &In->state);
+
+    // Temporary fix - PCB design error
+    // PWM channel are coupled together, I should choose even number for first one
+    pwm_0_A = 17;
+    pwm_0_B = 18;
+    pwm_1_A = 20;
+    gpio_set_function(pwm_0_A, GPIO_FUNC_PWM);
+    gpio_set_function(pwm_0_B, GPIO_FUNC_PWM);
+
+    gpio_set_function(19, GPIO_FUNC_PWM);
+    gpio_set_function(20, GPIO_FUNC_PWM);
+
+    // Find out which PWM slice is connected to GPIO # (it's slice #)
+    slice_num_0_A = pwm_gpio_to_slice_num(pwm_0_A);
+    pwm_set_clkdiv(slice_num_0_A, pwm_0_A); // PWM clock divider
+    pwm_set_wrap(slice_num_0_A, 1023);  // Set period of 1024 cycles (0 to 1023 inclusive)
+    pwm_set_enabled(slice_num_0_A, true);
+
+    // Find out which PWM slice is connected to GPIO # (it's slice #)
+    slice_num_0_B = pwm_gpio_to_slice_num(pwm_0_B);
+    pwm_set_clkdiv(slice_num_0_B, pwm_0_B); // PWM clock divider
+    pwm_set_wrap(slice_num_0_B, 1023);  // Set period of 1024 cycles (0 to 1023 inclusive)
+    pwm_set_enabled(slice_num_0_B, true);
+
+    // Find out which PWM slice is connected to GPIO # (it's slice #)
+    slice_num_1_A = pwm_gpio_to_slice_num(pwm_1_A);
+    pwm_set_clkdiv(slice_num_1_A, pwm_1_A); // PWM clock divider
+    pwm_set_wrap(slice_num_1_A, 1023);  // Set period of 1024 cycles (0 to 1023 inclusive)
+    pwm_set_enabled(slice_num_1_A, true);
 
     stdio_init_all();
 
-    
-
     // Repeat timer
-    add_repeating_timer_ms(1, PID_timer_callback, NULL, &timer);
-    add_repeating_timer_ms(250, LCD_timer_callback, NULL, &LCD_timer);
+    add_repeating_timer_ms(1, servo_timer_callback, NULL, &servo_timer);
+    
+    // adc_init();
 
-
+    // Make sure GPIO is high-impedance, no pullups etc
+    // adc_gpio_init(26);
+    // Select ADC input 0 (GPIO26)
+    // adc_select_input(0);
     
 
     multicore_launch_core1(core1_entry);
 
-    busy_wait_ms(2500);
+    // Set GPIO 5 to be an input
+    gpio_init(5);
+    gpio_set_dir(5, GPIO_IN);
+
+
+    busy_wait_ms(1000);
 
     // Position ctrl
     // pos_goto(pos, 50.0);
-    motor_goto(test_servo_1, 50.0);
+    // servo_goto(test_servo_0, 50.0, 10.0);
+    // servo_goto(test_servo_1, 50.0, 15.0);
 
     
     while (1)

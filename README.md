@@ -11,4 +11,8 @@ Velky motor - L404
 
 Maly motor - 
 ------------------
-* todo
+
+* Red    +5V
+* Black  GND
+* Green  A - OpenCollector
+* white  B - OpenCollector

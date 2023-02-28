@@ -8,14 +8,12 @@ pico_sdk_init()
 
 add_executable(stickerCutter
     sticker_cutter.c
-    lcd/LCDops.c
-    lcd/generalOps.c
-    lcd/presetChars.c
-    lcd/presetMessages.c
+    lcd/ant_lcd.c
     pid/PID.c
     servo_motor/servo_pwm.c
-    servo_motor/pos_controller.c
+    # servo_motor/pos_controller.c
     servo_motor/servo_motor.c
+    servo_motor/button.c
 )
 
 pico_generate_pio_header(stickerCutter ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pio)
@@ -31,5 +29,6 @@ target_link_libraries(stickerCutter pico_stdlib
         pico_multicore
         hardware_pio
         hardware_pwm
+        hardware_adc
         )
         
