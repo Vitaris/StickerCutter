@@ -202,6 +202,19 @@ extern "C" {
 	 */
 	void remove_stop(servo_t servo);
 
+	/**
+	 * @brief Feeder desc
+	 * @param servo Pointer to the controller struct
+	 *
+	 */
+	void feeder(servo_t servo);
+	
+	
+	bool stop_ahead(servo_t servo);
+	float get_breaking_distance(servo_t servo);
+	float get_dist_to_stop(servo_t servo)
+
+
 #ifdef	__cplusplus
 }
 #endif

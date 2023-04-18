@@ -237,3 +237,45 @@ void remove_stop(servo_t servo)
     servo->no_of_stops--;
 }
 
+void feeder(servo_t servo)
+{
+	// Check if its needed to feed or break
+	if (stop_ahead)
+	{
+
+	}
+	else
+	{
+
+	}
+}
+
+bool stop_ahead(servo_t servo)
+{
+	if (get_dist_to_stop > get_breaking_distance)
+	{
+		return false
+	}
+	else
+	{
+		return true
+	}
+}
+
+float get_breaking_distance(servo_t servo)
+{
+	return 0.5 * (pow(servo->current_vel, 2) / servo->nominal_acc);
+}
+
+float get_dist_to_stop(servo_t servo)
+{
+	if (servo->no_of_stops > 0)
+	{
+		return servo->stops[0] - servo->current_pos;
+	}
+	else
+	{
+		// return ~inf
+		return 10000.0
+	}
+}
