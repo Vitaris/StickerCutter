@@ -75,12 +75,16 @@ button_t Left;
 button_t In;
 button_t Out;
 
+#define MAN false
+#define AUTO true
+bool mode = MAN;
+
 
 bool LCD_timer_callback(struct repeating_timer *t) 
 {
     float2LCD(lcd, 0, 1, 8, 0.0);
     float2LCD(lcd, 0, 2, 8, 0.0);
-    // float2LCD(lcd, 0, 2, 8, test_servo_1->in_pos);
+    // float2LCD(lcd, 0, 2, 8, test_servo_1->current_pos);
 
     return true;
 
@@ -90,33 +94,29 @@ void core1_entry() {
 
     // LCD
     lcd = lcd_create(&lcd_ctrl, 10, 11, 12, 13, 14, 15, 16, 16, 4);
-    string2LCD(lcd, 3, 0, "StickerCutter!");
 
     // int adc_val;
     // adc_val = adc_read();
 
     // add_repeating_timer_ms(100, LCD_timer_callback, NULL, &LCD_timer);
+    string2LCD(lcd, 0, 0, "Mode:");
 
     while (1)
     {
-        float2LCD(lcd, 2, 1, 6, test_servo_0->in_pos);
+        if (mode == MAN)
+        {
+            string2LCD(lcd, 6, 0, "MAN");
+        }
+
+        float2LCD(lcd, 2, 1, 6, test_servo_0->current_pos);
         string2LCD(lcd, 0, 1, "P:");
-        float2LCD(lcd, 2, 2, 6, test_servo_1->in_pos);
+        float2LCD(lcd, 2, 2, 6, test_servo_1->current_pos);
         string2LCD(lcd, 0, 2, "P:");
 
-        float2LCD(lcd, 12, 1, 6, test_servo_0->in_vel);
+        float2LCD(lcd, 12, 1, 6, test_servo_0->current_vel);
         string2LCD(lcd, 10, 1, "S:");
-        float2LCD(lcd, 12, 2, 6, test_servo_1->in_vel);
+        float2LCD(lcd, 12, 2, 6, test_servo_1->current_vel);
         string2LCD(lcd, 10, 2, "S:");
-
-        if (F1->state == true)
-        {
-            string2LCD(lcd, 0, 3, "F1");
-        }
-        else
-        {
-            string2LCD(lcd, 0, 3, "--");
-        }
     }
 }
 
@@ -157,7 +157,7 @@ bool servo_timer_callback(struct repeating_timer *t) {
 
 
 int main() {
-
+    
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
     // Init buttons
@@ -169,8 +169,8 @@ int main() {
     Out = create_button(&button_data_Out, 0);
 
     // Init servos
-    test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, false, &F1->state, &In->state);
-    test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, false, &F1->state, &In->state);
+    test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, false, 1.0, &F1->state, &In->state);
+    test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, false, 1.0, &F1->state, &In->state);
 
     // Temporary fix - PCB design error
     // PWM channel are coupled together, I should choose even number for first one

@@ -33,7 +33,7 @@
 #include "button.h"
 #define MAN false
 #define AUTO true
-
+#define CUT_OFFSET 10.0
 
 struct servo_motor {
 
@@ -54,7 +54,7 @@ struct servo_motor {
 	// Position
 	struct pid_controller ctrldata_pos;
 	pidc_t pid_pos;
-	float in_pos;
+	float current_pos;
 	float out_pos;
 	float set_pos;
 
@@ -62,41 +62,58 @@ struct servo_motor {
 	// Velocity
 	struct pid_controller ctrldata_vel;
 	pidc_t pid_vel;
-	float in_vel;
+	float current_vel;
 	float out_vel;
 	float set_vel;
 
 	// Positional controller
 	float generated_pos;
 
+	// Feeder controller
+
+	float stops[10];
+	uint8_t no_of_stops;
+
 	// Controller state
 	bool positioning_request;
-	bool in_positioning;
-	bool positioning_done;
+
+	enum {
+		IN_POSITIONING,
+		POSITIONING_DONE
+	} state;
+
+	enum {
+		MANUAL,
+		POSITIONER,
+		FEEDER
+	} mode;
 
 	// Time vars
 	float current_cycle_time;
-	uint64_t last_start_time;
+	uint64_t current_time;
 
 	// Path generator
 	float requested_pos;
-	float current_pos;
 	uint64_t start_time;
 	float ramp_time;
-	float t_ramp; 
-	float s_ramp; 
-	float s_conts;
-	float t_const;
+
+	
+	float t_ramp; 	// duration of acceleration(decceleration) 
+	float s_ramp;	// distance travelled during acc(dec)
+	float s_conts; 	// distance travelled during constant speed movement
+	float t_const;	// duration of constant speed movement
 
 	// Servo controler 
 
 	// Default movement
-	float speed; 	// Desired motor speed
-	float acc;		// Motor acceleration
+	float nominal_speed; 	// Desired motor speed
+	float nominal_acc;		// Motor acceleration
+	float scale;			// Scale factor of the servo motor
 
 	// Mode, 0 = Manual, 1 = Automatic
-	bool mode;
-
+	// bool mode;
+	
+	// Manual control
 	bool *man_plus;
 	bool *man_minus;
 
@@ -127,7 +144,7 @@ extern "C" {
 	 *
 	 * @return returns a pidc_t controller handle
 	 */
-	servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, bool mode, 
+	servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, bool mode, 
 							bool *man_plus, bool *man_minus);
 
 	/**
@@ -147,19 +164,20 @@ extern "C" {
 	 * @brief Compute the path to follow
 	 * 
 	 * @param servo Pointer to the controller struct
-	 * @param input_pos Current position
 	 * 
 	 */
-	void compute_path(servo_t servo, float input_pos);
+	void compute_path_params(servo_t servo);
 
 	/**
 	 * @brief Compute the output position
 	 * 
 	 * @param servo Pointer to the controller struct
-	 * @param in_pos Current position 
+	 * @param current_pos Current position 
 	 *
 	 */
-	float pos_compute(servo_t servo, float in_pos);
+	float pos_compute(servo_t servo, float current_pos);
+
+	float pos_compute_2(servo_t servo, float current_pos);
 
 	/**
 	 * @brief Compute the output position
@@ -169,6 +187,20 @@ extern "C" {
 	 *
 	 */
 	float speed_compute(servo_t servo, bool plus, bool minus);
+
+	/**
+	 * @brief Adds a stop to the array of stops
+	 * @param servo Pointer to the controller struct
+	 *
+	 */
+	void add_stop(servo_t servo);
+
+	/**
+	 * @brief Removes a stop from the array of stops
+	 * @param servo Pointer to the controller struct
+	 *
+	 */
+	void remove_stop(servo_t servo);
 
 #ifdef	__cplusplus
 }
