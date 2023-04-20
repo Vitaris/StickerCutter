@@ -127,7 +127,12 @@ bool servo_timer_callback(struct repeating_timer *t) {
 
     // Buttons
     button_compute(F1);
+    button_compute(F2);
+    button_compute(Right);
+    button_compute(Left);
     button_compute(In);
+    button_compute(Out);
+
     
     if (test_servo_0->out_vel >= 0)
     {
@@ -169,8 +174,8 @@ int main() {
     Out = create_button(&button_data_Out, 0);
 
     // Init servos
-    test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, false, 1.0, &F1->state, &In->state);
-    test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, false, 1.0, &F1->state, &In->state);
+    test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, 1.0, false, &Right->state, &Left->state);
+    test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, false, &In->state, &Out->state);
 
     // Temporary fix - PCB design error
     // PWM channel are coupled together, I should choose even number for first one

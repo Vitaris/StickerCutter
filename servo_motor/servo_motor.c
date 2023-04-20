@@ -44,7 +44,7 @@ servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, u
 	servo->no_of_stops = 0;
 	
 	// Initial mode
-	servo->mode = MAN;
+	servo->mode = mode;
 
 	// Buttons
 	servo->man_plus = man_plus;
@@ -208,12 +208,12 @@ float speed_compute(servo_t servo, bool plus, bool minus)
 
 	if (plus == true)
 	{
-		return 5.0;
+		return MAN_SPEED;
 
 	}
 	else if (minus == true)
 	{
-		return -5.0;
+		return -MAN_SPEED;
 	}
 	else
 	{
@@ -254,11 +254,11 @@ bool stop_ahead(servo_t servo)
 {
 	if (get_dist_to_stop > get_breaking_distance)
 	{
-		return false
+		return false;
 	}
 	else
 	{
-		return true
+		return true;
 	}
 }
 
@@ -275,7 +275,7 @@ float get_dist_to_stop(servo_t servo)
 	}
 	else
 	{
-		// return ~inf
-		return 10000.0
+		// return big number, far away (~inf)
+		return 10000.0;
 	}
 }

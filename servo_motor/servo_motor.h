@@ -34,6 +34,7 @@
 #define MAN false
 #define AUTO true
 #define CUT_OFFSET 10.0
+#define MAN_SPEED 5.0
 
 struct servo_motor {
 
@@ -212,7 +213,7 @@ extern "C" {
 	
 	bool stop_ahead(servo_t servo);
 	float get_breaking_distance(servo_t servo);
-	float get_dist_to_stop(servo_t servo)
+	float get_dist_to_stop(servo_t servo);
 
 
 #ifdef	__cplusplus
