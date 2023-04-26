@@ -16,7 +16,7 @@
  */
 #include "servo_motor.h"
 
-servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, bool mode, 
+servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
 							bool *man_plus, bool *man_minus)
 {
 	// Encoder
@@ -37,8 +37,9 @@ servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, u
 	servo->pid_vel = pid_create(&servo->ctrldata_vel, &servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
 
 	// Positional controller
-	servo->nominal_acc = 200.0;
-	servo->nominal_speed = 30.0;
+	servo->nominal_acc = 20.0;
+	servo->nominal_speed = 20.0;
+	servo->last_speed = 0.0;
 
 	// Feeder
 	servo->no_of_stops = 0;
@@ -50,21 +51,32 @@ servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, u
 	servo->man_plus = man_plus;
 	servo->man_minus = man_minus;
 
+	servo->a = 0;
+	servo->b = 0;
+	servo->edge_1 = false;
+	servo->edge_2 = false;
+	servo->edge_3 = false;
+	// servo->movement_request = true;
+
+
 	return servo;
 }
 
-void servo_compute(servo_t servo)
+void servo_compute(servo_t servo, float cycle_time)
 {
 	// Encoder
 	// Get current position, velocity
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
 	servo->current_pos = ((float)enc_new / 4000.0);
-	servo->current_vel = enc2speed(enc_new - servo->enc_old);
+	servo->current_vel = enc2speed(enc_new - servo->enc_old, cycle_time);
 	servo->enc_old = enc_new;
 
 	// Get current time 
 	servo->current_cycle_time = (float)(time_us_64() - servo->current_time) * 0.001;
 	servo->current_time = time_us_64();
+
+	// Current delta
+	servo->cycle_time = cycle_time;
 
 	switch (servo->mode)
 	{
@@ -77,8 +89,18 @@ void servo_compute(servo_t servo)
 
 			servo->set_vel = servo->out_pos;
 			pid_compute(servo->pid_vel);
+			break;
 
 		case FEEDER:
+			// servo->set_pos = pos_compute_2(servo, cycle_time, servo->current_pos);
+			servo->set_pos = feeder(servo);
+
+			// PID
+			pid_compute(servo->pid_pos);
+
+			servo->set_vel = servo->out_pos;
+			pid_compute(servo->pid_vel);
+			break;
 			
 
 		case MANUAL:
@@ -86,6 +108,10 @@ void servo_compute(servo_t servo)
 			servo->set_vel = speed_compute(servo, *servo->man_plus, *servo->man_minus);
 			// servo->set_vel = 0.0;
 			pid_compute(servo->pid_vel);
+			break;
+		
+		default:
+			break;
 		
 	}
 	
@@ -94,7 +120,7 @@ void servo_compute(servo_t servo)
 	//set_two_chans_pwm(servo->pwm_slice,servo->out_vel);
 }  
 
-float enc2speed(int32_t enc_diff){
+float enc2speed(int32_t enc_diff, float current_cycle){
 	// Time difference of measured encoder tics
 	// is ~1 milisecond but we want to get it in seconds,
 	// so we have to multiply by 1000
@@ -104,7 +130,8 @@ float enc2speed(int32_t enc_diff){
 	// So for speed we have to multiply by 1000 and divide by 4000
 	// (enc_diff * 1000.0) / 4000.0
 	
-    return (float)enc_diff / 4.0;
+	// return (float)enc_diff / 4.0;
+	return (float)enc_diff * (1.0 / current_cycle) / 4000.0;
 }
 
 void servo_goto(servo_t servo, float position, float speed){
@@ -173,7 +200,7 @@ float pos_compute(servo_t servo, float current_pos)
 	return servo->out_pos;
 }
 
-float pos_compute_2(servo_t servo, float current_pos)
+float pos_compute_2(servo_t servo, float delta_time, float current_pos)
 {
 	// Request for positioning received
 	if (servo->positioning_request == true && servo->state == POSITIONING_DONE)
@@ -192,7 +219,42 @@ float pos_compute_2(servo_t servo, float current_pos)
 		
 		
 	}
-	return servo->out_pos;
+
+
+//************************************************************************************************
+	float delta = 0.001 + (delta_time - 0.001);
+	// delta = 0.001;
+
+	if (servo->last_speed < servo->nominal_speed && servo->speed_reached == false)
+	{
+		// Ramp up
+		servo->last_speed += (servo->nominal_speed * delta);
+		servo->a++;
+	}
+	else if (servo->current_pos >= 60.0)
+	{
+		// Ramp down
+		servo->last_speed -= (servo->nominal_speed * delta);
+
+		if (servo->last_speed <= 0.0)
+			servo->last_speed = 0.0;
+	}
+	else
+	{
+		servo->last_speed = servo->nominal_speed;
+		servo->speed_reached = true;
+		servo->edge_1 = true;
+	}
+
+	if (servo->edge_1 == true && servo->edge_2 == false)
+	{
+		servo->mem_speed = servo->last_speed;
+		servo->mem_pos = servo->current_pos;
+		servo->b = servo->a;
+		servo->edge_2 = true;
+	}
+
+	return servo->set_pos + (servo->last_speed * delta);
 }
 
 float speed_compute(servo_t servo, bool plus, bool minus)
@@ -237,29 +299,35 @@ void remove_stop(servo_t servo)
     servo->no_of_stops--;
 }
 
-void feeder(servo_t servo)
+float feeder(servo_t servo)
 {
-	// Check if its needed to feed or break
-	if (stop_ahead)
+	servo->movement_request = *servo->man_plus;
+	servo->breaking_request = *servo->man_minus;
+
+	if (servo->set_pos >= 50 && servo->edge_3 == false)
 	{
+		add_stop(servo);
+		servo->edge_3 = true;
+	}
+
+	// Check if its needed to feed or break
+	if (stop_ahead(servo) || servo->breaking_in_progress == true)
+	{
+		// do break
+		return breaking_to(servo);
 
 	}
 	else
 	{
-
+		// do feed
+		return continuous_feeding(servo);
 	}
+
 }
 
 bool stop_ahead(servo_t servo)
 {
-	if (get_dist_to_stop > get_breaking_distance)
-	{
-		return false;
-	}
-	else
-	{
-		return true;
-	}
+	return get_breaking_distance(servo) >= get_dist_to_stop(servo) ? true : false;
 }
 
 float get_breaking_distance(servo_t servo)
@@ -279,3 +347,82 @@ float get_dist_to_stop(servo_t servo)
 		return 10000.0;
 	}
 }
+
+float continuous_feeding(servo_t servo)
+{
+	// Starting point of a feeding
+	if (servo->movement_request == true && servo->movement_in_progress == false )
+	{
+		// Save starting time
+		servo->movement_start_time = time_us_64();		// save the time of beginning
+
+		servo->acc_time = servo->nominal_speed / servo->nominal_acc;		// duration of acceleration(decceleration)
+		servo->acc_dist = 0.5 * servo->nominal_speed * servo->acc_time;		// distance traveled during acc(decc)
+		servo->begin_pos = servo->current_pos;
+
+		// Set in_progress flag
+		servo->movement_request = false;
+		servo->movement_in_progress = true;
+	}
+	servo->acc_progress_time = (float)(servo->current_time - servo->movement_start_time) * 1.0e-6;
+
+	if (servo->movement_in_progress == true)
+	{
+		// Ramp or continuous speed
+		if (servo->set_pos < servo->begin_pos + servo->acc_dist)
+		{
+			// Ramp
+			// return a computed next position 
+			return servo->begin_pos + ( 0.5 * servo->nominal_acc * pow(servo->acc_progress_time, 2) );
+		}
+		else
+		{
+			// continuous speed
+			// return a computed next position 
+			return servo->set_pos + (servo->nominal_speed * servo->cycle_time);
+		}
+	}
+	else
+	{
+		return servo->set_pos;
+	}
+}
+
+float breaking_to(servo_t servo)
+{
+	if (servo->breaking_request == true && servo->breaking_in_progress == false)
+	{
+		servo->breaking_start_time = time_us_64();		// save the time of beginning
+		servo->begin_pos = servo->set_pos;
+
+		servo->movement_in_progress = false;
+		servo->breaking_in_progress = true;
+	}
+	servo->breaking_progress_time = (float)(servo->current_time - servo->breaking_start_time) * 1.0e-6;
+	
+	if (servo->breaking_in_progress == true)
+	{
+		// Break
+		if (servo->set_pos < servo->begin_pos + servo->acc_dist)
+		{
+			return servo->begin_pos + ( 0.5 * -servo->nominal_acc * pow(servo->breaking_progress_time - servo->acc_time, 2) + servo->acc_dist);
+		}
+		else
+		{
+			servo->breaking_in_progress = false;
+			return servo->set_pos;
+		}
+		
+	}
+	else
+	{
+		return servo->set_pos;
+	}
+
+}
+
+float accelerate(servo_t servo)
+{
+
+}
+

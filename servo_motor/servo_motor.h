@@ -36,6 +36,9 @@
 #define CUT_OFFSET 10.0
 #define MAN_SPEED 5.0
 
+enum state{IN_POSITIONING,POSITIONING_DONE};
+enum mode{MANUAL,POSITIONER,FEEDER};
+
 struct servo_motor {
 
 	// Servo motor consist of:
@@ -78,17 +81,7 @@ struct servo_motor {
 	// Controller state
 	bool positioning_request;
 
-	enum {
-		IN_POSITIONING,
-		POSITIONING_DONE
-	} state;
-
-	enum {
-		MANUAL,
-		POSITIONER,
-		FEEDER
-	} mode;
-
+	
 	// Time vars
 	float current_cycle_time;
 	uint64_t current_time;
@@ -97,6 +90,8 @@ struct servo_motor {
 	float requested_pos;
 	uint64_t start_time;
 	float ramp_time;
+	float last_speed;
+	bool speed_reached;
 
 	
 	float t_ramp; 	// duration of acceleration(decceleration) 
@@ -105,6 +100,27 @@ struct servo_motor {
 	float t_const;	// duration of constant speed movement
 
 	// Servo controler 
+	enum state state;
+	enum mode mode;
+	float cycle_time;
+
+	// Feeder
+	float movement_start_time;
+	float breaking_start_time;
+	float acc_time;
+	float acc_dist;
+	float acc_progress_time;
+	float breaking_progress_time;
+	float begin_pos;
+
+	bool movement_request;
+	bool movement_in_progress;
+	bool movement_finished;
+
+	bool breaking_request;
+	bool breaking_in_progress;
+	bool breaking_finished;
+
 
 	// Default movement
 	float nominal_speed; 	// Desired motor speed
@@ -118,6 +134,15 @@ struct servo_motor {
 	bool *man_plus;
 	bool *man_minus;
 
+
+	// debug
+	int a;
+	int b;
+	bool edge_1;
+	bool edge_2;
+	bool edge_3;
+	float mem_speed;
+	float mem_pos;
 	// 
 
 };
@@ -145,7 +170,7 @@ extern "C" {
 	 *
 	 * @return returns a pidc_t controller handle
 	 */
-	servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, bool mode, 
+	servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
 							bool *man_plus, bool *man_minus);
 
 	/**
@@ -154,11 +179,11 @@ extern "C" {
 	 * @param servo A pointer to a servo_motor structure
 	 *
 	 */
-	void servo_compute(servo_t servo);
+	void servo_compute(servo_t servo, float cycle_time);
 
 	void servo_goto(servo_t servo, float position, float speed);
 
-	float enc2speed(int32_t enc);
+	float enc2speed(int32_t enc, float current_cycle);
 
 
 	/**
@@ -178,7 +203,7 @@ extern "C" {
 	 */
 	float pos_compute(servo_t servo, float current_pos);
 
-	float pos_compute_2(servo_t servo, float current_pos);
+	float pos_compute_2(servo_t servo, float delta_time, float current_pos);
 
 	/**
 	 * @brief Compute the output position
@@ -208,13 +233,15 @@ extern "C" {
 	 * @param servo Pointer to the controller struct
 	 *
 	 */
-	void feeder(servo_t servo);
+	float feeder(servo_t servo);
 	
 	
 	bool stop_ahead(servo_t servo);
 	float get_breaking_distance(servo_t servo);
 	float get_dist_to_stop(servo_t servo);
-
+	float accelerate(servo_t servo);
+	float continuous_feeding(servo_t servo);
+	float breaking_to(servo_t servo);
 
 #ifdef	__cplusplus
 }

@@ -52,6 +52,9 @@ uint slice_num_0_A;
 uint slice_num_0_B;
 uint slice_num_1_A;
 
+// Servo Motors
+
+uint64_t old_cycle_time = 0;
 struct servo_motor servo_ctrl_0;
 struct servo_motor servo_ctrl_1;
 
@@ -108,22 +111,26 @@ void core1_entry() {
             string2LCD(lcd, 6, 0, "MAN");
         }
 
-        float2LCD(lcd, 2, 1, 6, test_servo_0->current_pos);
+        float2LCD(lcd, 3, 1, 6, test_servo_0->current_pos);
         string2LCD(lcd, 0, 1, "P:");
-        float2LCD(lcd, 2, 2, 6, test_servo_1->current_pos);
+        float2LCD(lcd, 3, 2, 6, test_servo_1->current_pos);
         string2LCD(lcd, 0, 2, "P:");
 
-        float2LCD(lcd, 12, 1, 6, test_servo_0->current_vel);
+        float2LCD(lcd, 13, 1, 6, test_servo_0->current_vel);
         string2LCD(lcd, 10, 1, "S:");
-        float2LCD(lcd, 12, 2, 6, test_servo_1->current_vel);
+        float2LCD(lcd, 13, 2, 6, test_servo_1->current_vel);
         string2LCD(lcd, 10, 2, "S:");
     }
 }
 
 bool servo_timer_callback(struct repeating_timer *t) {
 
-    servo_compute(test_servo_0);
-    servo_compute(test_servo_1);
+    // Get current time 
+	float current_cycle_time = (float)(time_us_64() - old_cycle_time) * 1e-6;
+	old_cycle_time = time_us_64();
+
+    servo_compute(test_servo_0, current_cycle_time);
+    servo_compute(test_servo_1, current_cycle_time);
 
     // Buttons
     button_compute(F1);
@@ -174,8 +181,8 @@ int main() {
     Out = create_button(&button_data_Out, 0);
 
     // Init servos
-    test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, 1.0, false, &Right->state, &Left->state);
-    test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, false, &In->state, &Out->state);
+    test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, 1.0, FEEDER, &Right->state_changed, &Left->state_changed);
+    test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, MANUAL, &In->state, &Out->state);
 
     // Temporary fix - PCB design error
     // PWM channel are coupled together, I should choose even number for first one
