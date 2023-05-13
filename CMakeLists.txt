@@ -14,6 +14,7 @@ add_executable(stickerCutter
     # servo_motor/pos_controller.c
     servo_motor/servo_motor.c
     servo_motor/button.c
+    machine/machine_controller.c
 )
 
 pico_generate_pio_header(stickerCutter ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pio)

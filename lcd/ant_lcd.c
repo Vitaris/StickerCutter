@@ -26,6 +26,7 @@ SOFTWARE.
 #include "ant_lcd.h"
 #include "pico/stdlib.h"
 #include <string.h>
+#include <stdlib.h>
 
 lcd_t lcd_create(lcd_t lcd, uint32_t RS, uint32_t RW, uint32_t EN, uint32_t D4, uint32_t D5,
  				uint32_t D6, uint32_t D7, uint32_t COL, uint32_t ROW)
@@ -86,7 +87,7 @@ void command(lcd_t lcd, uint8_t cmd)
 	gpio_put(lcd->RS, 0);
 	command4bit(lcd, cmd >> 4);
 	command4bit(lcd, cmd & 0x0F);
-	busy_wait_ms(5);
+	busy_wait_us(DELAY_250_uS);
 }
 
 void write_data(lcd_t lcd, uint8_t data)
@@ -94,7 +95,7 @@ void write_data(lcd_t lcd, uint8_t data)
 	gpio_put(lcd->RS, 1);
 	command4bit(lcd, data >> 4);
 	command4bit(lcd, data & 0x0F);
-	busy_wait_ms(5);
+	busy_wait_us(DELAY_250_uS);
 }
 
 void gotoxy(lcd_t lcd, uint8_t x, uint8_t y)
@@ -130,20 +131,20 @@ void lcd_init(lcd_t lcd)
 
 	// Starts Commands to set LCD in 4Bit Interface
 	command4bit(lcd, 0x03);
-	busy_wait_ms(5);
+	busy_wait_us(DELAY_250_uS);
 	command4bit(lcd, 0x03);
-	busy_wait_ms(5);
+	busy_wait_us(DELAY_250_uS);
 	command4bit(lcd, 0x03);
-	busy_wait_ms(5);
+	busy_wait_us(DELAY_250_uS);
 	command4bit(lcd, 0x02);
-	busy_wait_ms(5);
+	busy_wait_us(DELAY_250_uS);
 
 	// Turns Displays on - No Cursor - No Blinking - Position 0,0 - Default Font
 	command(lcd, 0x20 | FuncCnTrL);
 	command(lcd, 0x08 | 0x04);
 	clrscr(lcd);
 	command(lcd, 0x04 | 0x02);
-	busy_wait_ms(5);
+	busy_wait_us(DELAY_250_uS);
 }
 
 void writeText(lcd_t lcd, char string[])

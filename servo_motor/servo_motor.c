@@ -41,6 +41,20 @@ servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, u
 	servo->nominal_speed = 20.0;
 	servo->last_speed = 0.0;
 
+	// Limits
+	servo->pos_limit_enabled = true;
+	servo->max_diff = 0.5; // Max following error
+	servo->max_pos = 100.0;
+	servo->min_pos = -10.0;
+
+	/**
+	 * @brief Error code variable
+	 * 
+	 * @note 01 - following error
+	 * @note 02 - max position overrun
+	 * @note 03 - min position overrun
+	 */
+
 	// Feeder
 	servo->no_of_stops = 0;
 	

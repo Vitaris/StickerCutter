@@ -36,6 +36,9 @@ lcd_t lcd;
 // Buttons
 #include "servo_motor/button.h"
 
+// Machine
+#include "machine/machine_controller.h"
+
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
 #define ENC_0 6
@@ -60,6 +63,8 @@ struct servo_motor servo_ctrl_1;
 
 struct repeating_timer servo_timer;
 struct repeating_timer LCD_timer;
+struct repeating_timer blink_timer;
+struct repeating_timer LCD_refresh_timer;
 
 servo_t test_servo_0;
 servo_t test_servo_1;
@@ -77,6 +82,12 @@ button_t Right;
 button_t Left;
 button_t In;
 button_t Out;
+
+struct machine machine_data;
+machine_t machine;
+
+bool blink_500ms;
+bool lcd_refresh;
 
 #define MAN false
 #define AUTO true
@@ -106,20 +117,47 @@ void core1_entry() {
 
     while (1)
     {
-        if (mode == MAN)
+        if (lcd_refresh == true)
         {
+            if (mode == MAN && false)
+            {
             string2LCD(lcd, 6, 0, "MAN");
+            }
+
+            float2LCD(lcd, 3, 1, 6, test_servo_0->current_pos);
+            string2LCD(lcd, 0, 1, "P:");
+            float2LCD(lcd, 3, 2, 6, test_servo_1->current_pos);
+            string2LCD(lcd, 0, 2, "P:");
+
+            float2LCD(lcd, 13, 1, 6, test_servo_0->current_vel);
+            string2LCD(lcd, 10, 1, "S:");
+            float2LCD(lcd, 13, 2, 6, test_servo_1->current_vel);
+            string2LCD(lcd, 10, 2, "S:");
+
+            // Machine state
+            if (machine->machine_state == MANUAL_M)
+            {
+                string2LCD(lcd, 6, 0, "MAN");
+            }
+            else if (machine->machine_state == AUTOMAT)
+            {
+                string2LCD(lcd, 6, 0, "AUT");
+            }
+
+            string2LCD(lcd, 0, 3, machine->F1_text);
+            string2LCD(lcd, 10, 3, machine->F2_text);
+
+            if (blink_500ms)
+            {
+                string2LCD(lcd, 14, 0, "Error!");
+            }
+            else
+            {
+                string2LCD(lcd, 14, 0, "      ");
+            }
+
+            lcd_refresh = false;
         }
-
-        float2LCD(lcd, 3, 1, 6, test_servo_0->current_pos);
-        string2LCD(lcd, 0, 1, "P:");
-        float2LCD(lcd, 3, 2, 6, test_servo_1->current_pos);
-        string2LCD(lcd, 0, 2, "P:");
-
-        float2LCD(lcd, 13, 1, 6, test_servo_0->current_vel);
-        string2LCD(lcd, 10, 1, "S:");
-        float2LCD(lcd, 13, 2, 6, test_servo_1->current_vel);
-        string2LCD(lcd, 10, 2, "S:");
     }
 }
 
@@ -139,6 +177,9 @@ bool servo_timer_callback(struct repeating_timer *t) {
     button_compute(Left);
     button_compute(In);
     button_compute(Out);
+
+    // Machine
+    machine_compute(machine);
 
     
     if (test_servo_0->out_vel >= 0)
@@ -166,6 +207,27 @@ bool servo_timer_callback(struct repeating_timer *t) {
     return true;
 }
 
+bool blink_timer_callback(struct repeating_timer *t) {
+
+    if (blink_500ms == true)
+    {
+        blink_500ms = false;
+    }
+    else
+    {
+        blink_500ms = true;
+    }
+    
+
+    return true;
+}
+
+bool LCD_refresh_timer_callback(struct repeating_timer *t) {
+    lcd_refresh = true;
+    
+    return true;
+}
+
 
 
 int main() {
@@ -179,6 +241,9 @@ int main() {
     Left = create_button(&button_data_Left, 3);
     In = create_button(&button_data_In, 4);
     Out = create_button(&button_data_Out, 0);
+
+    bool dummy_bool = true;
+    machine = create_machine(&machine_data, &F1->state, &F2->state, &dummy_bool, &dummy_bool);
 
     // Init servos
     test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, 1.0, FEEDER, &Right->state_changed, &Left->state_changed);
@@ -217,6 +282,13 @@ int main() {
 
     // Repeat timer
     add_repeating_timer_ms(1, servo_timer_callback, NULL, &servo_timer);
+
+    // 1s blink timer
+    add_repeating_timer_ms(500, blink_timer_callback, NULL, &blink_timer);
+
+    // 100ms LCD refrehs timer
+    add_repeating_timer_ms(100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
+
     
     // adc_init();
 
@@ -232,15 +304,7 @@ int main() {
     gpio_init(5);
     gpio_set_dir(5, GPIO_IN);
 
-
-    busy_wait_ms(1000);
-
-    // Position ctrl
-    // pos_goto(pos, 50.0);
-    // servo_goto(test_servo_0, 50.0, 10.0);
-    // servo_goto(test_servo_1, 50.0, 15.0);
-
-    
+   
     while (1)
     {
         tight_loop_contents();

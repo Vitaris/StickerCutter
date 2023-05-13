@@ -39,6 +39,7 @@
 enum state{IN_POSITIONING,POSITIONING_DONE};
 enum mode{MANUAL,POSITIONER,FEEDER};
 
+
 struct servo_motor {
 
 	// Servo motor consist of:
@@ -103,6 +104,21 @@ struct servo_motor {
 	enum state state;
 	enum mode mode;
 	float cycle_time;
+	
+	// Limits & Errors
+	bool pos_limit_enabled;
+	float max_diff; // Max following error
+	float max_pos;
+	float min_pos;
+
+	/**
+	 * @brief Error code variable
+	 * 
+	 * @note 01 - following error
+	 * @note 02 - max position overrun
+	 * @note 03 - min position overrun
+	 */
+	uint8_t error_code;
 
 	// Feeder
 	float movement_start_time;
