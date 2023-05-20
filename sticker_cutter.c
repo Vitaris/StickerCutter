@@ -1,42 +1,13 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "pico/stdlib.h"
+#include "pico/multicore.h"
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
-#include "hardware/irq.h"
-// #include "pico/binary_info.h"
+#include "hardware/pio.h"
+#include "hardware/timer.h"
 
 #include "lcd/ant_lcd.h"
-
-// pwm
-#include "servo_motor/servo_pwm.h"
-// #include "servo_motor/pos_controller.h"
-#include <math.h>
-
-// Servo motor
 #include "servo_motor/servo_motor.h"
-
-#include "hardware/pio.h"
-#include "quadrature_encoder.pio.h"
-#include "pio_rotary_encoder.pio.h"
-#include "hardware/timer.h"
-#include "pid/PID.h"
-
-// Multicore
-#include "pico/multicore.h"
-
-// ADC
-#include "hardware/adc.h"
-
-
-// LCD
-struct lcd_controller lcd_ctrl;
-lcd_t lcd;
-
-// Buttons
 #include "servo_motor/button.h"
-
-// Machine
 #include "machine/machine_controller.h"
 
 // Base pin to connect the A phase of the encoder.
@@ -56,19 +27,19 @@ uint slice_num_0_B;
 uint slice_num_1_A;
 
 // Servo Motors
-
 uint64_t old_cycle_time = 0;
 struct servo_motor servo_ctrl_0;
 struct servo_motor servo_ctrl_1;
 
-struct repeating_timer servo_timer;
-struct repeating_timer LCD_timer;
-struct repeating_timer blink_timer;
-struct repeating_timer LCD_refresh_timer;
-
 servo_t test_servo_0;
 servo_t test_servo_1;
 
+// Timers
+struct repeating_timer servo_timer;
+struct repeating_timer blink_timer;
+struct repeating_timer LCD_refresh_timer;
+
+// Buttons
 struct button button_data_F1;
 struct button button_data_F2;
 struct button button_data_Right;
@@ -83,17 +54,22 @@ button_t Left;
 button_t In;
 button_t Out;
 
+// Machine controller
 struct machine machine_data;
 machine_t machine;
+
+// LCD
+struct lcd_controller lcd_ctrl;
+lcd_t lcd;
 
 bool blink_500ms;
 bool lcd_refresh;
 
+// Debug
 #define MAN false
 #define AUTO true
 bool mode = MAN;
 bool allways_true = true;
-
 
 bool LCD_timer_callback(struct repeating_timer *t) 
 {
@@ -102,7 +78,6 @@ bool LCD_timer_callback(struct repeating_timer *t)
     // float2LCD(lcd, 0, 2, 8, test_servo_1->current_pos);
 
     return true;
-
 }
 
 void core1_entry() {
@@ -223,7 +198,6 @@ bool blink_timer_callback(struct repeating_timer *t) {
         blink_500ms = true;
     }
     
-
     return true;
 }
 
@@ -232,8 +206,6 @@ bool LCD_refresh_timer_callback(struct repeating_timer *t) {
     
     return true;
 }
-
-
 
 int main() {
     
