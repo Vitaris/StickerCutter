@@ -181,9 +181,8 @@ extern "C" {
 	 * @param encoder_pin First pin to use for the encoder, second pin is encoder_pin + 1
 	 * @param pwm_pin First PWM pin to use for the pwm, second pin is pwm_pin + 1
 	 * @param mode 0 = Manual, 1 = Automatic
-	 * @param man_plus 
+	 * @param man_plus  
 	 * @param man_minus
-	 *
 	 * @return returns a pidc_t controller handle
 	 */
 	servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
@@ -191,31 +190,33 @@ extern "C" {
 
 	/**
 	 * @brief Computation function for teh servo motor, have to be called in a servo loop (1ms)
-	 * 
 	 * @param servo A pointer to a servo_motor structure
-	 *
 	 */
 	void servo_compute(servo_t servo, float cycle_time);
 
+	/**
+	 * @brief Send the servo to a position
+	 * @param servo A pointer to a servo_motor structure
+	 */
 	void servo_goto(servo_t servo, float position, float speed);
 
+	/**
+	 * @brief Compute the speed from the encoder value
+	 * @param servo A pointer to a servo_motor structure
+	 * @return returns the speed in rev/s
+	 */
 	float enc2speed(int32_t enc, float current_cycle);
-
 
 	/**
 	 * @brief Compute the path to follow
-	 * 
 	 * @param servo Pointer to the controller struct
-	 * 
 	 */
 	void compute_path_params(servo_t servo);
 
 	/**
 	 * @brief Compute the output position
-	 * 
 	 * @param servo Pointer to the controller struct
 	 * @param current_pos Current position 
-	 *
 	 */
 	float pos_compute(servo_t servo, float current_pos);
 
@@ -223,40 +224,66 @@ extern "C" {
 
 	/**
 	 * @brief Compute the output position
-	 * 
 	 * @param servo Pointer to the controller struct
 	 * @param run Button state
-	 *
 	 */
 	float speed_compute(servo_t servo, bool plus, bool minus);
 
 	/**
 	 * @brief Adds a stop to the array of stops
 	 * @param servo Pointer to the controller struct
-	 *
 	 */
 	void add_stop(servo_t servo);
 
 	/**
 	 * @brief Removes a stop from the array of stops
 	 * @param servo Pointer to the controller struct
-	 *
 	 */
 	void remove_stop(servo_t servo);
 
 	/**
 	 * @brief Feeder desc
 	 * @param servo Pointer to the controller struct
-	 *
 	 */
 	float feeder(servo_t servo);
 	
 	
+	/**
+	 * @brief Detects if there is a stop in breaking distance
+	 * @param servo Pointer to the controller struct
+	 * @return true if there is a stop in breaking distance
+	 */
 	bool stop_ahead(servo_t servo);
+
+	/**
+	 * @brief Compute the breaking distance at the current speed
+	 * @param servo Pointer to the controller struct
+	 * @return breaking distance
+	 */
 	float get_breaking_distance(servo_t servo);
+
+	/**
+	 * @brief Compute the distance to the next stop
+	 * @param servo Pointer to the controller struct
+	 * @return distance to the next stop
+	 */
 	float get_dist_to_stop(servo_t servo);
+
+
 	float accelerate(servo_t servo);
+
+	/**
+	 * @brief Compute next position according to the continuous feeding
+	 * @param servo Pointer to the controller struct
+	 * @return next position
+	 */
 	float continuous_feeding(servo_t servo);
+
+	/**
+	 * @brief Compute next position according to the ramp slowdow
+	 * @param servo Pointer to the controller struct
+	 * @return next position
+	 */
 	float breaking_to(servo_t servo);
 
 #ifdef	__cplusplus

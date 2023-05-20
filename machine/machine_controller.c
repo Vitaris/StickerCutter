@@ -8,7 +8,7 @@
 
 machine_t create_machine(machine_t machine, bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02)
 {
-    machine->machine_state = MANUAL_M;
+    machine->machine_state = AUTOMAT;
     machine->machine_condition = OK;
 
     machine->F1 = F1;
@@ -16,6 +16,21 @@ machine_t create_machine(machine_t machine, bool *F1, bool *F2, bool *servo_stat
 
     machine->servo_state_01 = servo_state_01;
     machine->servo_state_02 = servo_state_02;
+
+    
+    // Set mark probe
+    // Set GPIO 5 to be an input
+    gpio_init(5);
+    gpio_set_dir(5, GPIO_IN);
+
+    // adc_init();
+
+    // Make sure GPIO is high-impedance, no pullups etc
+    // adc_gpio_init(26);
+    // Select ADC input 0 (GPIO26)
+    // adc_select_input(0);
+
+
     
 
     return machine;
@@ -42,8 +57,8 @@ void machine_compute(machine_t machine)
     // F1, F2, variable text labels
     if (machine->machine_state == AUTOMAT)
     {
-        strcpy(machine->F1_text, "  START   ");
-        strcpy(machine->F2_text, "  STOP    ");
+        strcpy(machine->F1_text, "  Start   ");
+        strcpy(machine->F2_text, "  Stop    ");
     }
     else
     {
