@@ -24,12 +24,12 @@ pidc_t pid_create(pidc_t pid, float* in, float* out, float* set, float kp, float
 	pid->input = in;
 	pid->output = out;
 	pid->setpoint = set;
-	pid->automode = true;
+
+	pid->Kp = kp;
+	pid->Ki = ki;
+	pid->Kd = kd;
 
 	pid_limits(pid, -1024, 1024);
-
-	pid_direction(pid, E_PID_DIRECT);
-	pidc_tune(pid, kp, ki, kd);
 	
 	return pid;
 }
@@ -37,10 +37,6 @@ pidc_t pid_create(pidc_t pid, float* in, float* out, float* set, float kp, float
 
 void pid_compute(pidc_t pid)
 {
-	// Check if control is enabled
-	if (!pid->automode)
-		return;
-	
 	float in = *(pid->input);
 	// Compute error
 	float error = (*(pid->setpoint)) - in;
@@ -63,80 +59,22 @@ void pid_compute(pidc_t pid)
 	(*pid->output) = out;
 	// Keep track of some variables for next execution
 	pid->lastin = in;
-
 }
-
-void pidc_tune(pidc_t pid, float kp, float ki, float kd)
-{
-	// Check for validity
-	if (kp < 0 || ki < 0 || kd < 0)
-		return;
-	
-	//Compute sample time in seconds
-	// float ssec = ((float) pid->sampletime) / ((float) TICK_SECOND);
-	float ssec = ((float) pid->sampletime) / ((float) 0.01);
-
-
-	/* pid->Kp = kp;
-	pid->Ki = ki * ssec;
-	pid->Kd = kd / ssec; */
-
-	pid->Kp = kp;
-	pid->Ki = ki;
-	pid->Kd = kd;
-
-	if (pid->direction == E_PID_REVERSE) {
-		pid->Kp = 0 - pid->Kp;
-		pid->Ki = 0 - pid->Ki;
-		pid->Kd = 0 - pid->Kd;
-	}
-}
-
 
 void pid_limits(pidc_t pid, float min, float max)
 {
 	if (min >= max) return;
 	pid->omin = min;
 	pid->omax = max;
+
 	//Adjust output to new limits
-	if (pid->automode) {
-		if (*(pid->output) > pid->omax)
-			*(pid->output) = pid->omax;
-		else if (*(pid->output) < pid->omin)
-			*(pid->output) = pid->omin;
+	if (*(pid->output) > pid->omax)
+		*(pid->output) = pid->omax;
+	else if (*(pid->output) < pid->omin)
+		*(pid->output) = pid->omin;
 
-		if (pid->iterm > pid->omax)
-			pid->iterm = pid->omax;
-		else if (pid->iterm < pid->omin)
-			pid->iterm = pid->omin;
-	}
-}
-
-void pid_auto(pidc_t pid)
-{
-	// If going from manual to auto
-	if (!pid->automode) {
-		pid->iterm = *(pid->output);
-		pid->lastin = *(pid->input);
-		if (pid->iterm > pid->omax)
-			pid->iterm = pid->omax;
-		else if (pid->iterm < pid->omin)
-			pid->iterm = pid->omin;
-		pid->automode = true;
-	}
-}
-
-void pid_manual(pidc_t pid)
-{
-	pid->automode = false;
-}
-
-void pid_direction(pidc_t pid, enum pid_control_directions dir)
-{
-	if (pid->automode && pid->direction != dir) {
-		pid->Kp = (0 - pid->Kp);
-		pid->Ki = (0 - pid->Ki);
-		pid->Kd = (0 - pid->Kd);
-	}
-	pid->direction = dir;
+	if (pid->iterm > pid->omax)
+		pid->iterm = pid->omax;
+	else if (pid->iterm < pid->omin)
+		pid->iterm = pid->omin;
 }

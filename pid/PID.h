@@ -34,14 +34,6 @@
 /*-------------------------------------------------------------*/
 
 /**
- * Defines if the controler is direct or reverse
- */
-enum pid_control_directions {
-	E_PID_DIRECT,
-	E_PID_REVERSE,
-};
-
-/**
  * Structure that holds PID all the PID controller data, multiple instances are
  * posible using different structures for each controller
  */
@@ -63,9 +55,6 @@ struct pid_controller {
 	// Time related
 	uint32_t lasttime; //!< Stores the time when the control loop ran last time
 	uint32_t sampletime; //!< Defines the PID sample time
-	// Operation mode
-	uint8_t automode; //!< Defines if the PID controller is enabled or disabled
-	enum pid_control_directions direction;
 };
 
 typedef struct pid_controller * pidc_t;
@@ -106,29 +95,6 @@ extern "C" {
 	void pid_compute(pidc_t pid);
 
 	/**
-	 * @brief Sets new PID tuning parameters
-	 *
-	 * Sets the gain for the Proportional (Kp), Integral (Ki) and Derivative (Kd)
-	 * terms.
-	 *
-	 * @param pid The PID controller instance to modify
-	 * @param kp Proportional gain
-	 * @param ki Integral gain
-	 * @param kd Derivative gain
-	 */
-	void pidc_tune(pidc_t pid, float kp, float ki, float kd);
-
-	/**
-	 * @brief Sets the pid algorithm period
-	 *
-	 * Changes the between PID control loop computations.
-	 *
-	 * @param pid The PID controller instance to modify
-	 * @param time The time in milliseconds between computations
-	 */
-	void pid_sample(pidc_t pid, uint32_t time);
-
-	/**
 	 * @brief Sets the limits for the PID controller output
 	 *
 	 * @param pid The PID controller instance to modify
@@ -137,39 +103,6 @@ extern "C" {
 	 */
 	void pid_limits(pidc_t pid, float min, float max);
 
-	/**
-	 * @brief Enables automatic control using PID
-	 *
-	 * Enables the PID control loop. If manual output adjustment is needed you can
-	 * disable the PID control loop using pid_manual(). This function enables PID
-	 * automatic control at program start or after calling pid_manual()
-	 *
-	 * @param pid The PID controller instance to enable
-	 */
-	void pid_auto(pidc_t pid);
-
-	/**
-	 * @brief Disables automatic process control
-	 *
-	 * Disables the PID control loop. User can modify the value of the output
-	 * variable and the controller will not overwrite it.
-	 *
-	 * @param pid The PID controller instance to disable
-	 */
-	void pid_manual(pidc_t pid);
-
-	/**
-	 * @brief Configures the PID controller direction
-	 *
-	 * Sets the direction of the PID controller. The direction is "DIRECT" when a
-	 * increase of the output will cause a increase on the measured value and
-	 * "REVERSE" when a increase on the controller output will cause a decrease on
-	 * the measured value.
-	 *
-	 * @param pid The PID controller instance to modify
-	 * @param direction The new direction of the PID controller
-	 */
-	void pid_direction(pidc_t pid, enum pid_control_directions dir);
 
 #ifdef	__cplusplus
 }

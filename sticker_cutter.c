@@ -16,8 +16,8 @@
 #define ENC_1 8
 
 // First pin of PWM couple.
-#define PWM_0 17
-#define PWM_1 19
+#define PWM_0 18
+#define PWM_1 20
 
 
 uint pwm_0_A;
@@ -162,29 +162,6 @@ bool servo_timer_callback(struct repeating_timer *t) {
     // Machine
     machine_compute(machine);
 
-    
-    if (test_servo_0->out_vel >= 0)
-    {
-        pwm_set_chan_level(slice_num_0_A, PWM_CHAN_B, test_servo_0->out_vel);
-        pwm_set_chan_level(slice_num_0_B, PWM_CHAN_A, 0); 
-    }
-    else
-    {
-        pwm_set_chan_level(slice_num_0_A, PWM_CHAN_B, 0);
-        pwm_set_chan_level(slice_num_0_B, PWM_CHAN_A, -test_servo_0->out_vel);
-    }
-
-    if (test_servo_1->out_vel >= 0)
-    {
-        pwm_set_chan_level(slice_num_0_B, PWM_CHAN_B, test_servo_1->out_vel);
-        pwm_set_chan_level(slice_num_1_A, PWM_CHAN_A, 0); 
-    }
-    else
-    {
-        pwm_set_chan_level(slice_num_0_B, PWM_CHAN_B, 0);
-        pwm_set_chan_level(slice_num_1_A, PWM_CHAN_A, -test_servo_1->out_vel);
-    }
-
     return true;
 }
 
@@ -228,35 +205,6 @@ int main() {
 
     // Init machine controller
     machine = create_machine(&machine_data, &F1->state, &F2->state, &allways_true, &allways_true);
-
-    // Temporary fix - PCB design error
-    // PWM channel are coupled together, I should choose even number for first one
-    pwm_0_A = 17;
-    pwm_0_B = 18;
-    pwm_1_A = 20;
-    gpio_set_function(pwm_0_A, GPIO_FUNC_PWM);
-    gpio_set_function(pwm_0_B, GPIO_FUNC_PWM);
-
-    gpio_set_function(19, GPIO_FUNC_PWM);
-    gpio_set_function(20, GPIO_FUNC_PWM);
-
-    // Find out which PWM slice is connected to GPIO # (it's slice #)
-    slice_num_0_A = pwm_gpio_to_slice_num(pwm_0_A);
-    pwm_set_clkdiv(slice_num_0_A, pwm_0_A); // PWM clock divider
-    pwm_set_wrap(slice_num_0_A, 1023);  // Set period of 1024 cycles (0 to 1023 inclusive)
-    pwm_set_enabled(slice_num_0_A, true);
-
-    // Find out which PWM slice is connected to GPIO # (it's slice #)
-    slice_num_0_B = pwm_gpio_to_slice_num(pwm_0_B);
-    pwm_set_clkdiv(slice_num_0_B, pwm_0_B); // PWM clock divider
-    pwm_set_wrap(slice_num_0_B, 1023);  // Set period of 1024 cycles (0 to 1023 inclusive)
-    pwm_set_enabled(slice_num_0_B, true);
-
-    // Find out which PWM slice is connected to GPIO # (it's slice #)
-    slice_num_1_A = pwm_gpio_to_slice_num(pwm_1_A);
-    pwm_set_clkdiv(slice_num_1_A, pwm_1_A); // PWM clock divider
-    pwm_set_wrap(slice_num_1_A, 1023);  // Set period of 1024 cycles (0 to 1023 inclusive)
-    pwm_set_enabled(slice_num_1_A, true);
 
     // Initialize all of the present standard stdio types that are linked into the binary. 
     stdio_init_all();

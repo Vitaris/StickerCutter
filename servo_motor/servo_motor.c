@@ -27,7 +27,7 @@ servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, u
 	servo->enc_old = 0;
 			
 	// PWM
-	// servo->pwm_slice = pwm_chan_init(pwm_pin);
+	servo->pwm_slice = pwm_chan_init(pwm_pin);
 
 	// PID
 	// BEST!
@@ -130,8 +130,8 @@ void servo_compute(servo_t servo, float cycle_time)
 	}
 	
 
-	// PWM
-	//set_two_chans_pwm(servo->pwm_slice,servo->out_vel);
+	// PWM output
+	set_two_chans_pwm(servo->pwm_slice,servo->out_vel);
 }  
 
 float enc2speed(int32_t enc_diff, float current_cycle){
