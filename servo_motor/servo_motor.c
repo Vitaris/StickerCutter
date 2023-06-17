@@ -300,7 +300,8 @@ float speed_compute(servo_t servo, bool plus, bool minus)
 void add_stop(servo_t servo)
 {
 	// add stop
-    servo->stops[servo->no_of_stops] = servo->current_pos + CUT_OFFSET;
+    // servo->stops[servo->no_of_stops] = servo->set_pos + CUT_OFFSET;
+	servo->stops[servo->no_of_stops] = 60.0;
     servo->no_of_stops++;
 }
 
@@ -339,6 +340,8 @@ float feeder(servo_t servo)
 
 }
 
+
+
 bool stop_ahead(servo_t servo)
 {
 	return get_breaking_distance(servo) >= get_dist_to_stop(servo) ? true : false;
@@ -365,7 +368,7 @@ float get_dist_to_stop(servo_t servo)
 float continuous_feeding(servo_t servo)
 {
 	// Starting point of a feeding
-	if (servo->movement_request == true && servo->movement_in_progress == false )
+	if (servo->movement_request == true && servo->movement_in_progress == false && servo->current_pos < 1.0)
 	{
 		// Save starting time
 		servo->movement_start_time = time_us_64();		// save the time of beginning
@@ -404,7 +407,9 @@ float continuous_feeding(servo_t servo)
 
 float breaking_to(servo_t servo)
 {
-	if (servo->breaking_request == true && servo->breaking_in_progress == false)
+	// Starting point of a breaking, save some info
+	// if (servo->breaking_request == true && servo->breaking_in_progress == false)
+	if (servo->breaking_in_progress == false)
 	{
 		servo->breaking_start_time = time_us_64();		// save the time of beginning
 		servo->begin_pos = servo->set_pos;
@@ -414,17 +419,20 @@ float breaking_to(servo_t servo)
 	}
 	servo->breaking_progress_time = (float)(servo->current_time - servo->breaking_start_time) * 1.0e-6;
 	
+	// Breaking
 	if (servo->breaking_in_progress == true)
 	{
 		// Break
-		if (servo->set_pos < servo->begin_pos + servo->acc_dist)
+		if (servo->set_pos < servo->stops[0])
 		{
 			return servo->begin_pos + ( 0.5 * -servo->nominal_acc * pow(servo->breaking_progress_time - servo->acc_time, 2) + servo->acc_dist);
 		}
 		else
 		{
 			servo->breaking_in_progress = false;
-			return servo->set_pos;
+			float stop_pos = servo->stops[0];
+			remove_stop(servo);
+			return stop_pos;
 		}
 		
 	}

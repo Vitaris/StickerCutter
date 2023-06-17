@@ -31,14 +31,23 @@ extern "C" {
 #endif
 
 	/**
-		 * @brief 
-		 *
-		 * @param
-		 * 
-		 * @return Slice number of pwm module
-		 */
+	 * @brief      Creates a machine controller.
+	 * 
+	 * @param      machine         Machine controller data structure
+	 * @param      F1              F1 button state
+	 * @param      F2              F2 button state
+	 * @param      servo_state_01  Servo 01 state
+	 * @param      servo_state_02  Servo 02 state
+	 * 
+	 * @return     Machine controller data structure
+	 */
 	machine_t create_machine(machine_t machine, bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02);
 
+	/**
+	 * @brief      Cyclically computes the machine controller.
+	 * 
+	 * @param      machine  Machine controller data structure
+	 */
 	void machine_compute(machine_t machine);
 
 #ifdef	__cplusplus
