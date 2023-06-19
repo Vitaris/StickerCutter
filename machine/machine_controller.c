@@ -30,8 +30,11 @@ machine_t create_machine(machine_t machine, bool *F1, bool *F2, bool *servo_stat
     // Select ADC input 0 (GPIO26)
     // adc_select_input(0);
 
-
-    
+    float* dummy_float;
+    float a = 0.0;
+    dummy_float = &a;
+    // Mark probe
+    machine->detector = create_detector(&machine->ctrldata_detector, 1, dummy_float);
 
     return machine;
 }
