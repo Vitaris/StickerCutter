@@ -1,10 +1,10 @@
 #include <stdio.h>
-#include "pico/stdlib.h"
 #include <string.h>
 
+#include "pico/stdlib.h"
+#include "hardware/adc.h"
+
 #include "mark_detector.h"
-
-
 
 detector_t create_detector(detector_t detector, uint8_t sensor_pin, float *feeder_position)
 {
@@ -34,16 +34,16 @@ void detector_compute(detector_t detector)
 
     // Shift the memory of 1 position (it will free position 0 and delete pos 500)
     uint16_t tmp_memory[MEM_SIZE - 1];
-    memcpy(tmp_memory, detector->memory, detector->shift_size)
-    memcpy(detector->memory + 1, tmp_memory, detector->shift_size)
+    memcpy(tmp_memory, detector->memory, detector->shift_size);
+    memcpy(detector->memory + 1, tmp_memory, detector->shift_size);
     // Add new value to the memory
     detector->memory[0] = result;
 
 
     // Do the same with positions
     float tmp_positions[MEM_SIZE - 1];
-    memcpy(tmp_positions, detector->positions, detector->shift_size)
-    memcpy(detector->positions + 1 , tmp_positions, detector->shift_size)
+    memcpy(tmp_positions, detector->positions, detector->shift_size);
+    memcpy(detector->positions + 1 , tmp_positions, detector->shift_size);
     // Add new position to the positions
     detector->positions[0] = *detector->feeder_position;
 
@@ -58,43 +58,6 @@ void detector_compute(detector_t detector)
     // Detect a spike on memory data
 
 
-
-    
-
-    
-
-
-
-
-
-
-    // If any servo fails
-    if (machine->servo_state_01 == false || machine->servo_state_02 == false)
-    {
-        machine->machine_condition = ERROR;
-    }
-
-    if (*machine->F1 == true)
-    {
-        machine->machine_state = AUTOMAT;
-    }
-
-    if (*machine->F2 == true)
-    {
-        machine->machine_state = MANUAL_M;
-    }
-
-    // F1, F2, variable text labels
-    if (machine->machine_state == AUTOMAT)
-    {
-        strcpy(machine->F1_text, "  START   ");
-        strcpy(machine->F2_text, "  STOP    ");
-    }
-    else
-    {
-        strcpy(machine->F1_text, "  Move    ");
-        strcpy(machine->F2_text, "  Click   ");
-    }
 
 
     

@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "mark_detector.h"
+
 enum machine_state{MANUAL_M, AUTOMAT};
 enum machine_condition{OK, ERROR};
 
@@ -22,6 +24,10 @@ struct machine {
 
 	char F1_text[10];
 	char F2_text[10];
+
+	// Mark probe
+	struct detector ctrldata_detector;
+	detector_t detector;
 };
 
 typedef struct machine * machine_t;
