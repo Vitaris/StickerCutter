@@ -83,7 +83,7 @@ extern "C" {
 	 * 
 	 * @return returns a lcd_t controller handle
 	 */
-	lcd_t lcd_create(lcd_t lcd, uint32_t RS, uint32_t RW, uint32_t EN, uint32_t D4, uint32_t D5,
+	lcd_t lcd_create(uint32_t RS, uint32_t RW, uint32_t EN, uint32_t D4, uint32_t D5,
  					uint32_t D6, uint32_t D7, uint32_t COL, uint32_t ROW);
 
 	/**

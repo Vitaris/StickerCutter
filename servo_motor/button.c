@@ -1,13 +1,17 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
+#include <stdlib.h>
 
 #include "button.h"
 
 
 
-button_t create_button(button_t button, uint8_t gpio_pin_num)
+button_t create_button(uint8_t gpio_pin_num)
 {
+    // Create button data structure
+    button_t button = (button_t)malloc(sizeof(struct button));
+
     // Set button GPIO to be an input
     gpio_init(gpio_pin_num);
     gpio_set_dir(gpio_pin_num, GPIO_IN);

@@ -41,7 +41,7 @@ extern "C" {
 	 * 
 	 * @return     Machine controller data structure
 	 */
-	machine_t create_machine(machine_t machine, bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02);
+	machine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02);
 
 	/**
 	 * @brief      Cyclically computes the machine controller.

@@ -15,10 +15,14 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "servo_motor.h"
+#include <stdlib.h>
 
-servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
+servo_t servo_create(uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
 							bool *man_plus, bool *man_minus)
 {
+	// Create servo data structure
+	servo_t servo = (servo_t)malloc(sizeof(struct servo_motor));
+
 	// Encoder
 	quadrature_encoder_program_init(pio0, sm, pio_ofset, encoder_pin, 0);
 	servo->sm = sm;
@@ -33,8 +37,8 @@ servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, u
 	// BEST!
 	// float kp_speed = 5.0, ki_speed = 4.0, kd_speed = 3.0;
 	// float kp_pos = 50.0, ki_pos = 0.0, kd_pos = 0.0;
-	servo->pid_pos = pid_create(&servo->ctrldata_pos, &servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 0.0);
-	servo->pid_vel = pid_create(&servo->ctrldata_vel, &servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
+	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 0.0);
+	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
 
 	// Positional controller
 	servo->nominal_acc = 20.0;

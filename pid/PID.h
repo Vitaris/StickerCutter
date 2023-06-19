@@ -81,7 +81,7 @@ extern "C" {
 	 *
 	 * @return returns a pidc_t controller handle
 	 */
-	pidc_t pid_create(pidc_t pid, float* in, float* out, float* set, float kp, float ki, float kd);
+	pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float kd);
 
 	
 	/**

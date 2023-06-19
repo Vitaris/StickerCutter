@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "pico/stdlib.h"
 #include <string.h>
 
@@ -6,8 +7,11 @@
 
 
 
-machine_t create_machine(machine_t machine, bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02)
+machine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02)
 {
+    // Create machine data structure
+    machine_t machine = (machine_t)malloc(sizeof(struct machine));
+
     machine->machine_state = AUTOMAT;
     machine->machine_condition = OK;
 
