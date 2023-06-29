@@ -19,14 +19,6 @@
 #define PWM_0 18
 #define PWM_1 20
 
-
-uint pwm_0_A;
-uint pwm_0_B;
-uint pwm_1_A;
-uint slice_num_0_A;
-uint slice_num_0_B;
-uint slice_num_1_A;
-
 // Servo Motors
 uint64_t old_cycle_time = 0;
 struct servo_motor servo_ctrl_0;
@@ -85,11 +77,6 @@ void core1_entry() {
 
     // LCD
     lcd = lcd_create(&lcd_ctrl, 10, 11, 12, 13, 14, 15, 16, 16, 4);
-
-    // int adc_val;
-    // adc_val = adc_read();
-
-    // add_repeating_timer_ms(100, LCD_timer_callback, NULL, &LCD_timer);
     string2LCD(lcd, 0, 0, "Mode:");
 
     while (1)
@@ -126,17 +113,6 @@ void core1_entry() {
             string2LCD(lcd, 0, 3, machine->F1_text);
             string2LCD(lcd, 10, 3, machine->F2_text);
 
-            /*
-            if (blink_500ms)
-            {
-                string2LCD(lcd, 14, 0, "Error!");
-            }
-            else
-            {
-                string2LCD(lcd, 14, 0, "      ");
-            }
-            */
-
             lcd_refresh = false;
         }
     }
@@ -166,7 +142,6 @@ bool servo_timer_callback(struct repeating_timer *t) {
 }
 
 bool blink_timer_callback(struct repeating_timer *t) {
-
     if (blink_500ms == true)
     {
         blink_500ms = false;
@@ -186,7 +161,6 @@ bool LCD_refresh_timer_callback(struct repeating_timer *t) {
 }
 
 int main() {
-    
     // Init buttons
     F1 = create_button(&button_data_F1, 5);
     F2 = create_button(&button_data_F2, 2);
@@ -212,10 +186,10 @@ int main() {
     // Timer for servo control
     add_repeating_timer_ms(1, servo_timer_callback, NULL, &servo_timer);
 
-    // 1s blink timer
+    // 1s blink timer for lcd
     add_repeating_timer_ms(500, blink_timer_callback, NULL, &blink_timer);
 
-    // 100ms LCD refrehs timer
+    // 100ms LCD refresh timer
     add_repeating_timer_ms(100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
     
     // Launch core1
