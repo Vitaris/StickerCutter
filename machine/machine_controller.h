@@ -5,26 +5,51 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "mark_detector.h"
+#include "../servo_motor/button.h"
+#include "../servo_motor/servo_motor.h"
+
+// Base pin to connect the A phase of the encoder.
+// The B phase must be connected to the next pin
+#define ENC_0 6
+#define ENC_1 8
+
+// First pin of PWM couple.
+#define PWM_0 18
+#define PWM_1 20
+
 enum machine_state{MANUAL_M, AUTOMAT};
 enum machine_condition{OK, ERROR};
 
-struct machine {
+typedef struct machine {
+	// Servo motors
+	servo_t test_servo_0;
+	servo_t test_servo_1;
+
+
+	// Buttons
+	button_t F1;
+	button_t F2;
+	button_t Right;
+	button_t Left;
+	button_t In;
+	button_t Out;
+
+
 	enum machine_state machine_state;
 	enum machine_condition machine_condition;
 
-	// Control Buttons
-	bool *F1;
-	bool *F2;
-
-	// Servos states
-	bool *servo_state_01;
-	bool *servo_state_02;
-
+	// Texts
+	char state_text[10];
+	char condition_text[10];
 	char F1_text[10];
 	char F2_text[10];
-};
 
-typedef struct machine * machine_t;
+	// Mark probe
+	struct detector ctrldata_detector;
+	detector_t detector;
+} machine_t; 
+
 
 #ifdef	__cplusplus
 extern "C" {
@@ -48,7 +73,7 @@ extern "C" {
 	 * 
 	 * @param      machine  Machine controller data structure
 	 */
-	void machine_compute(machine_t machine);
+	void machine_compute(machine_t* machine, const float current_cycle_time);
 
 #ifdef	__cplusplus
 }

@@ -10,22 +10,7 @@
 #include "servo_motor/button.h"
 #include "machine/machine_controller.h"
 
-// Base pin to connect the A phase of the encoder.
-// The B phase must be connected to the next pin
-#define ENC_0 6
-#define ENC_1 8
 
-// First pin of PWM couple.
-#define PWM_0 18
-#define PWM_1 20
-
-
-uint pwm_0_A;
-uint pwm_0_B;
-uint pwm_1_A;
-uint slice_num_0_A;
-uint slice_num_0_B;
-uint slice_num_1_A;
 
 // Servo Motors
 uint64_t old_cycle_time = 0;
@@ -61,24 +46,17 @@ bool lcd_refresh;
 bool mode = MAN;
 bool allways_true = true;
 
-bool LCD_timer_callback(struct repeating_timer *t) 
-{
-    float2LCD(lcd, 0, 1, 8, 0.0);
-    float2LCD(lcd, 0, 2, 8, 0.0);
-    // float2LCD(lcd, 0, 2, 8, test_servo_1->current_pos);
-
-    return true;
-}
 
 void core1_entry() {
 
     // LCD
-    lcd = lcd_create(10, 11, 12, 13, 14, 15, 16, 16, 4);
+   lcd = lcd_create(10, 11, 12, 13, 14, 15, 16, 16, 4);
 
     // int adc_val;
     // adc_val = adc_read();
 
     // add_repeating_timer_ms(100, LCD_timer_callback, NULL, &LCD_timer);
+
     string2LCD(lcd, 0, 0, "Mode:");
 
     while (1)
@@ -90,41 +68,31 @@ void core1_entry() {
             string2LCD(lcd, 6, 0, "MAN");
             }
 
-            float2LCD(lcd, 2, 1, 6, test_servo_0->current_pos);
+            float2LCD(lcd, 2, 1, 6, machine.test_servo_0.current_pos);
+            // float2LCD(lcd, 2, 1, 6, 0.0);
             string2LCD(lcd, 0, 1, "P:");
-            float2LCD(lcd, 2, 2, 6, test_servo_1->current_pos);
+            float2LCD(lcd, 2, 2, 6, machine.test_servo_1.current_pos);
+            // float2LCD(lcd, 2, 2, 6, 0.0);
             string2LCD(lcd, 0, 2, "P:");
 
-            float2LCD(lcd, 14, 1, 6, test_servo_0->current_vel);
+            // float2LCD(lcd, 14, 1, 6, machine.test_servo_0.current_vel);
+            // float2LCD(lcd, 14, 1, 6, 0.0);
             string2LCD(lcd, 12, 1, "S:");
-            float2LCD(lcd, 14, 2, 6, test_servo_1->current_vel);
+            // float2LCD(lcd, 14, 2, 6, machine.test_servo_1.current_vel);
+            float2LCD(lcd, 14, 2, 6, machine.ctrldata_detector.positions[0]);
+            // float2LCD(lcd, 14, 2, 6, 0.0);
             string2LCD(lcd, 12, 2, "S:");
 
-            int2LCD(lcd, 14, 0, 6, test_servo_0->enc_old);
+            // int2LCD(lcd, 14, 0, 6, machine.test_servo_0.enc_old);
+            int2LCD(lcd, 14, 0, 6, machine.ctrldata_detector.result);
+            int2LCD(lcd, 14, 1, 6, machine.ctrldata_detector.average);
+            // int2LCD(lcd, 14, 0, 6, 0.0);
 
             // Machine state
-            if (machine->machine_state == MANUAL_M)
-            {
-                string2LCD(lcd, 6, 0, "MAN");
-            }
-            else if (machine->machine_state == AUTOMAT)
-            {
-                string2LCD(lcd, 6, 0, "AUT");
-            }
-
-            string2LCD(lcd, 0, 3, machine->F1_text);
-            string2LCD(lcd, 10, 3, machine->F2_text);
-
-            /*
-            if (blink_500ms)
-            {
-                string2LCD(lcd, 14, 0, "Error!");
-            }
-            else
-            {
-                string2LCD(lcd, 14, 0, "      ");
-            }
-            */
+            string2LCD(lcd, 6, 0, machine.state_text);
+            string2LCD(lcd, 10, 0, machine.condition_text);
+            string2LCD(lcd, 0, 3, machine.F1_text);
+            string2LCD(lcd, 10, 3, machine.F2_text);
 
             lcd_refresh = false;
         }
@@ -137,25 +105,16 @@ bool servo_timer_callback(struct repeating_timer *t) {
 	float current_cycle_time = (float)(time_us_64() - old_cycle_time) * 1e-6;
 	old_cycle_time = time_us_64();
 
-    servo_compute(test_servo_0, current_cycle_time);
-    servo_compute(test_servo_1, current_cycle_time);
-
-    // Buttons
-    button_compute(F1);
-    button_compute(F2);
-    button_compute(Right);
-    button_compute(Left);
-    button_compute(In);
-    button_compute(Out);
+    // servo_compute(test_servo_0, current_cycle_time);
+    // servo_compute(test_servo_1, current_cycle_time);
 
     // Machine
-    machine_compute(machine);
+    machine_compute(&machine, current_cycle_time);
 
     return true;
 }
 
 bool blink_timer_callback(struct repeating_timer *t) {
-
     if (blink_500ms == true)
     {
         blink_500ms = false;
@@ -175,7 +134,7 @@ bool LCD_refresh_timer_callback(struct repeating_timer *t) {
 }
 
 int main() {
-    
+   
     // Init buttons
     F1 = create_button(5);
     F2 = create_button(2);
@@ -201,10 +160,10 @@ int main() {
     // Timer for servo control
     add_repeating_timer_ms(1, servo_timer_callback, NULL, &servo_timer);
 
-    // 1s blink timer
+    // 1s blink timer for lcd
     add_repeating_timer_ms(500, blink_timer_callback, NULL, &blink_timer);
 
-    // 100ms LCD refrehs timer
+    // 100ms LCD refresh timer
     add_repeating_timer_ms(100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
     
     // Launch core1

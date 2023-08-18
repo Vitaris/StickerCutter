@@ -23,10 +23,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "ant_lcd.h"
-#include "pico/stdlib.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include "ant_lcd.h"
+#include "pico/stdlib.h"
 
 lcd_t lcd_create(uint32_t RS, uint32_t RW, uint32_t EN, uint32_t D4, uint32_t D5,
  				uint32_t D6, uint32_t D7, uint32_t COL, uint32_t ROW)

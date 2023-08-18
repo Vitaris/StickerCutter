@@ -4,10 +4,12 @@
 #include <string.h>
 
 #include "machine_controller.h"
+#include "../servo_motor/servo_motor.h"
+#include "../servo_motor/button.h"
 
 
 
-machine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02)
+achine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02)
 {
     // Create machine data structure
     machine_t machine = (machine_t)malloc(sizeof(struct machine));
@@ -21,57 +23,78 @@ machine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_s
     machine->servo_state_01 = servo_state_01;
     machine->servo_state_02 = servo_state_02;
 
-    
-    // Set mark probe
-    // Set GPIO 5 to be an input
-    gpio_init(5);
-    gpio_set_dir(5, GPIO_IN);
+    // Init servos
+    uint offset = pio_add_program(pio0, &quadrature_encoder_program); // Init PIO program
 
-    // adc_init();
+    servo_create(&machine->test_servo_0, offset, 0, ENC_0, PWM_0, 1.0, FEEDER, &machine->Right, &machine->Left);
+    servo_create(&machine->test_servo_1, offset, 1, ENC_1, PWM_1, 1.0, MANUAL, &machine->In, &machine->Out);
 
-    // Make sure GPIO is high-impedance, no pullups etc
-    // adc_gpio_init(26);
-    // Select ADC input 0 (GPIO26)
-    // adc_select_input(0);
+    machine->machine_state = AUTOMAT;
+    strcpy(machine->state_text, "AUT");
+    machine->machine_condition = OK;
+    strcpy(machine->condition_text, "OK");
 
-
-    
-
-    return machine;
+     // Mark probe
+    create_detector(&machine->ctrldata_detector, 0, &machine->test_servo_0.current_pos);
 }
 
-void machine_compute(machine_t machine)
+void machine_compute(machine_t* machine, const float current_cycle_time)
 {
+    servo_compute(&machine->test_servo_0, current_cycle_time);
+    servo_compute(&machine->test_servo_1, current_cycle_time);
+
+    button_compute(&machine->F1);
+    button_compute(&machine->F2);
+    button_compute(&machine->Right);
+    button_compute(&machine->Left);
+    button_compute(&machine->In);
+    button_compute(&machine->Out);
+
+    detector_compute(&machine->ctrldata_detector);
+        
     // If any servo fails
-    if (machine->servo_state_01 == false || machine->servo_state_02 == false)
+    if (machine->test_servo_0.state == ERR || machine->test_servo_1.state == ERR)
     {
         machine->machine_condition = ERROR;
+        strcpy(machine->condition_text, "ERR");
     }
-
-    if (*machine->F1 == true)
+    else
     {
-        machine->machine_state = AUTOMAT;
+        machine->machine_condition = OK;
+        strcpy(machine->condition_text, "OK ");
     }
 
-    if (*machine->F2 == true)
+    if (machine->F1.state_raised == true)
+    {
+        if (machine->machine_state == AUTOMAT)
+        {
+            machine->machine_state = MANUAL_M;
+        }
+        else if (machine->machine_state == MANUAL_M)
+        {
+            machine->machine_state = AUTOMAT;
+        }
+    }
+
+    if (machine->F2.state_raised == true)
     {
         machine->machine_state = MANUAL_M;
+        
     }
 
     // F1, F2, variable text labels
     if (machine->machine_state == AUTOMAT)
     {
-        strcpy(machine->F1_text, "  Start   ");
-        strcpy(machine->F2_text, "  Stop    ");
+        strcpy(machine->state_text, "AUT");
+        strcpy(machine->F1_text, "  Manual  ");
+        strcpy(machine->F2_text, "  Start   ");
     }
-    else
+    else if (machine->machine_state == MANUAL_M)
     {
-        strcpy(machine->F1_text, "  Move    ");
-        strcpy(machine->F2_text, "  Click   ");
+        strcpy(machine->state_text, "MAN");
+        strcpy(machine->F1_text, "  Automat ");
+        strcpy(machine->F2_text, "  Knife   ");
     }
-
-
-    
 }
 
 

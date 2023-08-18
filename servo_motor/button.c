@@ -5,8 +5,6 @@
 
 #include "button.h"
 
-
-
 button_t create_button(uint8_t gpio_pin_num)
 {
     // Create button data structure
@@ -21,21 +19,39 @@ button_t create_button(uint8_t gpio_pin_num)
     return button;
 }
 
-void button_compute(button_t button)
+void button_compute(button_t* button)
 {
     // Read the button state
     bool current_state = gpio_get(button->gpio_pin_num);
 
-    // Change detection
-    if (current_state != button->state)
+    // Positive change detection (off -> on)
+    if (current_state != button->state && button->state == false)
     {
-        // Button state has changed
-        button->state_changed = true;
-        button->time_last_changed = time_us_64();
+        // Debounce
+        if (time_us_64() - button->time_pressed > BUTTON_DEBOUNCE_TIME)
+        {
+            button->state_raised = true;
+            button->time_pressed = time_us_64();
+        }
+    }
+    else 
+    {
+        button->state_raised = false;
+    }
+
+    // Negative change detection (on -> off)
+    if (current_state != button->state && button->state == true)
+    {
+        // Debounce
+        if (time_us_64() - button->time_released > BUTTON_DEBOUNCE_TIME)
+        {
+            button->state_dropped = true;
+            button->time_released = time_us_64();
+        }
     }
     else
     {
-        button->state_changed = false;
+        button->state_dropped = false;
     }
 
     button->state = current_state;

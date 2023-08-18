@@ -5,17 +5,19 @@
 #include <stdint.h>
 #include <stdio.h>
 
-struct button {
+#define BUTTON_DEBOUNCE_TIME 1000
+
+typedef struct button {
 	uint8_t gpio_pin_num;
 	bool state;
-	bool state_changed;
+	bool state_raised;
+	bool state_dropped;
+	bool state_3s_pressed;
 
 	time_t time_last_changed;
 	time_t time_pressed;
 	time_t time_released;
-};
-
-typedef struct button * button_t;
+} button_t;
 
 #ifdef	__cplusplus
 extern "C" {
@@ -30,7 +32,7 @@ extern "C" {
 		 */
 	button_t create_button(uint8_t gpio_pin_num);
 
-	void button_compute(button_t button);
+	void button_compute(button_t* button);
 
 #ifdef	__cplusplus
 }
