@@ -16,8 +16,8 @@
  */
 #include "servo_motor.h"
 
-servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
-							bool *man_plus, bool *man_minus)
+void servo_create(servo_t* servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
+							button_t* man_plus, button_t* man_minus)
 {
 	// Encoder
 	quadrature_encoder_program_init(pio0, sm, pio_ofset, encoder_pin, 0);
@@ -72,11 +72,9 @@ servo_t servo_create(servo_t servo, uint pio_ofset, uint sm, uint encoder_pin, u
 	servo->edge_3 = false;
 	// servo->movement_request = true;
 
-
-	return servo;
 }
 
-void servo_compute(servo_t servo, float cycle_time)
+void servo_compute(servo_t* servo, float cycle_time)
 {
 	// Encoder
 	// Get current position, velocity
@@ -119,7 +117,8 @@ void servo_compute(servo_t servo, float cycle_time)
 
 		case MANUAL:
 			// Manual mode
-			servo->set_vel = speed_compute(servo, *servo->man_plus, *servo->man_minus);
+			// servo->set_vel = speed_compute(servo, *servo->man_plus->state, *servo->man_minus->state);
+			servo->set_vel = speed_compute(servo, false, false);
 			// servo->set_vel = 0.0;
 			pid_compute(servo->pid_vel);
 			break;
@@ -148,13 +147,13 @@ float enc2speed(int32_t enc_diff, float current_cycle){
 	return (float)enc_diff * (1.0 / current_cycle) / 4000.0;
 }
 
-void servo_goto(servo_t servo, float position, float speed){
+void servo_goto(servo_t* servo, float position, float speed){
 	servo->requested_pos = position;
 	servo->nominal_speed = speed;
 	servo->positioning_request = true;
 }
 
-void compute_path_params(servo_t servo)
+void compute_path_params(servo_t* servo)
 {
 	// Main path parameters computation
 	servo->t_ramp = servo->nominal_speed / servo->nominal_acc;		// duration of acceleration(decceleration) 
@@ -174,7 +173,7 @@ void compute_path_params(servo_t servo)
 
 }
 
-float pos_compute(servo_t servo, float current_pos)
+float pos_compute(servo_t* servo, float current_pos)
 {
 	// Request for positioning received
 	if (servo->positioning_request == true && servo->state == POSITIONING_DONE)
@@ -214,7 +213,7 @@ float pos_compute(servo_t servo, float current_pos)
 	return servo->out_pos;
 }
 
-float pos_compute_2(servo_t servo, float delta_time, float current_pos)
+float pos_compute_2(servo_t* servo, float delta_time, float current_pos)
 {
 	// Request for positioning received
 	if (servo->positioning_request == true && servo->state == POSITIONING_DONE)
@@ -271,7 +270,7 @@ float pos_compute_2(servo_t servo, float delta_time, float current_pos)
 	return servo->set_pos + (servo->last_speed * delta);
 }
 
-float speed_compute(servo_t servo, bool plus, bool minus)
+float speed_compute(servo_t* servo, bool plus, bool minus)
 {
 	// Both buttons should not be active at the same time
 	// There may be a malfunction, so it is better to stop the motor
@@ -297,7 +296,7 @@ float speed_compute(servo_t servo, bool plus, bool minus)
 	}
 }
 
-void add_stop(servo_t servo)
+void add_stop(servo_t* servo)
 {
 	// add stop
     // servo->stops[servo->no_of_stops] = servo->set_pos + CUT_OFFSET;
@@ -305,7 +304,7 @@ void add_stop(servo_t servo)
     servo->no_of_stops++;
 }
 
-void remove_stop(servo_t servo)
+void remove_stop(servo_t* servo)
 {
 	for (int i = 0; i < servo->no_of_stops; i++)
     {   
@@ -314,10 +313,12 @@ void remove_stop(servo_t servo)
     servo->no_of_stops--;
 }
 
-float feeder(servo_t servo)
+float feeder(servo_t* servo)
 {
-	servo->movement_request = *servo->man_plus;
-	servo->breaking_request = *servo->man_minus;
+	// servo->movement_request = *servo->man_plus->state;
+	// servo->breaking_request = *servo->man_minus->state;
+	servo->movement_request = false;
+	servo->breaking_request = false;
 
 	if (servo->set_pos >= 50 && servo->edge_3 == false)
 	{
@@ -342,17 +343,17 @@ float feeder(servo_t servo)
 
 
 
-bool stop_ahead(servo_t servo)
+bool stop_ahead(servo_t* servo)
 {
 	return get_breaking_distance(servo) >= get_dist_to_stop(servo) ? true : false;
 }
 
-float get_breaking_distance(servo_t servo)
+float get_breaking_distance(servo_t* servo)
 {
 	return 0.5 * (pow(servo->current_vel, 2) / servo->nominal_acc);
 }
 
-float get_dist_to_stop(servo_t servo)
+float get_dist_to_stop(servo_t* servo)
 {
 	if (servo->no_of_stops > 0)
 	{
@@ -365,7 +366,7 @@ float get_dist_to_stop(servo_t servo)
 	}
 }
 
-float continuous_feeding(servo_t servo)
+float continuous_feeding(servo_t* servo)
 {
 	// Starting point of a feeding
 	if (servo->movement_request == true && servo->movement_in_progress == false && servo->current_pos < 1.0)
@@ -405,7 +406,7 @@ float continuous_feeding(servo_t servo)
 	}
 }
 
-float breaking_to(servo_t servo)
+float breaking_to(servo_t* servo)
 {
 	// Starting point of a breaking, save some info
 	// if (servo->breaking_request == true && servo->breaking_in_progress == false)
@@ -443,7 +444,7 @@ float breaking_to(servo_t servo)
 
 }
 
-float accelerate(servo_t servo)
+float accelerate(servo_t* servo)
 {
 
 }

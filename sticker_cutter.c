@@ -10,45 +10,17 @@
 #include "servo_motor/button.h"
 #include "machine/machine_controller.h"
 
-// Base pin to connect the A phase of the encoder.
-// The B phase must be connected to the next pin
-#define ENC_0 6
-#define ENC_1 8
 
-// First pin of PWM couple.
-#define PWM_0 18
-#define PWM_1 20
 
 // Servo Motors
 uint64_t old_cycle_time = 0;
-struct servo_motor servo_ctrl_0;
-struct servo_motor servo_ctrl_1;
-
-servo_t test_servo_0;
-servo_t test_servo_1;
 
 // Timers
 struct repeating_timer servo_timer;
 struct repeating_timer blink_timer;
 struct repeating_timer LCD_refresh_timer;
 
-// Buttons
-struct button button_data_F1;
-struct button button_data_F2;
-struct button button_data_Right;
-struct button button_data_Left;
-struct button button_data_In;
-struct button button_data_Out;
-
-button_t F1;
-button_t F2;
-button_t Right;
-button_t Left;
-button_t In;
-button_t Out;
-
 // Machine controller
-struct machine machine_data;
 machine_t machine;
 
 // LCD
@@ -64,14 +36,6 @@ bool lcd_refresh;
 bool mode = MAN;
 bool allways_true = true;
 
-bool LCD_timer_callback(struct repeating_timer *t) 
-{
-    float2LCD(lcd, 0, 1, 8, 0.0);
-    float2LCD(lcd, 0, 2, 8, 0.0);
-    // float2LCD(lcd, 0, 2, 8, test_servo_1->current_pos);
-
-    return true;
-}
 
 void core1_entry() {
 
@@ -88,30 +52,31 @@ void core1_entry() {
             string2LCD(lcd, 6, 0, "MAN");
             }
 
-            float2LCD(lcd, 2, 1, 6, test_servo_0->current_pos);
+            float2LCD(lcd, 2, 1, 6, machine.test_servo_0.current_pos);
+            // float2LCD(lcd, 2, 1, 6, 0.0);
             string2LCD(lcd, 0, 1, "P:");
-            float2LCD(lcd, 2, 2, 6, test_servo_1->current_pos);
+            float2LCD(lcd, 2, 2, 6, machine.test_servo_1.current_pos);
+            // float2LCD(lcd, 2, 2, 6, 0.0);
             string2LCD(lcd, 0, 2, "P:");
 
-            float2LCD(lcd, 14, 1, 6, test_servo_0->current_vel);
+            // float2LCD(lcd, 14, 1, 6, machine.test_servo_0.current_vel);
+            // float2LCD(lcd, 14, 1, 6, 0.0);
             string2LCD(lcd, 12, 1, "S:");
-            float2LCD(lcd, 14, 2, 6, test_servo_1->current_vel);
+            // float2LCD(lcd, 14, 2, 6, machine.test_servo_1.current_vel);
+            float2LCD(lcd, 14, 2, 6, machine.ctrldata_detector.positions[0]);
+            // float2LCD(lcd, 14, 2, 6, 0.0);
             string2LCD(lcd, 12, 2, "S:");
 
-            int2LCD(lcd, 14, 0, 6, test_servo_0->enc_old);
+            // int2LCD(lcd, 14, 0, 6, machine.test_servo_0.enc_old);
+            int2LCD(lcd, 14, 0, 6, machine.ctrldata_detector.result);
+            int2LCD(lcd, 14, 1, 6, machine.ctrldata_detector.average);
+            // int2LCD(lcd, 14, 0, 6, 0.0);
 
             // Machine state
-            if (machine->machine_state == MANUAL_M)
-            {
-                string2LCD(lcd, 6, 0, "MAN");
-            }
-            else if (machine->machine_state == AUTOMAT)
-            {
-                string2LCD(lcd, 6, 0, "AUT");
-            }
-
-            string2LCD(lcd, 0, 3, machine->F1_text);
-            string2LCD(lcd, 10, 3, machine->F2_text);
+            string2LCD(lcd, 6, 0, machine.state_text);
+            string2LCD(lcd, 10, 0, machine.condition_text);
+            string2LCD(lcd, 0, 3, machine.F1_text);
+            string2LCD(lcd, 10, 3, machine.F2_text);
 
             lcd_refresh = false;
         }
@@ -124,19 +89,11 @@ bool servo_timer_callback(struct repeating_timer *t) {
 	float current_cycle_time = (float)(time_us_64() - old_cycle_time) * 1e-6;
 	old_cycle_time = time_us_64();
 
-    servo_compute(test_servo_0, current_cycle_time);
-    servo_compute(test_servo_1, current_cycle_time);
-
-    // Buttons
-    button_compute(F1);
-    button_compute(F2);
-    button_compute(Right);
-    button_compute(Left);
-    button_compute(In);
-    button_compute(Out);
+    // servo_compute(test_servo_0, current_cycle_time);
+    // servo_compute(test_servo_1, current_cycle_time);
 
     // Machine
-    machine_compute(machine);
+    machine_compute(&machine, current_cycle_time);
 
     return true;
 }
@@ -161,24 +118,8 @@ bool LCD_refresh_timer_callback(struct repeating_timer *t) {
 }
 
 int main() {
-    // Init buttons
-    F1 = create_button(&button_data_F1, 5);
-    F2 = create_button(&button_data_F2, 2);
-    Right = create_button(&button_data_Right, 1);
-    Left = create_button(&button_data_Left, 3);
-    In = create_button(&button_data_In, 4);
-    Out = create_button(&button_data_Out, 0);
-
-    // Init PIO
-    uint offset = pio_add_program(pio0, &quadrature_encoder_program);
-
-    // Init servos
-    test_servo_0 = servo_create(&servo_ctrl_0, offset, 0, ENC_0, PWM_0, 1.0, FEEDER, &Right->state_changed, &Left->state_changed);
-    test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, MANUAL, &In->state, &Out->state);
-    // test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, FEEDER, &In->state_changed, &Out->state_changed);
-
     // Init machine controller
-    machine = create_machine(&machine_data, &F1->state, &F2->state, &allways_true, &allways_true);
+    create_machine(&machine);
 
     // Initialize all of the present standard stdio types that are linked into the binary. 
     stdio_init_all();
