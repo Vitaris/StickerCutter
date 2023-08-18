@@ -58,7 +58,6 @@ typedef struct servo_motor {
 	
 	// PID
 	// Position
-	struct pid_controller ctrldata_pos;
 	pidc_t pid_pos;
 	float current_pos;
 	float out_pos;
@@ -66,7 +65,6 @@ typedef struct servo_motor {
 
 	// PID
 	// Velocity
-	struct pid_controller ctrldata_vel;
 	pidc_t pid_vel;
 	float current_vel;
 	float out_vel;
@@ -183,8 +181,8 @@ extern "C" {
 	 * @param man_minus Pointer to the manual minus button
 	 * @return returns a pidc_t controller handle
 	 */
-	void servo_create(servo_t* servo, uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
-							button_t* man_plus, button_t* man_minus);
+	servo_t servo_create(uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
+							bool *man_plus, bool *man_minus);
 
 	/**
 	 * @brief Computation function for teh servo motor, have to be called in a servo loop (1ms)

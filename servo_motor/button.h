@@ -30,7 +30,7 @@ extern "C" {
 		 * 
 		 * @return Slice number of pwm module
 		 */
-	void create_button(button_t* button, uint8_t gpio_pin_num);
+	button_t create_button(uint8_t gpio_pin_num);
 
 	void button_compute(button_t* button);
 

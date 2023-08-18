@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "pico/stdlib.h"
 #include <string.h>
 
@@ -8,15 +9,19 @@
 
 
 
-void create_machine(machine_t* machine)
+achine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02)
 {
-    // Init buttons
-    create_button(&machine->F1, 5);
-    create_button(&machine->F2, 2);
-    create_button(&machine->Right, 1);
-    create_button(&machine->Left, 3);
-    create_button(&machine->In, 4);
-    create_button(&machine->Out, 0);
+    // Create machine data structure
+    machine_t machine = (machine_t)malloc(sizeof(struct machine));
+
+    machine->machine_state = AUTOMAT;
+    machine->machine_condition = OK;
+
+    machine->F1 = F1;
+    machine->F2 = F2;
+
+    machine->servo_state_01 = servo_state_01;
+    machine->servo_state_02 = servo_state_02;
 
     // Init servos
     uint offset = pio_add_program(pio0, &quadrature_encoder_program); // Init PIO program

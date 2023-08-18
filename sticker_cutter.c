@@ -15,16 +15,26 @@
 // Servo Motors
 uint64_t old_cycle_time = 0;
 
+servo_t test_servo_0;
+servo_t test_servo_1;
+
 // Timers
 struct repeating_timer servo_timer;
 struct repeating_timer blink_timer;
 struct repeating_timer LCD_refresh_timer;
 
+// Buttons
+button_t F1;
+button_t F2;
+button_t Right;
+button_t Left;
+button_t In;
+button_t Out;
+
 // Machine controller
 machine_t machine;
 
 // LCD
-struct lcd_controller lcd_ctrl;
 lcd_t lcd;
 
 bool blink_500ms;
@@ -40,7 +50,13 @@ bool allways_true = true;
 void core1_entry() {
 
     // LCD
-    lcd = lcd_create(&lcd_ctrl, 10, 11, 12, 13, 14, 15, 16, 16, 4);
+   lcd = lcd_create(10, 11, 12, 13, 14, 15, 16, 16, 4);
+
+    // int adc_val;
+    // adc_val = adc_read();
+
+    // add_repeating_timer_ms(100, LCD_timer_callback, NULL, &LCD_timer);
+
     string2LCD(lcd, 0, 0, "Mode:");
 
     while (1)
@@ -118,8 +134,25 @@ bool LCD_refresh_timer_callback(struct repeating_timer *t) {
 }
 
 int main() {
+   
+    // Init buttons
+    F1 = create_button(5);
+    F2 = create_button(2);
+    Right = create_button(1);
+    Left = create_button(3);
+    In = create_button(4);
+    Out = create_button(0);
+
+    // Init PIO
+    uint offset = pio_add_program(pio0, &quadrature_encoder_program);
+
+    // Init servos
+    test_servo_0 = servo_create(offset, 0, ENC_0, PWM_0, 1.0, FEEDER, &Right->state_changed, &Left->state_changed);
+    test_servo_1 = servo_create(offset, 1, ENC_1, PWM_1, 1.0, MANUAL, &In->state, &Out->state);
+    // test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, FEEDER, &In->state_changed, &Out->state_changed);
+
     // Init machine controller
-    create_machine(&machine);
+    machine = create_machine(&F1->state, &F2->state, &allways_true, &allways_true);
 
     // Initialize all of the present standard stdio types that are linked into the binary. 
     stdio_init_all();

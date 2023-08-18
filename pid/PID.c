@@ -18,9 +18,14 @@
 	Author e-mail: ruben at geekfactory dot mx
  */
 #include "PID.h"
+#include <stdlib.h>
 
-pidc_t pid_create(pidc_t pid, float* in, float* out, float* set, float kp, float ki, float kd)
+pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float kd)
 {
+	// Create PID data structure
+	pidc_t pid = (pidc_t)malloc(sizeof(struct pid_controller));
+
+	// Initialize PID data structure by given parameters
 	pid->input = in;
 	pid->output = out;
 	pid->setpoint = set;
@@ -29,6 +34,7 @@ pidc_t pid_create(pidc_t pid, float* in, float* out, float* set, float kp, float
 	pid->Ki = ki;
 	pid->Kd = kd;
 
+	// Set default limits
 	pid_limits(pid, -1024, 1024);
 	
 	return pid;
