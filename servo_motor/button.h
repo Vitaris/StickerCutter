@@ -17,7 +17,7 @@ typedef struct button {
 	time_t time_last_changed;
 	time_t time_pressed;
 	time_t time_released;
-} button_t;
+} * button_t;
 
 #ifdef	__cplusplus
 extern "C" {
@@ -32,7 +32,7 @@ extern "C" {
 		 */
 	button_t create_button(uint8_t gpio_pin_num);
 
-	void button_compute(button_t* button);
+	void button_compute(button_t button);
 
 #ifdef	__cplusplus
 }

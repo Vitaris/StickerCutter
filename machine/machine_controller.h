@@ -9,15 +9,6 @@
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 
-// Base pin to connect the A phase of the encoder.
-// The B phase must be connected to the next pin
-#define ENC_0 6
-#define ENC_1 8
-
-// First pin of PWM couple.
-#define PWM_0 18
-#define PWM_1 20
-
 enum machine_state{MANUAL_M, AUTOMAT};
 enum machine_condition{OK, ERROR};
 
@@ -48,7 +39,7 @@ typedef struct machine {
 	// Mark probe
 	struct detector ctrldata_detector;
 	detector_t detector;
-} machine_t; 
+} * machine_t; 
 
 
 #ifdef	__cplusplus
@@ -73,7 +64,7 @@ extern "C" {
 	 * 
 	 * @param      machine  Machine controller data structure
 	 */
-	void machine_compute(machine_t* machine, const float current_cycle_time);
+	void machine_compute(machine_t machine, const float current_cycle_time);
 
 #ifdef	__cplusplus
 }

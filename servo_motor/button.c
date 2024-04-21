@@ -19,7 +19,7 @@ button_t create_button(uint8_t gpio_pin_num)
     return button;
 }
 
-void button_compute(button_t* button)
+void button_compute(button_t button)
 {
     // Read the button state
     bool current_state = gpio_get(button->gpio_pin_num);

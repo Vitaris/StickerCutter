@@ -9,7 +9,7 @@
 
 
 
-achine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02)
+machine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02)
 {
     // Create machine data structure
     machine_t machine = (machine_t)malloc(sizeof(struct machine));
@@ -38,7 +38,7 @@ achine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_st
     create_detector(&machine->ctrldata_detector, 0, &machine->test_servo_0.current_pos);
 }
 
-void machine_compute(machine_t* machine, const float current_cycle_time)
+void machine_compute(machine_t machine, const float current_cycle_time)
 {
     servo_compute(&machine->test_servo_0, current_cycle_time);
     servo_compute(&machine->test_servo_1, current_cycle_time);
