@@ -237,6 +237,11 @@ float pos_compute_2(servo_t servo, float delta_time, float current_pos)
 		
 	}
 
+void check_for_following_error(servo_t* servo)
+{
+	
+}
+
 
 //************************************************************************************************
 	float delta = 0.001 + (delta_time - 0.001);

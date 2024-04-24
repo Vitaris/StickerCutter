@@ -290,6 +290,12 @@ extern "C" {
 	 */
 	float breaking_to(servo_t servo);
 
+	/**
+	 * @brief Check real servo position agains computed one and raise following error if needed
+	 * @param servo Pointer to the controller struct
+	 * @return void	 */
+	void check_for_following_error(servo_t* servo);
+
 #ifdef	__cplusplus
 }
 #endif
