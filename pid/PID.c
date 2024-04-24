@@ -1,7 +1,7 @@
 #include "PID.h"
 #include <stdlib.h>
 
-pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float kd)
+pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float kd, bool *error_signal)
 {
 	// Create PID data structure
 	pidc_t pid = (pidc_t)malloc(sizeof(struct pid_controller));
@@ -15,8 +15,11 @@ pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float k
 	pid->Ki = ki;
 	pid->Kd = kd;
 
+	pid->posError = error_signal;
+
 	// Set default limits
 	pid_limits(pid, -1024, 1024);
+	pid->followingError = 1.0;
 	
 	return pid;
 }

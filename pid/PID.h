@@ -62,10 +62,11 @@ extern "C" {
 	 * @param kp Proportional gain
 	 * @param ki Integral gain
 	 * @param kd Diferential gain
+	 * @param error_signal Pointer to error handler
 	 *
 	 * @return returns a pidc_t controller handle
 	 */
-	pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float kd);
+	pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float kd, bool *error_signal);
 
 	
 	/**

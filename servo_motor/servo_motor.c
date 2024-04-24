@@ -1,6 +1,8 @@
 #include "servo_motor.h"
 #include <stdlib.h>
 
+bool *dummy = false;
+
 servo_t servo_create(uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
 							button_t *man_plus, button_t *man_minus)
 {
@@ -18,8 +20,8 @@ servo_t servo_create(uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, fl
 	servo->pwm_slice = pwm_chan_init(pwm_pin);
 
 	// PID
-	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 0.0);
-	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
+	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 0.0, dummy);
+	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0, dummy);
 
 	// Positional controller
 	servo->nominal_acc = 20.0;
