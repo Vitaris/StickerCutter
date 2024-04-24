@@ -18,9 +18,6 @@ servo_t servo_create(uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, fl
 	servo->pwm_slice = pwm_chan_init(pwm_pin);
 
 	// PID
-	// BEST!
-	// float kp_speed = 5.0, ki_speed = 4.0, kd_speed = 3.0;
-	// float kp_pos = 50.0, ki_pos = 0.0, kd_pos = 0.0;
 	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 0.0);
 	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
 

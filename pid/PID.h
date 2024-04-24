@@ -20,22 +20,25 @@
  */
 struct pid_controller {
 	// Input, output and setpoint
-	float * input; //!< Current Process Value
-	float * output; //!< Corrective Output from PID Controller
-	float * setpoint; //!< Controller Setpoint
+	float * input; // Current Process Value
+	float * output; // Corrective Output from PID Controller
+	float * setpoint; // Controller Setpoint
 	// Tuning parameters
-	float Kp; //!< Stores the gain for the Proportional term
-	float Ki; //!< Stores the gain for the Integral term
-	float Kd; //!< Stores the gain for the Derivative term
+	float Kp; // Stores the gain for the Proportional term
+	float Ki; // Stores the gain for the Integral term
+	float Kd; // Stores the gain for the Derivative term
 	// Output minimum and maximum values
-	float omin; //!< Maximum value allowed at the output
-	float omax; //!< Minimum value allowed at the output
+	float omin; // Maximum value allowed at the output
+	float omax; // Minimum value allowed at the output
 	// Variables for PID algorithm
-	float iterm; //!< Accumulator for integral term
-	float lastin; //!< Last input value for differential term
+	float iterm; // Accumulator for integral term
+	float lastin; // Last input value for differential term
 	// Time related
-	uint32_t lasttime; //!< Stores the time when the control loop ran last time
-	uint32_t sampletime; //!< Defines the PID sample time
+	uint32_t lasttime; // Stores the time when the control loop ran last time
+	uint32_t sampletime; // Defines the PID sample time
+	// Error handling
+	float followingError; // Maximum permisible position deviation
+	bool *posError; // Pointer to bool
 };
 
 typedef struct pid_controller * pidc_t;

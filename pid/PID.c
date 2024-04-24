@@ -27,6 +27,11 @@ void pid_compute(pidc_t pid)
 	float in = *(pid->input);
 	// Compute error
 	float error = (*(pid->setpoint)) - in;
+
+	// Evaluate following error
+	if (error >= pid->followingError)
+		*pid->posError = true;
+		
 	// Compute integral
 	pid->iterm += (pid->Ki * error);
 	if (pid->iterm > pid->omax)
