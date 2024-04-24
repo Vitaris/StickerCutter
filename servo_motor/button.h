@@ -34,6 +34,8 @@ extern "C" {
 
 	void button_compute(button_t button);
 
+	bool button_change_detection(button_t button, bool current_button_state, int current_time);
+
 #ifdef	__cplusplus
 }
 #endif
