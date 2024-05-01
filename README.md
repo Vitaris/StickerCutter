@@ -17,12 +17,12 @@ This project aims to repurpose a non-functional large format printer into a stic
 - **Open Source:** This project will be open source and hosted on GitHub, allowing for collaboration, contributions, and improvements from the community.
 
 ## PID Setting
-Speed controler: 
+* Speed controler: 
 P = 5.0 
 I = 4.0 
 D = 3.0
 
-Position controler:
+* Position controler:
 P = 50.0
 
 ## Velky motor - L404
