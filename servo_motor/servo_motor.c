@@ -81,9 +81,9 @@ void servo_compute(servo_t servo, float cycle_time)
 		servo->pos_error_internal = true;
 
 	// Trigger the action by button
-	if (servo->man_plus.*servo->man_plus.state_raised == 1) {
+	if ((*servo->man_plus)->state_raised == 1) {
 		strcpy(*servo->error_message, "OK");
-		servo->pos_error_internal = false;
+		*servo->posError = false;;
 	}
 	
 
