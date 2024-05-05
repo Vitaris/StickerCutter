@@ -19,6 +19,7 @@
 #define AUTO true
 #define CUT_OFFSET 10.0
 #define MAN_SPEED 5.0
+#define FOLLOWING_ERROR 0.1 // Maximum permisible position deviation
 
 enum op_state{SERVO_OK, ERR};
 enum state{IN_POSITIONING,POSITIONING_DONE};
@@ -54,6 +55,8 @@ typedef struct servo_motor {
 	float current_pos;
 	float out_pos;
 	float set_pos;
+	bool *posError; // Pointer to bool
+	char (*error_message)[16]; // Error message
 
 	// PID
 	// Velocity
@@ -64,6 +67,7 @@ typedef struct servo_motor {
 
 	// Positional controller
 	float generated_pos;
+	bool pos_error_internal;
 
 	// Feeder controller
 
@@ -72,7 +76,7 @@ typedef struct servo_motor {
 
 	// Controller state
 	bool positioning_request;
-
+	char (*servo_name)[10];
 	
 	// Time vars
 	float current_cycle_time;
@@ -173,8 +177,8 @@ extern "C" {
 	 * @param man_minus Pointer to the manual minus button
 	 * @return returns a pidc_t controller handle
 	 */
-	servo_t servo_create(uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
-							button_t *man_plus, button_t *man_minus);
+	servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
+							button_t *man_plus, button_t *man_minus, bool *error, char (*message)[16]);
 
 	/**
 	 * @brief Computation function for teh servo motor, have to be called in a servo loop (1ms)

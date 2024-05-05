@@ -1,13 +1,13 @@
 #include "servo_motor.h"
 #include <stdlib.h>
+#include <string.h>
 
-bool *dummy = false;
-
-servo_t servo_create(uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
-							button_t *man_plus, button_t *man_minus)
+servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
+							button_t *man_plus, button_t *man_minus, bool *error, char (*message)[16])
 {
 	// Create servo data structure
 	servo_t servo = (servo_t)malloc(sizeof(struct servo_motor));
+	servo->servo_name = servo_name;
 
 	// Encoder
 	quadrature_encoder_program_init(pio0, sm, pio_ofset, encoder_pin, 0);
@@ -20,19 +20,25 @@ servo_t servo_create(uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, fl
 	servo->pwm_slice = pwm_chan_init(pwm_pin);
 
 	// PID
-	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 0.0, dummy);
-	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0, dummy);
+	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 0.0);
+	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
 
 	// Positional controller
 	servo->nominal_acc = 20.0;
 	servo->nominal_speed = 20.0;
 	servo->last_speed = 0.0;
+	servo->enc_position = 0.0;
+	servo->enc_old = 0;
 
 	// Limits
 	servo->pos_limit_enabled = true;
 	servo->max_diff = 0.5; // Max following error
 	servo->max_pos = 100.0;
 	servo->min_pos = -10.0;
+	servo->posError = error;
+	servo->error_message = message;
+	strcpy(*servo->error_message, "OK");
+	servo->pos_error_internal = false;
 
 	/**
 	 * @brief Error code variable
@@ -58,17 +64,21 @@ servo_t servo_create(uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, fl
 	servo->edge_2 = false;
 	servo->edge_3 = false;
 	// servo->movement_request = true;
-
+	return servo;
 }
 
 void servo_compute(servo_t servo, float cycle_time)
 {
 	// Encoder
-	// Get current position, velocity
+	// Get current position, calculate velocity
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
 	servo->current_pos = ((float)enc_new / 4000.0);
 	servo->current_vel = enc2speed(enc_new - servo->enc_old, cycle_time);
-	servo->enc_old = enc_new;
+	servo->enc_old = enc_new; // Needed for velocity calculation
+
+	// Evaluate following error
+	if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
+		servo->pos_error_internal = true;
 
 	// Get current time 
 	servo->current_cycle_time = (float)(time_us_64() - servo->current_time) * 0.001;
@@ -77,47 +87,28 @@ void servo_compute(servo_t servo, float cycle_time)
 	// Current delta
 	servo->cycle_time = cycle_time;
 
-	switch (servo->mode)
-	{
-		case POSITIONER:
-			// Positional controller
-			servo->set_pos = pos_compute(servo, servo->current_pos);
+	// Temporary hardcoded 0 position
+	servo->set_pos = 0;
 
-			// PID
-			pid_compute(servo->pid_pos);
-
-			servo->set_vel = servo->out_pos;
-			pid_compute(servo->pid_vel);
-			break;
-
-		case FEEDER:
-			// servo->set_pos = pos_compute_2(servo, cycle_time, servo->current_pos);
-			servo->set_pos = feeder(servo);
-
-			// PID
-			pid_compute(servo->pid_pos);
-
-			servo->set_vel = servo->out_pos;
-			pid_compute(servo->pid_vel);
-			break;
-			
-
-		case MANUAL:
-			// Manual mode
-			// servo->set_vel = speed_compute(servo, *servo->man_plus->state, *servo->man_minus->state);
-			servo->set_vel = speed_compute(servo, false, false);
-			// servo->set_vel = 0.0;
-			pid_compute(servo->pid_vel);
-			break;
-		
-		default:
-			break;
-		
-	}
+	// PID Computation
+	pid_compute(servo->pid_pos);
+	servo->set_vel = servo->out_pos; // Positional --> Velocity PID
+	pid_compute(servo->pid_vel);
 	
+	// set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
+	if (*servo->posError == 0 && servo->pos_error_internal == 1) {
+		strcpy(*servo->error_message, *servo->servo_name);
+		strcat(*servo->error_message, ": Pos Error");
+		*servo->posError = true;
+	}
 
 	// PWM output
-	set_two_chans_pwm(servo->pwm_slice,servo->out_vel);
+	if (*servo->posError == 1) {
+		set_two_chans_pwm(servo->pwm_slice, 0.0);
+	}
+	else {
+		set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
+	}
 }  
 
 float enc2speed(int32_t enc_diff, float current_cycle){
@@ -219,12 +210,6 @@ float pos_compute_2(servo_t servo, float delta_time, float current_pos)
 		
 		
 	}
-
-void check_for_following_error(servo_t* servo)
-{
-	
-}
-
 
 //************************************************************************************************
 	float delta = 0.001 + (delta_time - 0.001);
@@ -441,3 +426,7 @@ float accelerate(servo_t servo)
 
 }
 
+void check_for_following_error(servo_t* servo)
+{
+	
+}

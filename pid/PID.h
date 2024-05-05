@@ -36,9 +36,7 @@ struct pid_controller {
 	// Time related
 	uint32_t lasttime; // Stores the time when the control loop ran last time
 	uint32_t sampletime; // Defines the PID sample time
-	// Error handling
-	float followingError; // Maximum permisible position deviation
-	bool *posError; // Pointer to bool
+		
 };
 
 typedef struct pid_controller * pidc_t;
@@ -66,7 +64,7 @@ extern "C" {
 	 *
 	 * @return returns a pidc_t controller handle
 	 */
-	pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float kd, bool *error_signal);
+	pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float kd);
 
 	
 	/**
