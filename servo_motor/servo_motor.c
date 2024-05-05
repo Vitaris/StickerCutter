@@ -54,7 +54,7 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 	// Initial mode
 	servo->mode = mode;
 
-	// Buttons
+	// Buttons 
 	servo->man_plus = man_plus;
 	servo->man_minus = man_minus;
 
@@ -79,6 +79,13 @@ void servo_compute(servo_t servo, float cycle_time)
 	// Evaluate following error
 	if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
 		servo->pos_error_internal = true;
+
+	// Trigger the action by button
+	if (servo->man_plus.*servo->man_plus.state_raised == 1) {
+		strcpy(*servo->error_message, "OK");
+		servo->pos_error_internal = false;
+	}
+	
 
 	// Get current time 
 	servo->current_cycle_time = (float)(time_us_64() - servo->current_time) * 0.001;

@@ -114,6 +114,13 @@ bool servo_timer_callback(struct repeating_timer *t) {
     // Get current time 
 	float current_cycle_time = (float)(time_us_64() - old_cycle_time) * 1e-6;
 	old_cycle_time = time_us_64();
+
+    button_compute(F1);
+    button_compute(F2);
+    button_compute(Right);
+    button_compute(Left);
+    button_compute(In);
+    button_compute(Out);
  
     servo_compute(test_servo_0, current_cycle_time);
     servo_compute(test_servo_1, current_cycle_time);
