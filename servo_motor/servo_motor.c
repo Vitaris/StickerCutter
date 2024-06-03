@@ -24,7 +24,7 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
 
 	// Positional controller
-	servo->nominal_acc = 20.0;
+	servo->nominal_acc = 1.0;
 	servo->nominal_speed = 20.0;
 	servo->last_speed = 0.0;
 	servo->enc_position = 0.0;
@@ -50,6 +50,7 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 
 	// Feeder
 	servo->no_of_stops = 0;
+	servo->movement_in_progress = false;
 	
 	// Initial mode
 	servo->mode = mode;
@@ -73,7 +74,6 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 
 void servo_compute(servo_t servo, float cycle_time)
 { 
-	// Encoder
 	// Get current position, calculate velocity
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
 	servo->current_pos = ((float)enc_new / 4000.0);
@@ -83,21 +83,23 @@ void servo_compute(servo_t servo, float cycle_time)
 	// Evaluate following error
 	if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
 		servo->pos_error_internal = true;
-
+	
+	// TEMPORARY
 	// Trigger the action by button
 	if ((*servo->man_plus)->state_raised == 1) {
-		servo->set_pos += 0.25;
+		servo->movement_request = true;
+		// servo->set_pos += 5.0;
 	}
 	if ((*servo->man_minus)->state_raised == 1) {
-		servo->set_pos -= 0.25;
+		servo->movement_request = true;
+		// servo->set_pos -= 5.0;
 	}
-	
-	// Get current time 
-	servo->current_cycle_time = (float)(time_us_64() - servo->current_time) * 0.001;
-	servo->current_time = time_us_64();
+
 
 	// Current delta
 	servo->cycle_time = cycle_time;
+
+	robust_pos_compute(servo);
 
 	// PID Computation
 	pid_compute(servo->pid_pos);
@@ -198,6 +200,47 @@ float pos_compute(servo_t servo, float current_pos)
 		}
 	}
 	return servo->out_pos;
+}
+
+void robust_pos_compute(servo_t servo)
+{
+	if (servo->movement_request == true) {
+		servo->movement_progress_time = 0.0; 
+		servo->computed_speed = 0.0;
+		servo->begin_pos = servo->current_pos;
+
+		servo->movement_request = false;
+		servo->movement_in_progress = true;
+	}
+	if (servo->movement_in_progress == true) {
+		// Acumulate time for path calculations
+		servo->movement_progress_time += servo->cycle_time;
+
+		// Check if nominal speed has been reached
+		// if (fabs(servo->nominal_speed - servo->computed_speed) > 0.5) {
+		if (servo->nominal_speed - servo->computed_speed >= 0.0) {
+			(servo->set_pos) = servo->begin_pos + (0.5 * servo->nominal_acc * pow(servo->movement_progress_time, 2));
+			servo->computed_speed = servo->nominal_acc * servo->movement_progress_time;
+
+		}
+		else {
+			servo->movement_in_progress = false;
+		}
+
+
+
+
+
+
+
+		
+	}
+
+
+
+
+
+		 
 }
 
 float pos_compute_2(servo_t servo, float delta_time, float current_pos)

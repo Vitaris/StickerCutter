@@ -19,7 +19,7 @@
 #define AUTO true
 #define CUT_OFFSET 10.0
 #define MAN_SPEED 5.0
-#define FOLLOWING_ERROR 0.1 // Maximum permisible position deviation
+#define FOLLOWING_ERROR 2.1 // Maximum permisible position deviation
 
 enum op_state{SERVO_OK, ERR};
 enum state{IN_POSITIONING,POSITIONING_DONE};
@@ -77,7 +77,7 @@ typedef struct servo_motor {
 	// Controller state
 	bool positioning_request;
 	char (*servo_name)[10];
-	
+
 	// Time vars
 	float current_cycle_time;
 	uint64_t current_time;
@@ -121,8 +121,11 @@ typedef struct servo_motor {
 	float acc_time;
 	float acc_dist;
 	float acc_progress_time;
+	float movement_progress_time;
 	float breaking_progress_time;
 	float begin_pos;
+
+	float computed_speed;
 
 	bool movement_request;
 	bool movement_in_progress;
@@ -213,6 +216,8 @@ extern "C" {
 	float pos_compute(servo_t servo, float current_pos);
 
 	float pos_compute_2(servo_t servo, float delta_time, float current_pos);
+
+	void robust_pos_compute(servo_t servo);
 
 	/**
 	 * @brief Compute the output position
