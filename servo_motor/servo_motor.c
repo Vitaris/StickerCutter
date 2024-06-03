@@ -64,11 +64,15 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 	servo->edge_2 = false;
 	servo->edge_3 = false;
 	// servo->movement_request = true;
+
+	// Temporary hardcoded 0 position
+	servo->set_pos = 0;
+
 	return servo;
 }
 
 void servo_compute(servo_t servo, float cycle_time)
-{
+{ 
 	// Encoder
 	// Get current position, calculate velocity
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
@@ -82,20 +86,18 @@ void servo_compute(servo_t servo, float cycle_time)
 
 	// Trigger the action by button
 	if ((*servo->man_plus)->state_raised == 1) {
-		strcpy(*servo->error_message, "OK");
-		*servo->posError = false;;
+		servo->set_pos += 0.25;
+	}
+	if ((*servo->man_minus)->state_raised == 1) {
+		servo->set_pos -= 0.25;
 	}
 	
-
 	// Get current time 
 	servo->current_cycle_time = (float)(time_us_64() - servo->current_time) * 0.001;
 	servo->current_time = time_us_64();
 
 	// Current delta
 	servo->cycle_time = cycle_time;
-
-	// Temporary hardcoded 0 position
-	servo->set_pos = 0;
 
 	// PID Computation
 	pid_compute(servo->pid_pos);
