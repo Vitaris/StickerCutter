@@ -172,8 +172,8 @@ int main() {
     test_servo_0 = servo_create(servo_name_0, offset, 0, ENC_0, PWM_0, 1.0, POSITIONER, &Right, &Left, &servo_error, error_message_0);
     test_servo_1 = servo_create(servo_name_1, offset, 1, ENC_1, PWM_1, 1.0, POSITIONER, &In, &Out, &servo_error, error_message_0);
 
-    servo_goto(test_servo_0, 10.0, 1.0);
-    servo_goto(test_servo_1, 10.0, 1.0);
+    // servo_goto(test_servo_0, 10.0, 1.0);
+    // servo_goto(test_servo_1, 10.0, 1.0);
     // test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, FEEDER, &In->state_changed, &Out->state_changed);
 
     // Initialize all of the present standard stdio types that are linked into the binary. 

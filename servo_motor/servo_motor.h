@@ -130,6 +130,7 @@ typedef struct servo_motor {
 	bool movement_request;
 	bool movement_in_progress;
 	bool movement_finished;
+	bool accelerating;
 
 	bool breaking_request;
 	bool breaking_in_progress;

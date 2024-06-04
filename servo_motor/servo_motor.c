@@ -24,7 +24,7 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
 
 	// Positional controller
-	servo->nominal_acc = 1.0;
+	servo->nominal_acc = 200.0;
 	servo->nominal_speed = 20.0;
 	servo->last_speed = 0.0;
 	servo->enc_position = 0.0;
@@ -208,6 +208,7 @@ void robust_pos_compute(servo_t servo)
 		servo->movement_progress_time = 0.0; 
 		servo->computed_speed = 0.0;
 		servo->begin_pos = servo->current_pos;
+		servo->accelerating = true;
 
 		servo->movement_request = false;
 		servo->movement_in_progress = true;
@@ -218,28 +219,22 @@ void robust_pos_compute(servo_t servo)
 
 		// Check if nominal speed has been reached
 		// if (fabs(servo->nominal_speed - servo->computed_speed) > 0.5) {
-		if (servo->nominal_speed - servo->computed_speed >= 0.0) {
-			(servo->set_pos) = servo->begin_pos + (0.5 * servo->nominal_acc * pow(servo->movement_progress_time, 2));
+		if (servo->accelerating) {
+			servo->set_pos = servo->begin_pos + (0.5 * servo->nominal_acc * pow(servo->movement_progress_time, 2));
 			servo->computed_speed = servo->nominal_acc * servo->movement_progress_time;
-
+			// Save current distance for continues movement
+			if (servo->nominal_speed - servo->computed_speed < 0.0) {
+				servo->accelerating = false;
+				servo->acc_dist = servo->set_pos;
+				servo->movement_progress_time = 0.0;
+			}
 		}
 		else {
-			servo->movement_in_progress = false;
+			// servo->movement_in_progress = false;
+			servo->set_pos = servo->nominal_speed * servo->movement_progress_time + servo->acc_dist;
 		}
 
-
-
-
-
-
-
-		
 	}
-
-
-
-
-
 		 
 }
 
