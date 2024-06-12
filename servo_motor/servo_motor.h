@@ -72,6 +72,7 @@ typedef struct servo_motor {
 	// Feeder controller
 
 	float stops[10];
+	float next_stop;
 	uint8_t no_of_stops;
 
 	// Controller state
@@ -130,7 +131,12 @@ typedef struct servo_motor {
 	bool movement_request;
 	bool movement_in_progress;
 	bool movement_finished;
+
+
 	bool accelerating;
+	bool const_movement;
+	bool decelerating;
+	bool braking;
 
 	bool breaking_request;
 	bool breaking_in_progress;
