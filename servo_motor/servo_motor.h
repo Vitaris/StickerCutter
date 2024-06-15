@@ -11,9 +11,7 @@
 #include "quadrature_encoder.pio.h"
 
 #include "servo_pwm.h"
-// #include "pid/PID.h"
 #include "../pid/PID.h"
-// #include "pos_controller.h"
 #include "button.h"
 #define MAN false
 #define AUTO true
@@ -34,17 +32,12 @@ enum mode{MANUAL,POSITIONER,FEEDER};
 #define PWM_0 18
 #define PWM_1 20
 
+// Servo motor consist of: pwm, encoder, pid
 typedef struct servo_motor {
 
-	// Servo motor consist of:
-	// pwm, encoder, pid, pos_controller
-
 	// Encoder
-	float enc_position;
-	float enc_velocity;
 	int32_t enc_old;
 	uint sm;
-
 
 	// PWM
 	uint pwm_slice;
@@ -65,41 +58,34 @@ typedef struct servo_motor {
 	float out_vel;
 	float set_vel;
 
-	// Positional controller
-	float generated_pos;
+	// Servo controller
 	bool pos_error_internal;
 
 	// Feeder controller
-
 	float stops[10];
 	float next_stop;
 	uint8_t no_of_stops;
 
 	// Controller state
-	bool positioning_request;
 	char (*servo_name)[10];
-
-	// Time vars
-	float current_cycle_time;
-	uint64_t current_time;
-
-	// Path generator
-	float requested_pos;
-	uint64_t start_time;
-	float ramp_time;
-	float last_speed;
-	bool speed_reached;
-
-	
-	float t_ramp; 	// duration of acceleration(decceleration) 
-	float s_ramp;	// distance travelled during acc(dec)
-	float s_conts; 	// distance travelled during constant speed movement
-	float t_const;	// duration of constant speed movement
 
 	// Servo controler 
 	enum state state;
 	enum mode mode;
 	float cycle_time;
+	float computed_speed;
+	bool positive_direction;
+	bool movement_request;
+	bool movement_in_progress;
+	bool braking;
+
+	// Default movement
+	float nominal_speed; 	// Desired motor speed
+	float nominal_acc;		// Motor acceleration
+	float current_speed; 	// Desired motor speed
+	float current_acc;		// Motor acceleration
+	float scale;			// Scale factor of the servo motor
+
 	
 	// Limits & Errors
 	bool pos_limit_enabled;
@@ -116,58 +102,9 @@ typedef struct servo_motor {
 	 */
 	uint8_t error_code;
 
-	// Feeder
-	float movement_start_time;
-	float breaking_start_time;
-	float acc_time;
-	float acc_dist;
-	float acc_progress_time;
-	float movement_progress_time;
-	float breaking_progress_time;
-	float begin_pos;
-
-	float computed_speed;
-
-	bool positive_direction;
-	bool movement_request;
-	bool movement_in_progress;
-	bool movement_finished;
-
-
-	bool accelerating;
-	bool const_movement;
-	bool decelerating;
-	bool braking;
-
-	bool breaking_request;
-	bool breaking_in_progress;
-	bool breaking_finished;
-
-
-	// Default movement
-	float nominal_speed; 	// Desired motor speed
-	float nominal_acc;		// Motor acceleration
-	float current_speed; 	// Desired motor speed
-	float current_acc;		// Motor acceleration
-	float scale;			// Scale factor of the servo motor
-
-	// Mode, 0 = Manual, 1 = Automatic
-	// bool mode;
-	
 	// Manual control
 	button_t *man_plus;
 	button_t *man_minus;
-
-
-	// debug
-	int a;
-	int b;
-	bool edge_1;
-	bool edge_2;
-	bool edge_3;
-	float mem_speed;
-	float mem_pos;
-	// 
 
 } * servo_t;
 
