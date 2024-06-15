@@ -128,6 +128,7 @@ typedef struct servo_motor {
 
 	float computed_speed;
 
+	bool positive_direction;
 	bool movement_request;
 	bool movement_in_progress;
 	bool movement_finished;
@@ -146,6 +147,8 @@ typedef struct servo_motor {
 	// Default movement
 	float nominal_speed; 	// Desired motor speed
 	float nominal_acc;		// Motor acceleration
+	float current_speed; 	// Desired motor speed
+	float current_acc;		// Motor acceleration
 	float scale;			// Scale factor of the servo motor
 
 	// Mode, 0 = Manual, 1 = Automatic

@@ -79,14 +79,14 @@ void core1_entry() {
             // float2LCD(lcd, 2, 2, 6, 0.0);
             string2LCD(lcd, 0, 2, "P:");
 
-            int2LCD(lcd, 14, 1, 6, test_servo_0->enc_old);
+            int2LCD(lcd, 12, 1, 8, test_servo_0->enc_old);
             // float2LCD(lcd, 14, 1, 6, 0.0);
-            string2LCD(lcd, 12, 1, "S:");
+            // string2LCD(lcd, 12, 1, "S:");
             // float2LCD(lcd, 14, 2, 6, machine.test_servo_1.current_vel);
             // float2LCD(lcd, 14, 2, 6, machine.ctrldata_detector.positions[0]);
             // float2LCD(lcd, 14, 2, 6, 0.0);
-            string2LCD(lcd, 12, 2, "S:");
-            int2LCD(lcd, 14, 2, 6, test_servo_1->enc_old);
+            // string2LCD(lcd, 12, 2, "S:");
+            int2LCD(lcd, 12, 2, 8, test_servo_1->enc_old);
 
             // int2LCD(lcd, 14, 0, 6, machine.test_servo_0.enc_old);
             // int2LCD(lcd, 14, 0, 6, machine.ctrldata_detector.result);

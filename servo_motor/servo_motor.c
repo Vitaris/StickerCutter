@@ -24,11 +24,12 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
 
 	// Positional controller
-	servo->nominal_acc = 40.0;
-	servo->nominal_speed = 20.0;
+	servo->nominal_acc = 300.0;
+	servo->nominal_speed = 30.0;
 	servo->last_speed = 0.0;
 	servo->enc_position = 0.0;
 	servo->enc_old = 0;
+	servo->computed_speed = 0.0;
 
 	// Limits
 	servo->pos_limit_enabled = true;
@@ -89,12 +90,11 @@ void servo_compute(servo_t servo, float cycle_time)
 	if ((*servo->man_plus)->state_raised == 1) {
 		servo->movement_request = true;
 		servo->next_stop = servo->current_pos + 20.0;
-		// servo->set_pos += 5.0;
 	}
+
 	if ((*servo->man_minus)->state_raised == 1) {
 		servo->movement_request = true;
-		servo->next_stop = servo->current_pos + 20.0;
-		// servo->set_pos -= 5.0;
+		servo->next_stop = servo->current_pos - 20.0;
 	}
 
 
@@ -208,58 +208,70 @@ void robust_pos_compute(servo_t servo)
 {
 	// First occurence of movement request, save the position of movement beginning
 	if (servo->movement_request == true) {
-		servo->movement_progress_time = 0.0; 
-		servo->computed_speed = 0.0;
-		servo->begin_pos = servo->current_pos;
-		servo->accelerating = true;
+		if (servo->next_stop >= servo->current_pos) {
+			// Positive direction
+			servo->positive_direction = true;
+			servo->current_acc = servo->nominal_acc;
+			servo->current_speed = servo->nominal_speed;
+			// servo->current_acc = 100.0;
+			// servo->current_speed = 20.0;
+		}
+		else {
+			// Negative direction
+			servo->positive_direction = false;
+			servo->current_acc = -servo->nominal_acc;
+			servo->current_speed = -servo->nominal_speed;
+			// servo->current_acc = -100.0;
+			// servo->current_speed = -20.0;
+		}
 		servo->braking = false;
-
 		servo->movement_request = false;
 		servo->movement_in_progress = true;
 	}
 
 	// Periodic computation of new position 
 	if (servo->movement_in_progress == true) {
-		// Acumulate time for path calculations
-		servo->movement_progress_time += servo->cycle_time;
-
 		if (servo->braking == false) {
+			// Accelerating
+			servo->computed_speed += servo->current_acc * servo->cycle_time;
 
-			// Compute new speed and check if nominal speed has been reached
-			servo->computed_speed += servo->nominal_acc * servo->cycle_time;
-
-
-			if (servo->computed_speed > servo->nominal_speed) {
-				// Nominal speed reached
-				servo->computed_speed = servo->nominal_speed;
-				// servo->set_pos = servo->begin_pos + (0.5 * servo->nominal_acc * pow(servo->movement_progress_time, 2));
+			// check if nominal speed has been reached
+			if (fabs(servo->computed_speed) > fabs(servo->current_speed)) {
+				servo->computed_speed = servo->current_speed;
 			}
 
+			// Compute position for next cycle time
 			servo->set_pos += servo->computed_speed * servo->cycle_time;
 
 			// Check if braking is needed
-			if (servo->next_stop - servo->set_pos < get_breaking_distance(servo)) {
-				servo->braking = true;
+			if (servo->positive_direction) {
+				if (servo->next_stop - servo->set_pos < get_breaking_distance(servo)) {
+					servo->braking = true;
+				}
+			}
+			else {
+				if (servo->next_stop - servo->set_pos > get_breaking_distance(servo)) {
+					servo->braking = true;
+				}
 			}
 		}
 		else {
-			servo->computed_speed -= servo->nominal_acc * servo->cycle_time;
+			// Braking
+			servo->computed_speed -= servo->current_acc * servo->cycle_time;
 			servo->set_pos += servo->computed_speed * servo->cycle_time;
-
-			// if (servo->next_stop - servo->set_pos < 0.0) {
-			if (servo->computed_speed <= 0.0) {
+			
+			// Check if desired position has been reached
+			if (fabs(servo->set_pos - servo->current_pos) < 0.01) {
 				servo->set_pos = servo->next_stop;
 				servo->movement_in_progress = false;
 			}
 		}
 
 		// Something like emergency stop
-		if (fabs(servo->set_pos - servo->begin_pos) > 50.0) {
+		if (fabs(servo->current_pos) > 200.0) {
 			servo->movement_in_progress = false;
 		}
-
 	}
-		 
 }
 
 float pos_compute_2(servo_t servo, float delta_time, float current_pos)
@@ -399,7 +411,7 @@ bool stop_ahead(servo_t servo)
 float get_breaking_distance(servo_t servo)
 {
 	// return 0.5 * (pow(servo->current_vel, 2) / servo->nominal_acc);
-	return 0.5 * (pow(servo->computed_speed, 2) / servo->nominal_acc);
+	return 0.5 * (pow(servo->computed_speed, 2) / servo->current_acc);
 }
 
 float get_dist_to_stop(servo_t servo)
