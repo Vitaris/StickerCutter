@@ -12,9 +12,8 @@
 
 // Servo Motors
 uint64_t old_cycle_time = 0;
-
-servo_t test_servo_0;
-servo_t test_servo_1;
+servo_t servo_0;
+servo_t servo_1;
 
 // Timers
 struct repeating_timer servo_timer;
@@ -29,8 +28,16 @@ button_t Left;
 button_t In;
 button_t Out;
 
+// LCD
+lcd_t lcd;
+
+bool blink_500ms;
+bool lcd_refresh;
+
+// Machine states
+bool auto_man; // Automat == true 
 bool servo_error;
-bool dummy2;
+bool enable;
 char (*error_message_0)[16];
 char text_0[16] = {'\0'};
 char (*servo_name_0)[10];
@@ -38,11 +45,6 @@ char (*servo_name_1)[10];
 char servo_name_text_0[10] = {"Servo_0"};
 char servo_name_text_1[10] = {"Servo_1"};
 
-// LCD
-lcd_t lcd;
-
-bool blink_500ms;
-bool lcd_refresh;
 
 // Debug
 #define MAN false
@@ -53,40 +55,43 @@ bool allways_true = true;
 void core1_entry() {
 
     // LCD
-   lcd = lcd_create(10, 11, 12, 13, 14, 15, 16, 16, 4);
-
-    // int adc_val;
-    // adc_val = adc_read();
-
-    // add_repeating_timer_ms(100, LCD_timer_callback, NULL, &LCD_timer);
-
-    string2LCD(lcd, 0, 0, "Mode:");
-
+    lcd = lcd_create(10, 11, 12, 13, 14, 15, 16, 16, 4);
     while (1)
     {
         if (lcd_refresh == true)
-        {
-            if (mode == MAN && false)
-            {
-            string2LCD(lcd, 6, 0, "MAN");
+        {   
+            // Automatic/Manual label
+            if (auto_man) {
+                string2LCD(lcd, 2, 3, "AUTO");
+            }
+            else {
+                string2LCD(lcd, 2, 3, " MAN");
             }
 
-            float2LCD(lcd, 8, 0, 6, test_servo_0->out_vel);
-            float2LCD(lcd, 2, 1, 6, test_servo_0->current_pos);
+            if (servo_error) {
+                string2LCD(lcd, 12, 3, "Ack");
+            }
+            else {
+                string2LCD(lcd, 12, 3, "     ");
+            }
+            string2LCD(lcd, 0, 0, *error_message_0);
+
+            // float2LCD(lcd, 8, 0, 6, servo_0->out_vel);
+            float2LCD(lcd, 2, 1, 6, servo_0->current_pos);
             // float2LCD(lcd, 2, 1, 6, 0.0);
             string2LCD(lcd, 0, 1, "P:");
-            float2LCD(lcd, 2, 2, 6, test_servo_1->current_pos);
+            float2LCD(lcd, 2, 2, 6, servo_1->current_pos);
             // float2LCD(lcd, 2, 2, 6, 0.0);
             string2LCD(lcd, 0, 2, "P:");
 
-            int2LCD(lcd, 12, 1, 8, test_servo_0->enc_old);
+            int2LCD(lcd, 12, 1, 8, servo_0->enc_old);
             // float2LCD(lcd, 14, 1, 6, 0.0);
             // string2LCD(lcd, 12, 1, "S:");
             // float2LCD(lcd, 14, 2, 6, machine.test_servo_1.current_vel);
             // float2LCD(lcd, 14, 2, 6, machine.ctrldata_detector.positions[0]);
             // float2LCD(lcd, 14, 2, 6, 0.0);
             // string2LCD(lcd, 12, 2, "S:");
-            int2LCD(lcd, 12, 2, 8, test_servo_1->enc_old);
+            int2LCD(lcd, 12, 2, 8, servo_1->enc_old);
 
             // int2LCD(lcd, 14, 0, 6, machine.test_servo_0.enc_old);
             // int2LCD(lcd, 14, 0, 6, machine.ctrldata_detector.result);
@@ -101,7 +106,7 @@ void core1_entry() {
 
             lcd_refresh = false;
 
-            string2LCD(lcd, 0, 3, *error_message_0);
+            
             // string2LCD(lcd, 8, 3, *error_message_1);
 
 
@@ -115,6 +120,26 @@ bool servo_timer_callback(struct repeating_timer *t) {
 	float current_cycle_time = (float)(time_us_64() - old_cycle_time) * 1e-6;
 	old_cycle_time = time_us_64();
 
+    if (servo_error) {
+        enable = false;
+    }
+
+    if (F1->state_raised) {
+        if (auto_man) {
+            auto_man = false;
+        }
+        else {
+            auto_man = true;
+        }
+    }
+
+    if (F2->state_raised) {
+        servo_error = false;
+        enable = true;
+        auto_man = false;
+        strcpy(*error_message_0, "OK                  ");
+    }
+
     button_compute(F1);
     button_compute(F2);
     button_compute(Right);
@@ -122,8 +147,8 @@ bool servo_timer_callback(struct repeating_timer *t) {
     button_compute(In);
     button_compute(Out);
  
-    servo_compute(test_servo_0, current_cycle_time);
-    servo_compute(test_servo_1, current_cycle_time);
+    servo_compute(servo_0, current_cycle_time);
+    servo_compute(servo_1, current_cycle_time);
 
 
     return true;
@@ -163,15 +188,18 @@ int main() {
 
     // Init servos
     servo_error = false;
+    enable = false;
     error_message_0 = &text_0;
 
     servo_name_0 = &servo_name_text_0;
     servo_name_1 = &servo_name_text_1;
 
     strcpy(*error_message_0, "OK");
-    test_servo_0 = servo_create(servo_name_0, offset, 0, ENC_0, PWM_0, 1.0, POSITIONER, &Right, &Left, &servo_error, error_message_0);
-    test_servo_1 = servo_create(servo_name_1, offset, 1, ENC_1, PWM_1, 1.0, POSITIONER, &In, &Out, &servo_error, error_message_0);
+    servo_0 = servo_create(servo_name_0, offset, 0, ENC_0, PWM_0, 1.0, POSITIONER, &Right, &Left, &enable, &servo_error, error_message_0);
+    servo_1 = servo_create(servo_name_1, offset, 1, ENC_1, PWM_1, 1.0, POSITIONER, &In, &Out, &enable, &servo_error, error_message_0);
 
+    // Machine init
+    auto_man = false;
     // servo_goto(test_servo_0, 10.0, 1.0);
     // servo_goto(test_servo_1, 10.0, 1.0);
     // test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, FEEDER, &In->state_changed, &Out->state_changed);
@@ -190,6 +218,10 @@ int main() {
     
     // Launch core1
     multicore_launch_core1(core1_entry);
+
+    // Initial wait 
+    busy_wait_ms(500);
+    enable = true;
 
     while (1)
     {

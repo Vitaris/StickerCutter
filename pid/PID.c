@@ -68,3 +68,8 @@ void pid_limits(pidc_t pid, float min, float max)
 	else if (pid->iterm < pid->omin)
 		pid->iterm = pid->omin;
 }
+
+void pid_reset_all(pidc_t pid) {
+	pid->iterm = 0.0;
+	pid->lastin = 0.0; 
+}

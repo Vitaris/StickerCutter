@@ -3,11 +3,13 @@
 #include <string.h>
 
 servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
-							button_t *man_plus, button_t *man_minus, bool *error, char (*message)[16])
+							button_t *man_plus, button_t *man_minus, bool *enable, bool *error, char (*message)[16])
 {
 	// Create servo data structure
 	servo_t servo = (servo_t)malloc(sizeof(struct servo_motor));
 	servo->servo_name = servo_name;
+	servo->enable = enable;
+	servo->enable_previous = false;
 
 	// Encoder
 	quadrature_encoder_program_init(pio0, sm, pio_ofset, encoder_pin, 0);
@@ -31,7 +33,6 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 
 	// Limits
 	servo->pos_limit_enabled = true;
-	servo->max_diff = 0.5; // Max following error
 	servo->max_pos = 100.0;
 	servo->min_pos = -10.0;
 	servo->posError = error;
@@ -70,46 +71,51 @@ void servo_compute(servo_t servo, float cycle_time)
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
 	servo->current_pos = ((float)enc_new / 4000.0);
 	servo->current_vel = enc2speed(enc_new - servo->enc_old, cycle_time);
-	servo->enc_old = enc_new; // Needed for velocity calculation
+	servo->enc_old = enc_new; // N eeded for velocity calculation
 
-	// Evaluate following error
-	if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
-		servo->pos_error_internal = true;
-	
-	// TEMPORARY
-	// Trigger the action by button
-	if ((*servo->man_plus)->state_raised == 1) {
-		servo_goto(servo, servo->next_stop = servo->current_pos + 20.0, 20.0);
-	}
+	if (*servo->enable) {
+		if (servo->enable_previous) {
+			servo->enable_previous = false;
+			servo_reset_all(servo);
+		}
 
-	if ((*servo->man_minus)->state_raised == 1) {
-		servo_goto(servo, servo->next_stop = servo->current_pos - 20.0, 5.0);
-	}
+		// Evaluate following error
+		if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
+			servo->pos_error_internal = true;
+		
+		// TEMPORARY
+		// Trigger the action by button
+		if ((*servo->man_plus)->state_raised == 1) {
+			servo_goto(servo, servo->next_stop = servo->current_pos + 20.0, 20.0);
+		}
 
+		if ((*servo->man_minus)->state_raised == 1) {
+			servo_goto(servo, servo->next_stop = servo->current_pos - 20.0, 5.0);
+		}
 
-	// Current delta
-	servo->cycle_time = cycle_time;
+		// Current delta
+		servo->cycle_time = cycle_time;
 
-	robust_pos_compute(servo);
+		robust_pos_compute(servo);
 
-	// PID Computation
-	pid_compute(servo->pid_pos);
-	servo->set_vel = servo->out_pos; // Positional --> Velocity PID
-	pid_compute(servo->pid_vel);
-	
-	// set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
-	if (*servo->posError == 0 && servo->pos_error_internal == 1) {
-		strcpy(*servo->error_message, *servo->servo_name);
-		strcat(*servo->error_message, ": Pos Error");
-		*servo->posError = true;
-	}
+		// PID Computation
+		pid_compute(servo->pid_pos);
+		servo->set_vel = servo->out_pos; // Positional --> Velocity PID
+		pid_compute(servo->pid_vel);
+		
+		// set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
+		if (*servo->posError == 0 && servo->pos_error_internal == 1) {
+			strcpy(*servo->error_message, *servo->servo_name);
+			strcat(*servo->error_message, ": Pos Error");
+			*servo->posError = true;
+		}
 
-	// PWM output
-	if (*servo->posError == 1) {
-		set_two_chans_pwm(servo->pwm_slice, 0.0);
+		// PWM output
+		set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
 	}
 	else {
-		set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
+		set_two_chans_pwm(servo->pwm_slice, 0.0);
+		servo->enable_previous = true;
 	}
 }  
 
@@ -203,31 +209,6 @@ void robust_pos_compute(servo_t servo)
 	}
 }
 
-float speed_compute(servo_t servo, bool plus, bool minus)
-{
-	// Both buttons should not be active at the same time
-	// There may be a malfunction, so it is better to stop the motor
-
-	if (plus == true && minus == true)
-	{
-		// Some error handling here
-		return 0.0;
-	}
-
-	if (plus == true)
-	{
-		return MAN_SPEED;
-
-	}
-	else if (minus == true)
-	{
-		return -MAN_SPEED;
-	}
-	else
-	{
-		return 0.0;
-	}
-}
 
 void add_stop(servo_t servo)
 {
@@ -269,12 +250,12 @@ float get_dist_to_stop(servo_t servo)
 	}
 }
 
-float accelerate(servo_t servo)
-{
-
-}
-
-void check_for_following_error(servo_t* servo)
-{
-	
+void servo_reset_all(servo_t servo) {
+	pid_reset_all(servo->pid_pos);
+	pid_reset_all(servo->pid_vel);
+	servo->movement_request = false;
+	servo->movement_in_progress = false;
+	servo->pos_error_internal = false;
+	servo->computed_speed = 0.0;
+	servo->set_pos = servo->current_pos;
 }

@@ -86,6 +86,8 @@ extern "C" {
 	 */
 	void pid_limits(pidc_t pid, float min, float max);
 
+	void pid_reset_all(pidc_t pid);
+
 
 #ifdef	__cplusplus
 }

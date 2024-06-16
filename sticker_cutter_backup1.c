@@ -15,8 +15,8 @@
 // Servo Motors
 uint64_t old_cycle_time = 0;
 
-servo_t test_servo_0;
-servo_t test_servo_1;
+servo_t servo_0;
+servo_t servo_1;
 
 // Timers
 struct repeating_timer servo_timer;
@@ -147,8 +147,8 @@ int main() {
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
     // Init servos
-    test_servo_0 = servo_create(offset, 0, ENC_0, PWM_0, 1.0, FEEDER, &Right->state_changed, &Left->state_changed);
-    test_servo_1 = servo_create(offset, 1, ENC_1, PWM_1, 1.0, MANUAL, &In->state, &Out->state);
+    servo_0 = servo_create(offset, 0, ENC_0, PWM_0, 1.0, FEEDER, &Right->state_changed, &Left->state_changed);
+    servo_1 = servo_create(offset, 1, ENC_1, PWM_1, 1.0, MANUAL, &In->state, &Out->state);
     // test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, FEEDER, &In->state_changed, &Out->state_changed);
 
     // Init machine controller
