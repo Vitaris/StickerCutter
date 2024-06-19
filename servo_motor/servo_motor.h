@@ -20,8 +20,8 @@
 #define FOLLOWING_ERROR 0.5 // Maximum permisible position deviation
 
 enum op_state{SERVO_OK, ERR};
-enum state{IN_POSITIONING,POSITIONING_DONE};
-enum mode{MANUAL,POSITIONER,FEEDER};
+enum state{IN_POSITIONING, POSITIONING_DONE};
+enum mode{MANUAL, AUTOMAT};
 
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin

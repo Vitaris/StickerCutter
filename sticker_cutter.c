@@ -35,6 +35,7 @@ bool blink_500ms;
 bool lcd_refresh;
 
 // Machine states
+enum mode mode;
 bool auto_man; // Automat == true 
 bool servo_error;
 bool enable;
@@ -49,7 +50,6 @@ char servo_name_text_1[10] = {"Servo_1"};
 // Debug
 #define MAN false
 #define AUTO true
-bool mode = MAN;
 bool allways_true = true;
 
 void core1_entry() {
@@ -61,7 +61,7 @@ void core1_entry() {
         if (lcd_refresh == true)
         {   
             // Automatic/Manual label
-            if (auto_man) {
+            if (mode == AUTOMAT) {
                 string2LCD(lcd, 2, 3, "AUTO");
             }
             else {
@@ -125,11 +125,11 @@ bool servo_timer_callback(struct repeating_timer *t) {
     }
 
     if (F1->state_raised) {
-        if (auto_man) {
-            auto_man = false;
+        if (mode == MANUAL) {
+            mode = AUTOMAT;
         }
         else {
-            auto_man = true;
+            mode = MANUAL;
         }
     }
 
@@ -187,6 +187,7 @@ int main() {
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
     // Init servos
+    mode = MANUAL;
     servo_error = false;
     enable = false;
     error_message_0 = &text_0;
@@ -195,8 +196,8 @@ int main() {
     servo_name_1 = &servo_name_text_1;
 
     strcpy(*error_message_0, "OK");
-    servo_0 = servo_create(servo_name_0, offset, 0, ENC_0, PWM_0, 1.0, POSITIONER, &Right, &Left, &enable, &servo_error, error_message_0);
-    servo_1 = servo_create(servo_name_1, offset, 1, ENC_1, PWM_1, 1.0, POSITIONER, &In, &Out, &enable, &servo_error, error_message_0);
+    servo_0 = servo_create(servo_name_0, offset, 0, ENC_0, PWM_0, 1.0, mode, &Right, &Left, &enable, &servo_error, error_message_0);
+    servo_1 = servo_create(servo_name_1, offset, 1, ENC_1, PWM_1, 1.0, mode, &In, &Out, &enable, &servo_error, error_message_0);
 
     // Machine init
     auto_man = false;

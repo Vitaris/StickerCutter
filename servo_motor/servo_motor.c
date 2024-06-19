@@ -22,7 +22,7 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 	servo->pwm_slice = pwm_chan_init(pwm_pin);
 
 	// PID
-	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 0.0);
+	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 5.0);
 	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
 
 	// Positional controller
@@ -74,6 +74,7 @@ void servo_compute(servo_t servo, float cycle_time)
 	servo->enc_old = enc_new; // N eeded for velocity calculation
 
 	if (*servo->enable) {
+		// Reset All on positive edge of enable
 		if (servo->enable_previous) {
 			servo->enable_previous = false;
 			servo_reset_all(servo);
@@ -83,14 +84,22 @@ void servo_compute(servo_t servo, float cycle_time)
 		if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
 			servo->pos_error_internal = true;
 		
-		// TEMPORARY
-		// Trigger the action by button
-		if ((*servo->man_plus)->state_raised == 1) {
-			servo_goto(servo, servo->next_stop = servo->current_pos + 20.0, 20.0);
-		}
+		if (servo->mode == MANUAL) {
 
-		if ((*servo->man_minus)->state_raised == 1) {
-			servo_goto(servo, servo->next_stop = servo->current_pos - 20.0, 5.0);
+			// TEMPORARY
+			// Trigger the action by button
+			if ((*servo->man_plus)->state_raised == 1) {
+				servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 20.5);
+			}
+
+			if ((*servo->man_minus)->state_raised == 1) {
+				servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
+			}
+
+			if ((*servo->man_plus)->state_dropped == 1 || (*servo->man_minus)->state_dropped == 1) {
+				servo->next_stop = servo->set_pos + get_breaking_distance(servo);
+				servo->braking = true;
+			}
 		}
 
 		// Current delta
@@ -196,7 +205,8 @@ void robust_pos_compute(servo_t servo)
 			servo->set_pos += servo->computed_speed * servo->cycle_time;
 			
 			// Check if desired position has been reached
-			if (fabs(servo->set_pos - servo->current_pos) < 0.01) {
+			// if (fabs(servo->set_pos - servo->current_pos) < 0.01) {
+			if (fabs(servo->set_pos - servo->next_stop) < 0.01) {
 				servo->set_pos = servo->next_stop;
 				servo->movement_in_progress = false;
 			}
