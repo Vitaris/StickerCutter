@@ -21,7 +21,6 @@
 
 enum op_state{SERVO_OK, ERR};
 enum state{IN_POSITIONING, POSITIONING_DONE};
-enum mode{MANUAL, AUTOMAT};
 
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
@@ -73,7 +72,6 @@ typedef struct servo_motor {
 	bool *enable;
 	bool enable_previous;
 	enum state state;
-	enum mode mode;
 	float cycle_time;
 	float computed_speed;
 	bool positive_direction;
@@ -123,14 +121,12 @@ extern "C" {
 	 * @param sm Offset of the state machine to use
 	 * @param encoder_pin First pin to use for the encoder, second pin is encoder_pin + 1
 	 * @param pwm_pin First PWM pin to use for the pwm, second pin is pwm_pin + 1
-	 * @param mode 0 = Manual, 1 = Automatic
 	 * @param man_plus Pointer to the manual plus button
 	 * @param man_minus Pointer to the manual minus button
 	 * @return returns a pidc_t controller handle
 	 */
-	servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encoder_pin,
-							uint pwm_pin, float scale, enum mode mode, 
-							button_t *man_plus, button_t *man_minus, 
+	servo_t servo_create(char servo_name[], uint pio_ofset, uint sm, uint encoder_pin,
+							uint pwm_pin, float scale, button_t *man_plus, button_t *man_minus, 
 							bool *enable, bool *error, char (*message)[16]);
 
 	/**

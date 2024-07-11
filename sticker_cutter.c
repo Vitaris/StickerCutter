@@ -5,28 +5,16 @@
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
 #include "hardware/timer.h"
+#include "machine/machine_controller.h"
 
 #include "lcd/ant_lcd.h"
 #include "servo_motor/servo_motor.h"
 #include "servo_motor/button.h"
 
-// Servo Motors
-uint64_t old_cycle_time = 0;
-servo_t servo_0;
-servo_t servo_1;
-
 // Timers
+uint64_t old_cycle_time = 0;
 struct repeating_timer servo_timer;
-struct repeating_timer blink_timer;
 struct repeating_timer LCD_refresh_timer;
-
-// Buttons
-button_t F1;
-button_t F2;
-button_t Right;
-button_t Left;
-button_t In;
-button_t Out;
 
 // LCD
 lcd_t lcd;
@@ -35,22 +23,7 @@ bool blink_500ms;
 bool lcd_refresh;
 
 // Machine states
-enum mode mode;
-bool auto_man; // Automat == true 
-bool servo_error;
-bool enable;
-char (*error_message_0)[16];
-char text_0[16] = {'\0'};
-char (*servo_name_0)[10];
-char (*servo_name_1)[10];
-char servo_name_text_0[10] = {"Servo_0"};
-char servo_name_text_1[10] = {"Servo_1"};
-
-
-// Debug
-#define MAN false
-#define AUTO true
-bool allways_true = true;
+machine_t cutter;
 
 void core1_entry() {
 
@@ -58,58 +31,31 @@ void core1_entry() {
     lcd = lcd_create(10, 11, 12, 13, 14, 15, 16, 16, 4);
     while (1)
     {
+        // LCD Layout
+        //      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16   
+        //   0         State                 
+        //   1      OK / Error Message
+        //   2      Position Cutter    |     Position Feeder
+        //   3          F1             |            F2
+        // 
+        
+        // LCD Layout
+        //      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15   
+        //   0  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *
+        //   1  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *
+        //   2  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *
+        //   3  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *
+        // 
+
         if (lcd_refresh == true)
         {   
-            // Automatic/Manual label
-            if (mode == AUTOMAT) {
-                string2LCD(lcd, 2, 3, "AUTO");
-            }
-            else {
-                string2LCD(lcd, 2, 3, " MAN");
-            }
-
-            if (servo_error) {
-                string2LCD(lcd, 12, 3, "Ack");
-            }
-            else {
-                string2LCD(lcd, 12, 3, "     ");
-            }
-            string2LCD(lcd, 0, 0, *error_message_0);
-
-            // float2LCD(lcd, 8, 0, 6, servo_0->out_vel);
-            float2LCD(lcd, 2, 1, 6, servo_0->current_pos);
-            // float2LCD(lcd, 2, 1, 6, 0.0);
-            string2LCD(lcd, 0, 1, "P:");
-            float2LCD(lcd, 2, 2, 6, servo_1->current_pos);
-            // float2LCD(lcd, 2, 2, 6, 0.0);
-            string2LCD(lcd, 0, 2, "P:");
-
-            int2LCD(lcd, 12, 1, 8, servo_0->enc_old);
-            // float2LCD(lcd, 14, 1, 6, 0.0);
-            // string2LCD(lcd, 12, 1, "S:");
-            // float2LCD(lcd, 14, 2, 6, machine.test_servo_1.current_vel);
-            // float2LCD(lcd, 14, 2, 6, machine.ctrldata_detector.positions[0]);
-            // float2LCD(lcd, 14, 2, 6, 0.0);
-            // string2LCD(lcd, 12, 2, "S:");
-            int2LCD(lcd, 12, 2, 8, servo_1->enc_old);
-
-            // int2LCD(lcd, 14, 0, 6, machine.test_servo_0.enc_old);
-            // int2LCD(lcd, 14, 0, 6, machine.ctrldata_detector.result);
-            // int2LCD(lcd, 14, 1, 6, machine.ctrldata_detector.average);
-            // int2LCD(lcd, 14, 0, 6, 0.0);
-
-            // Machine state
-            // string2LCD(lcd, 6, 0, machine.state_text);
-            // string2LCD(lcd, 10, 0, machine.condition_text);
-            // string2LCD(lcd, 0, 3, machine.F1_text);
-            // string2LCD(lcd, 10, 3, machine.F2_text);
-
+            string2LCD(lcd, 0, 0, cutter->state_text);
+            string2LCD(lcd, 1, 0, cutter->condition_text);
+            string2LCD(lcd, 2, 0, cutter->position_cutter);
+            string2LCD(lcd, 2, 7, cutter->position_feeder);
+            string2LCD(lcd, 3, 0, cutter->F1_text);
+            string2LCD(lcd, 3, 7, cutter->F2_text);
             lcd_refresh = false;
-
-            
-            // string2LCD(lcd, 8, 3, *error_message_1);
-
-
         }
     }
 }
@@ -120,50 +66,39 @@ bool servo_timer_callback(struct repeating_timer *t) {
 	float current_cycle_time = (float)(time_us_64() - old_cycle_time) * 1e-6;
 	old_cycle_time = time_us_64();
 
-    if (servo_error) {
-        enable = false;
-    }
+    machine_compute(cutter, current_cycle_time);
 
-    if (F1->state_raised) {
-        if (mode == MANUAL) {
-            mode = AUTOMAT;
-        }
-        else {
-            mode = MANUAL;
-        }
-    }
+    // if (servo_error) {
+    //     enable = false;
+    // }
 
-    if (F2->state_raised) {
-        servo_error = false;
-        enable = true;
-        auto_man = false;
-        strcpy(*error_message_0, "OK                  ");
-    }
+    // // if (F1->state_raised) {
+    // //     if (mode == MANUAL) {
+    // //         mode = AUTOMAT;
+    // //     }
+    // //     else {
+    // //         mode = MANUAL;
+    // //     }
+    // // }
 
-    button_compute(F1);
-    button_compute(F2);
-    button_compute(Right);
-    button_compute(Left);
-    button_compute(In);
-    button_compute(Out);
+    // if (F2->state_raised) {
+    //     servo_error = false;
+    //     enable = true;
+    //     auto_man = false;
+    //     strcpy(*error_message_0, "OK                  ");
+    // }
+
+    // button_compute(F1);
+    // button_compute(F2);
+    // button_compute(Right);
+    // button_compute(Left);
+    // button_compute(In);
+    // button_compute(Out);
  
-    servo_compute(servo_0, current_cycle_time);
-    servo_compute(servo_1, current_cycle_time);
+    // servo_compute(servo_0, current_cycle_time);
+    // servo_compute(servo_1, current_cycle_time);
 
 
-    return true;
-}
-
-bool blink_timer_callback(struct repeating_timer *t) {
-    if (blink_500ms == true)
-    {
-        blink_500ms = false;
-    }
-    else
-    {
-        blink_500ms = true;
-    }
-    
     return true;
 }
 
@@ -174,45 +109,13 @@ bool LCD_refresh_timer_callback(struct repeating_timer *t) {
 }
 
 int main() {
-   
-    // Init buttons
-    F1 = create_button(5);
-    F2 = create_button(2);
-    Right = create_button(1);
-    Left = create_button(3);
-    In = create_button(4);
-    Out = create_button(0);
+    cutter = create_machine();
 
-    // Init PIO
-    uint offset = pio_add_program(pio0, &quadrature_encoder_program);
-
-    // Init servos
-    mode = MANUAL;
-    servo_error = false;
-    enable = false;
-    error_message_0 = &text_0;
-
-    servo_name_0 = &servo_name_text_0;
-    servo_name_1 = &servo_name_text_1;
-
-    strcpy(*error_message_0, "OK");
-    servo_0 = servo_create(servo_name_0, offset, 0, ENC_0, PWM_0, 1.0, mode, &Right, &Left, &enable, &servo_error, error_message_0);
-    servo_1 = servo_create(servo_name_1, offset, 1, ENC_1, PWM_1, 1.0, mode, &In, &Out, &enable, &servo_error, error_message_0);
-
-    // Machine init
-    auto_man = false;
-    // servo_goto(test_servo_0, 10.0, 1.0);
-    // servo_goto(test_servo_1, 10.0, 1.0);
-    // test_servo_1 = servo_create(&servo_ctrl_1, offset, 1, ENC_1, PWM_1, 1.0, FEEDER, &In->state_changed, &Out->state_changed);
-
-    // Initialize all of the present standard stdio types that are linked into the binary. 
+    // Initialize
     stdio_init_all();
 
     // Timer for servo control
     add_repeating_timer_ms(1, servo_timer_callback, NULL, &servo_timer);
-
-    // 1s blink timer for lcd
-    add_repeating_timer_ms(500, blink_timer_callback, NULL, &blink_timer);
 
     // 100ms LCD refresh timer
     add_repeating_timer_ms(100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
@@ -222,7 +125,6 @@ int main() {
 
     // Initial wait 
     busy_wait_ms(500);
-    enable = true;
 
     while (1)
     {

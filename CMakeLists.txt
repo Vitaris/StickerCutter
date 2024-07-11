@@ -14,7 +14,7 @@ add_executable(stickerCutter
     # servo_motor/pos_controller.c
     servo_motor/servo_motor.c
     servo_motor/button.c
-    # machine/machine_controller.c
+    machine/machine_controller.c
     # machine/mark_detector.c
 )
 

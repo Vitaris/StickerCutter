@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, enum mode mode, 
+servo_t servo_create(char servo_name[], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, 
 							button_t *man_plus, button_t *man_minus, bool *enable, bool *error, char (*message)[16])
 {
 	// Create servo data structure
@@ -52,9 +52,6 @@ servo_t servo_create(char (*servo_name)[10], uint pio_ofset, uint sm, uint encod
 	servo->no_of_stops = 0;
 	servo->movement_in_progress = false;
 	
-	// Initial mode
-	servo->mode = mode;
-
 	// Buttons 
 	servo->man_plus = man_plus;
 	servo->man_minus = man_minus;
@@ -84,22 +81,19 @@ void servo_compute(servo_t servo, float cycle_time)
 		if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
 			servo->pos_error_internal = true;
 		
-		if (servo->mode == MANUAL) {
+		// TEMPORARY
+		// Trigger the action by button
+		if ((*servo->man_plus)->state_raised == 1) {
+			servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 20.5);
+		}
 
-			// TEMPORARY
-			// Trigger the action by button
-			if ((*servo->man_plus)->state_raised == 1) {
-				servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 20.5);
-			}
+		if ((*servo->man_minus)->state_raised == 1) {
+			servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
+		}
 
-			if ((*servo->man_minus)->state_raised == 1) {
-				servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
-			}
-
-			if ((*servo->man_plus)->state_dropped == 1 || (*servo->man_minus)->state_dropped == 1) {
-				servo->next_stop = servo->set_pos + get_breaking_distance(servo);
-				servo->braking = true;
-			}
+		if ((*servo->man_plus)->state_dropped == 1 || (*servo->man_minus)->state_dropped == 1) {
+			servo->next_stop = servo->set_pos + get_breaking_distance(servo);
+			servo->braking = true;
 		}
 
 		// Current delta

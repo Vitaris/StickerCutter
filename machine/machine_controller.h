@@ -9,14 +9,14 @@
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 
-enum machine_state{MANUAL_M, AUTOMAT};
+enum machine_state{MANUAL, AUTOMAT};
 enum machine_condition{OK, ERROR};
 
 typedef struct machine {
-	// Servo motors
-	servo_t test_servo_0;
-	servo_t test_servo_1;
 
+	// Servo motors
+	servo_t servo_0;
+	servo_t servo_1;
 
 	// Buttons
 	button_t F1;
@@ -26,15 +26,25 @@ typedef struct machine {
 	button_t In;
 	button_t Out;
 
-
+	// Machine status
+	bool enable;
+	bool machine_error;
 	enum machine_state machine_state;
 	enum machine_condition machine_condition;
+	char (*error_message_0)[16];
+	char text_0[16];
+	char (*servo_name_0)[10];
+	char (*servo_name_1)[10];
+	char servo_name_text_0[10];
+	char servo_name_text_1[10];
 
-	// Texts
-	char state_text[10];
+	// LCD Texts
+	char state_text[16];
 	char condition_text[10];
-	char F1_text[10];
-	char F2_text[10];
+	char position_cutter[8];
+	char position_feeder[8];
+	char F1_text[8];
+	char F2_text[8];
 
 	// Mark probe
 	struct detector ctrldata_detector;
@@ -57,7 +67,7 @@ extern "C" {
 	 * 
 	 * @return     Machine controller data structure
 	 */
-	machine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02);
+	machine_t create_machine();
 
 	/**
 	 * @brief      Cyclically computes the machine controller.

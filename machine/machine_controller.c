@@ -9,78 +9,59 @@
 
 
 
-machine_t create_machine(bool *F1, bool *F2, bool *servo_state_01, bool *servo_state_02)
+machine_t create_machine()
 {
     // Create machine data structure
     machine_t machine = (machine_t)malloc(sizeof(struct machine));
 
-    machine->machine_state = AUTOMAT;
-    machine->machine_condition = OK;
-
-    machine->F1 = F1;
-    machine->F2 = F2;
-
-    machine->servo_state_01 = servo_state_01;
-    machine->servo_state_02 = servo_state_02;
+    // Init buttons
+    machine->F1 = create_button(5);
+    machine->F2 = create_button(2);
+    machine->Right = create_button(1);
+    machine->Left = create_button(3);
+    machine->In = create_button(4);
+    machine->Out = create_button(0);
 
     // Init servos
-    uint offset = pio_add_program(pio0, &quadrature_encoder_program); // Init PIO program
+    machine->machine_error = false;
+    machine->enable = false;
+    machine->text_0[16] = '\0';
+    machine->error_message_0 = &machine->text_0;
 
-    servo_create(&machine->test_servo_0, offset, 0, ENC_0, PWM_0, 1.0, FEEDER, &machine->Right, &machine->Left);
-    servo_create(&machine->test_servo_1, offset, 1, ENC_1, PWM_1, 1.0, MANUAL, &machine->In, &machine->Out);
+    // Init PIO
+    uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
-    machine->machine_state = AUTOMAT;
-    strcpy(machine->state_text, "AUT");
+    strcpy(*machine->error_message_0, "OK");
+    machine->servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, 1.0, &machine->Right, &machine->Left, &machine->enable, &machine->machine_error, machine->error_message_0);
+    machine->servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, 1.0, &machine->In, &machine->Out, &machine->enable, &machine->machine_error, machine->error_message_0);
+
+    machine->machine_state = MANUAL;
     machine->machine_condition = OK;
-    strcpy(machine->condition_text, "OK");
+
+
+
+    // machine->machine_state = AUTOMAT;
+    // strcpy(machine->state_text, "AUT");
+    // machine->machine_condition = OK;
+    // strcpy(machine->condition_text, "OK");
 
      // Mark probe
-    create_detector(&machine->ctrldata_detector, 0, &machine->test_servo_0.current_pos);
+    // create_detector(&machine->ctrldata_detector, 0, &machine->test_servo_0.current_pos);
 }
 
 void machine_compute(machine_t machine, const float current_cycle_time)
 {
-    servo_compute(&machine->test_servo_0, current_cycle_time);
-    servo_compute(&machine->test_servo_1, current_cycle_time);
+    servo_compute(machine->servo_0, current_cycle_time);
+    servo_compute(machine->servo_1, current_cycle_time);
 
-    button_compute(&machine->F1);
-    button_compute(&machine->F2);
-    button_compute(&machine->Right);
-    button_compute(&machine->Left);
-    button_compute(&machine->In);
-    button_compute(&machine->Out);
+    button_compute(machine->F1);
+    button_compute(machine->F2);
+    button_compute(machine->Right);
+    button_compute(machine->Left);
+    button_compute(machine->In);
+    button_compute(machine->Out);
 
-    detector_compute(&machine->ctrldata_detector);
-        
-    // If any servo fails
-    if (machine->test_servo_0.state == ERR || machine->test_servo_1.state == ERR)
-    {
-        machine->machine_condition = ERROR;
-        strcpy(machine->condition_text, "ERR");
-    }
-    else
-    {
-        machine->machine_condition = OK;
-        strcpy(machine->condition_text, "OK ");
-    }
-
-    if (machine->F1.state_raised == true)
-    {
-        if (machine->machine_state == AUTOMAT)
-        {
-            machine->machine_state = MANUAL_M;
-        }
-        else if (machine->machine_state == MANUAL_M)
-        {
-            machine->machine_state = AUTOMAT;
-        }
-    }
-
-    if (machine->F2.state_raised == true)
-    {
-        machine->machine_state = MANUAL_M;
-        
-    }
+    // detector_compute(&machine->ctrldata_detector);
 
     // F1, F2, variable text labels
     if (machine->machine_state == AUTOMAT)
@@ -89,7 +70,7 @@ void machine_compute(machine_t machine, const float current_cycle_time)
         strcpy(machine->F1_text, "  Manual  ");
         strcpy(machine->F2_text, "  Start   ");
     }
-    else if (machine->machine_state == MANUAL_M)
+    else if (machine->machine_state == MANUAL)
     {
         strcpy(machine->state_text, "MAN");
         strcpy(machine->F1_text, "  Automat ");
