@@ -50,11 +50,19 @@ void core1_entry() {
         if (lcd_refresh == true)
         {   
             string2LCD(lcd, 0, 0, cutter->state_text);
-            string2LCD(lcd, 1, 0, cutter->condition_text);
-            string2LCD(lcd, 2, 0, cutter->position_cutter);
-            string2LCD(lcd, 2, 7, cutter->position_feeder);
-            string2LCD(lcd, 3, 0, cutter->F1_text);
-            string2LCD(lcd, 3, 7, cutter->F2_text);
+            string2LCD(lcd, 0, 1, cutter->error_message);
+
+            // string2LCD(lcd, 0, 2, "F: ");
+            float2LCD(lcd, 0, 2, 8, cutter->servo_0->current_pos);
+            string2LCD(lcd, 8, 2, "mm");
+            
+            float2LCD(lcd, 10, 2, 8, cutter->servo_1->current_pos);
+            string2LCD(lcd, 18, 2, "mm");
+
+            // string2LCD(lcd, 0, 2, cutter->position_cutter);
+            // string2LCD(lcd, 7, 2, cutter->position_feeder);
+            string2LCD(lcd, 0, 3, cutter->F1_text);
+            string2LCD(lcd, 10, 3, cutter->F2_text);
             lcd_refresh = false;
         }
     }

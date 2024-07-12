@@ -31,20 +31,15 @@ typedef struct machine {
 	bool machine_error;
 	enum machine_state machine_state;
 	enum machine_condition machine_condition;
-	char (*error_message_0)[16];
-	char text_0[16];
-	char (*servo_name_0)[10];
-	char (*servo_name_1)[10];
-	char servo_name_text_0[10];
-	char servo_name_text_1[10];
+	char error_message[20];
 
 	// LCD Texts
 	char state_text[16];
 	char condition_text[10];
 	char position_cutter[8];
 	char position_feeder[8];
-	char F1_text[8];
-	char F2_text[8];
+	char F1_text[11];
+	char F2_text[11];
 
 	// Mark probe
 	struct detector ctrldata_detector;

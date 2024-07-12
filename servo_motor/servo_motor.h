@@ -48,7 +48,7 @@ typedef struct servo_motor {
 	float out_pos;
 	float set_pos;
 	bool *posError; // Pointer to bool
-	char (*error_message)[16]; // Error message
+	char (*error_message)[20]; // Error message
 
 	// PID
 	// Velocity
@@ -66,7 +66,7 @@ typedef struct servo_motor {
 	uint8_t no_of_stops;
 
 	// Controller state
-	char (*servo_name)[10];
+	char servo_name[10];
 
 	// Servo controler 
 	bool *enable;
@@ -125,9 +125,9 @@ extern "C" {
 	 * @param man_minus Pointer to the manual minus button
 	 * @return returns a pidc_t controller handle
 	 */
-	servo_t servo_create(char servo_name[], uint pio_ofset, uint sm, uint encoder_pin,
+	servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_pin,
 							uint pwm_pin, float scale, button_t *man_plus, button_t *man_minus, 
-							bool *enable, bool *error, char (*message)[16]);
+							bool *enable, bool *error, char (*message)[20]);
 
 	/**
 	 * @brief Computation function for teh servo motor, have to be called in a servo loop (1ms)
@@ -184,6 +184,8 @@ extern "C" {
 	float get_dist_to_stop(servo_t servo);
 
 	void servo_reset_all(servo_t servo);
+
+	void servo_manual_handling(servo_t  servo);
 
 
 #ifdef	__cplusplus

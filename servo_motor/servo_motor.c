@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-servo_t servo_create(char servo_name[], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, 
-							button_t *man_plus, button_t *man_minus, bool *enable, bool *error, char (*message)[16])
+servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, 
+							button_t *man_plus, button_t *man_minus, bool *enable, bool *error, char (*message)[20])
 {
 	// Create servo data structure
 	servo_t servo = (servo_t)malloc(sizeof(struct servo_motor));
-	servo->servo_name = servo_name;
+	strcpy(servo->servo_name, servo_name);
+	// servo->servo_name = servo_name;
 	servo->enable = enable;
 	servo->enable_previous = false;
 
@@ -83,18 +84,18 @@ void servo_compute(servo_t servo, float cycle_time)
 		
 		// TEMPORARY
 		// Trigger the action by button
-		if ((*servo->man_plus)->state_raised == 1) {
-			servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 20.5);
-		}
+		// if ((*servo->man_plus)->state_raised == 1) {
+		// 	servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 2.5);
+		// }
 
-		if ((*servo->man_minus)->state_raised == 1) {
-			servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
-		}
+		// if ((*servo->man_minus)->state_raised == 1) {
+		// 	servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
+		// }
 
-		if ((*servo->man_plus)->state_dropped == 1 || (*servo->man_minus)->state_dropped == 1) {
-			servo->next_stop = servo->set_pos + get_breaking_distance(servo);
-			servo->braking = true;
-		}
+		// if ((*servo->man_plus)->state_dropped == 1 || (*servo->man_minus)->state_dropped == 1) {
+		// 	servo->next_stop = servo->set_pos + get_breaking_distance(servo);
+		// 	servo->braking = true;
+		// }
 
 		// Current delta
 		servo->cycle_time = cycle_time;
@@ -108,7 +109,7 @@ void servo_compute(servo_t servo, float cycle_time)
 		
 		// set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
 		if (*servo->posError == 0 && servo->pos_error_internal == 1) {
-			strcpy(*servo->error_message, *servo->servo_name);
+			strcpy(*servo->error_message, servo->servo_name);
 			strcat(*servo->error_message, ": Pos Error");
 			*servo->posError = true;
 		}
@@ -213,6 +214,20 @@ void robust_pos_compute(servo_t servo)
 	}
 }
 
+void servo_manual_handling(servo_t  servo) {
+	if ((*servo->man_plus)->state_raised == 1) {
+			servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 2.5);
+		}
+
+		if ((*servo->man_minus)->state_raised == 1) {
+			servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
+		}
+
+		if ((*servo->man_plus)->state_dropped == 1 || (*servo->man_minus)->state_dropped == 1) {
+			servo->next_stop = servo->set_pos + get_breaking_distance(servo);
+			servo->braking = true;
+		}
+}
 
 void add_stop(servo_t servo)
 {
