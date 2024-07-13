@@ -77,6 +77,7 @@ typedef struct servo_motor {
 	bool positive_direction;
 	bool movement_request;
 	bool movement_in_progress;
+	bool movement_done;
 	bool braking;
 
 	// Default movement

@@ -168,6 +168,7 @@ void robust_pos_compute(servo_t servo)
 		servo->movement_in_progress = true;
 	}
 
+	servo->movement_done = false;
 	// Periodic computation of new position 
 	if (servo->movement_in_progress == true) {
 		if (servo->braking == false) {
@@ -204,12 +205,8 @@ void robust_pos_compute(servo_t servo)
 			if (fabs(servo->set_pos - servo->next_stop) < 0.01) {
 				servo->set_pos = servo->next_stop;
 				servo->movement_in_progress = false;
+				servo->movement_done = true;
 			}
-		}
-
-		// Something like emergency stop
-		if (fabs(servo->current_pos) > 200.0) {
-			servo->movement_in_progress = false;
 		}
 	}
 }
@@ -271,7 +268,9 @@ float get_dist_to_stop(servo_t servo)
 
 void servo_reset_all(servo_t servo) {
 	pid_reset_all(servo->pid_pos);
+	// *servo->pid_pos->output = 0.0;
 	pid_reset_all(servo->pid_vel);
+	*servo->pid_vel->output = 0.0;
 	servo->movement_request = false;
 	servo->movement_in_progress = false;
 	servo->pos_error_internal = false;

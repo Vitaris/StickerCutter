@@ -9,6 +9,7 @@
 
 char empty_20[21] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\0'};
 char empty_10[11] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\0'};
+bool end = false;
 
 machine_t create_machine()
 {
@@ -98,12 +99,47 @@ void machine_compute(machine_t machine, const float current_cycle_time)
 
         case AUTOMAT:
             set_text_20(machine->state_text, "Automat");
+            set_text_10(machine->F1_text, "Stop");
+            set_text_10(machine->F2_text, "");
+            if (!machine->servo_0->movement_in_progress) {
+                if (end) {
+                    servo_goto(machine->servo_0, 0.0, 10.0);
+                } else {
+                    servo_goto(machine->servo_0, 10.0, 10.0);
+                }
+            }
+
+            if (machine->servo_0->movement_done) {
+                if (fabs(machine->servo_0->current_pos - 10.0) < 0.5) {
+                    end = true;
+                    servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 20.0);
+                } else if (fabs(machine->servo_0->current_pos) < 0.5) {
+                    end = false;
+                }
+            }
+
+            if (machine->F1->state_raised) {
+                machine->state = MANUAL;
+            }
+
             break;
 
         case FAILURE:
             set_text_20(machine->state_text, "Porucha!");
             machine->enable = false;
+            set_text_10(machine->F1_text, "Potvrdit");
+            set_text_10(machine->F2_text, "");
+
+            if (machine->F1->state_raised) {
+                machine->state = MANUAL_DISABLED_MOTORS;
+                set_text_20(machine->error_message, "OK");
+                machine->machine_error = false;
+            }
             break;
+    }
+
+    if (machine->machine_error) {
+        machine->state = FAILURE;
     }
 }
 
@@ -125,9 +161,9 @@ void set_text(char LCD_text[], char text[], uint8_t len) {
 }
 
 void set_text_10(char LCD_text[], char text[]) {
-    set_text(LCD_text, text, 11);
+    set_text(LCD_text, text, 10);
 }
 
 void set_text_20(char LCD_text[], char text[]) {
-    set_text(LCD_text, text, 21);
+    set_text(LCD_text, text, 20);
 }
