@@ -9,7 +9,12 @@
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 
-enum machine_state{MANUAL, AUTOMAT};
+enum machine_state{
+	MANUAL_DISABLED_MOTORS, 
+	MANUAL, 
+	AUTOMAT, 
+	FAILURE
+	};
 enum machine_condition{OK, ERROR};
 
 typedef struct machine {
@@ -29,12 +34,13 @@ typedef struct machine {
 	// Machine status
 	bool enable;
 	bool machine_error;
-	enum machine_state machine_state;
+	bool homed;
+	enum machine_state state;
 	enum machine_condition machine_condition;
-	char error_message[20];
+	char error_message[21];
 
 	// LCD Texts
-	char state_text[16];
+	char state_text[21];
 	char condition_text[10];
 	char position_cutter[8];
 	char position_feeder[8];
@@ -70,6 +76,12 @@ extern "C" {
 	 * @param      machine  Machine controller data structure
 	 */
 	void machine_compute(machine_t machine, const float current_cycle_time);
+
+	void set_text(char LCD_text[], char text[], uint8_t len);
+
+	void set_text_10(char LCD_text[], char text[]);
+
+	void set_text_20(char LCD_text[], char text[]);
 
 #ifdef	__cplusplus
 }

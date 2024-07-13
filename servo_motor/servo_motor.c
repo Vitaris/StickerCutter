@@ -3,7 +3,7 @@
 #include <string.h>
 
 servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, 
-							button_t *man_plus, button_t *man_minus, bool *enable, bool *error, char (*message)[20])
+							button_t *man_plus, button_t *man_minus, bool *enable, bool *error, char (*message)[21])
 {
 	// Create servo data structure
 	servo_t servo = (servo_t)malloc(sizeof(struct servo_motor));
