@@ -19,6 +19,9 @@ pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float k
 
 	// Set default limits
 	pid_limits(pid, -1024, 1024);
+
+	// Error
+	pid->error = false;
 		
 	return pid;
 }
@@ -32,10 +35,14 @@ void pid_compute(pidc_t pid)
 
 	// Compute integral
 	pid->iterm += (pid->Ki * error);
-	if (pid->iterm > pid->omax)
+	if (pid->iterm > pid->omax) {
 		pid->iterm = pid->omax;
-	else if (pid->iterm < pid->omin)
+		pid->error = true;
+	}
+	else if (pid->iterm < pid->omin) {
 		pid->iterm = pid->omin;
+		pid->error = true;
+	}
 	// Compute differential on input
 	float dinput = in - pid->lastin;
 	// Compute PID output
@@ -71,5 +78,6 @@ void pid_limits(pidc_t pid, float min, float max)
 
 void pid_reset_all(pidc_t pid) {
 	pid->iterm = 0.0;
-	pid->lastin = *(pid->input); 
+	pid->lastin = *(pid->input);
+	pid->error = false;
 }

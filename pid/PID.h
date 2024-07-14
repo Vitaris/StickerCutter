@@ -36,6 +36,7 @@ struct pid_controller {
 	// Time related
 	uint32_t lasttime; // Stores the time when the control loop ran last time
 	uint32_t sampletime; // Defines the PID sample time
+	bool error;
 		
 };
 
