@@ -47,8 +47,6 @@ typedef struct servo_motor {
 	float current_pos;
 	float out_pos;
 	float set_pos;
-	bool *posError; // Pointer to bool
-	char (*error_message)[21]; // Error message
 
 	// PID
 	// Velocity
@@ -56,6 +54,9 @@ typedef struct servo_motor {
 	float current_vel;
 	float out_vel;
 	float set_vel;
+
+	bool *error; // Pointer to bool
+	char (*error_message)[21]; // Error message
 
 	// Servo controller
 	bool pos_error_internal;
@@ -77,6 +78,8 @@ typedef struct servo_motor {
 	bool positive_direction;
 	bool movement_done;
 	bool braking;
+	bool set_zero;
+	float offset;
 
 	// Default movement
 	float nominal_speed; 	// Desired motor speed
@@ -181,6 +184,8 @@ extern "C" {
 	 * @return distance to the next stop
 	 */
 	float get_dist_to_stop(servo_t servo);
+
+	void set_zero(servo_t servo);
 
 	void servo_reset_all(servo_t servo);
 

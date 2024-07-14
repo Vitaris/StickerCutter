@@ -7,8 +7,6 @@
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
 
-char empty_20[21] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\0'};
-char empty_10[11] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\0'};
 bool end = false;
 float pause_time;
 bool waiting;
@@ -86,6 +84,7 @@ void machine_compute(machine_t machine, const float current_cycle_time)
             else {
                 set_text_10(machine->F2_text, "Noz->0");
                 if (machine->F2->state_raised == true) {
+                    machine->servo_0->set_zero = true;
                     machine->homed = true;
                 }
             }
@@ -120,7 +119,7 @@ void machine_compute(machine_t machine, const float current_cycle_time)
             if (machine->servo_0->positioning == IDLE) {
                 if (fabs(machine->servo_0->current_pos - 10.0) < 0.5) {
                     end = true;
-                    servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 10.0);
+                    servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 2.5);
                 } else if (fabs(machine->servo_0->current_pos) < 0.5) {
                     end = false;
                 }

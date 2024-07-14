@@ -37,10 +37,12 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 	servo->pos_limit_enabled = true;
 	servo->max_pos = 100.0;
 	servo->min_pos = -10.0;
-	servo->posError = error;
+	servo->error = error;
 	servo->error_message = message;
 	strcpy(*servo->error_message, "OK");
 	servo->pos_error_internal = false;
+	servo->offset = 0.0;
+	servo->set_zero = false;
 
 	/**
 	 * @brief Error code variable
@@ -67,7 +69,15 @@ void servo_compute(servo_t servo, float cycle_time)
 { 
 	// Get current position, calculate velocity
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
-	servo->current_pos = ((float)enc_new / 4000.0);
+	servo->current_pos = ((float)enc_new / 4000.0) - servo->offset;
+	if (servo->set_zero) {
+		servo->offset = servo->current_pos;
+		servo->current_pos = 0.0;
+		pid_reset_all(servo->pid_pos);
+		pid_reset_all(servo->pid_vel);
+		servo->set_pos = 0.0;
+		servo->set_zero = false;
+	}
 	servo->current_vel = enc2speed(enc_new - servo->enc_old, cycle_time);
 	servo->enc_old = enc_new; // N eeded for velocity calculation
 
@@ -93,10 +103,16 @@ void servo_compute(servo_t servo, float cycle_time)
 		pid_compute(servo->pid_vel);
 		
 		// set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
-		if (!*servo->posError && servo->pos_error_internal) {
+		if (!*servo->error && servo->pos_error_internal) {
 			strcpy(*servo->error_message, servo->servo_name);
 			strcat(*servo->error_message, ": Pos Error");
-			*servo->posError = true;
+			*servo->error = true;
+		}
+
+		if (!*servo->error && (servo->pid_pos->error || servo->pid_vel->error)) {
+			strcpy(*servo->error_message, servo->servo_name);
+			strcat(*servo->error_message, ": PID Error");
+			*servo->error = true;
 		}
 
 		// PWM output
@@ -250,6 +266,10 @@ float get_dist_to_stop(servo_t servo)
 		// return big number, far away (~inf)
 		return 10000.0;
 	}
+}
+
+void set_zero(servo_t servo) {
+	
 }
 
 void servo_reset_all(servo_t servo) {
