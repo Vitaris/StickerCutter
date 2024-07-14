@@ -20,7 +20,7 @@
 #define FOLLOWING_ERROR 0.5 // Maximum permisible position deviation
 
 enum op_state{SERVO_OK, ERR};
-enum state{IN_POSITIONING, POSITIONING_DONE};
+enum positioning{IDLE, REQUESTED, ACCELERATING, BRAKING, POSITION_REACHED};
 
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
@@ -68,15 +68,13 @@ typedef struct servo_motor {
 	// Controller state
 	char servo_name[10];
 
-	// Servo controler 
+	// Servo controler
+	enum positioning positioning; 
 	bool *enable;
 	bool enable_previous;
-	enum state state;
 	float cycle_time;
 	float computed_speed;
 	bool positive_direction;
-	bool movement_request;
-	bool movement_in_progress;
 	bool movement_done;
 	bool braking;
 

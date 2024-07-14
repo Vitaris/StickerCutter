@@ -83,6 +83,10 @@ extern "C" {
 
 	void set_text_20(char LCD_text[], char text[]);
 
+	void set_pause();
+
+	bool is_time(float cycle_time);
+
 #ifdef	__cplusplus
 }
 #endif

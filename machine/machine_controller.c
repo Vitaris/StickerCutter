@@ -10,6 +10,8 @@
 char empty_20[21] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\0'};
 char empty_10[11] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\0'};
 bool end = false;
+float pause_time;
+bool waiting;
 
 machine_t create_machine()
 {
@@ -77,6 +79,7 @@ void machine_compute(machine_t machine, const float current_cycle_time)
             if (machine->homed == true) {
                 set_text_10(machine->F2_text, "Start");
                 if (machine->F2->state_raised == true) {
+                    servo_goto(machine->servo_0, 10.0, 10.0);
                     machine->state = AUTOMAT;
                 }
             }
@@ -101,18 +104,23 @@ void machine_compute(machine_t machine, const float current_cycle_time)
             set_text_20(machine->state_text, "Automat");
             set_text_10(machine->F1_text, "Stop");
             set_text_10(machine->F2_text, "");
-            if (!machine->servo_0->movement_in_progress) {
-                if (end) {
-                    servo_goto(machine->servo_0, 0.0, 10.0);
-                } else {
-                    servo_goto(machine->servo_0, 10.0, 10.0);
+            if (machine->servo_0->positioning == POSITION_REACHED) {
+                set_pause();
+            }
+            if (waiting) {
+                if (is_time(current_cycle_time)) {
+                    if (end) {
+                        servo_goto(machine->servo_0, 0.0, 10.0);
+                    } else {
+                        servo_goto(machine->servo_0, 10.0, 10.0);
+                    }
                 }
             }
 
-            if (machine->servo_0->movement_done) {
+            if (machine->servo_0->positioning == IDLE) {
                 if (fabs(machine->servo_0->current_pos - 10.0) < 0.5) {
                     end = true;
-                    servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 20.0);
+                    servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 10.0);
                 } else if (fabs(machine->servo_0->current_pos) < 0.5) {
                     end = false;
                 }
@@ -167,3 +175,21 @@ void set_text_10(char LCD_text[], char text[]) {
 void set_text_20(char LCD_text[], char text[]) {
     set_text(LCD_text, text, 20);
 }
+
+void set_pause() {
+    waiting = true;
+    pause_time = 0.0;
+}
+
+bool is_time(float cycle_time) {
+    pause_time += cycle_time;
+    if (pause_time >= 1.0) {
+        waiting = false;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+

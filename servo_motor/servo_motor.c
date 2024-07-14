@@ -11,6 +11,7 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 	// servo->servo_name = servo_name;
 	servo->enable = enable;
 	servo->enable_previous = false;
+	servo->positioning = IDLE;
 
 	// Encoder
 	quadrature_encoder_program_init(pio0, sm, pio_ofset, encoder_pin, 0);
@@ -51,7 +52,6 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 
 	// Feeder
 	servo->no_of_stops = 0;
-	servo->movement_in_progress = false;
 	
 	// Buttons 
 	servo->man_plus = man_plus;
@@ -81,21 +81,6 @@ void servo_compute(servo_t servo, float cycle_time)
 		// Evaluate following error
 		if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
 			servo->pos_error_internal = true;
-		
-		// TEMPORARY
-		// Trigger the action by button
-		// if ((*servo->man_plus)->state_raised == 1) {
-		// 	servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 2.5);
-		// }
-
-		// if ((*servo->man_minus)->state_raised == 1) {
-		// 	servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
-		// }
-
-		// if ((*servo->man_plus)->state_dropped == 1 || (*servo->man_minus)->state_dropped == 1) {
-		// 	servo->next_stop = servo->set_pos + get_breaking_distance(servo);
-		// 	servo->braking = true;
-		// }
 
 		// Current delta
 		servo->cycle_time = cycle_time;
@@ -108,7 +93,7 @@ void servo_compute(servo_t servo, float cycle_time)
 		pid_compute(servo->pid_vel);
 		
 		// set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
-		if (*servo->posError == 0 && servo->pos_error_internal == 1) {
+		if (!*servo->posError && servo->pos_error_internal) {
 			strcpy(*servo->error_message, servo->servo_name);
 			strcat(*servo->error_message, ": Pos Error");
 			*servo->posError = true;
@@ -116,8 +101,7 @@ void servo_compute(servo_t servo, float cycle_time)
 
 		// PWM output
 		set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
-	}
-	else {
+	} else {
 		set_two_chans_pwm(servo->pwm_slice, 0.0);
 		servo->enable_previous = true;
 	}
@@ -140,39 +124,33 @@ float enc2speed(int32_t enc_diff, float current_cycle){
 void servo_goto(servo_t servo, float position, float speed){
 	servo->next_stop = position;
 	servo->nominal_speed = speed;
-	servo->movement_request = true;
+	servo->positioning = REQUESTED;
 }
 
 void robust_pos_compute(servo_t servo)
 {
-	// First occurence of movement request, save the position of movement beginning
-	if (servo->movement_request == true) {
-		if (servo->next_stop >= servo->current_pos) {
-			// Positive direction
-			servo->positive_direction = true;
-			servo->current_acc = servo->nominal_acc;
-			servo->current_speed = servo->nominal_speed;
-			// servo->current_acc = 100.0;
-			// servo->current_speed = 20.0;
-		}
-		else {
-			// Negative direction
-			servo->positive_direction = false;
-			servo->current_acc = -servo->nominal_acc;
-			servo->current_speed = -servo->nominal_speed;
-			// servo->current_acc = -100.0;
-			// servo->current_speed = -20.0;
-		}
-		servo->braking = false;
-		servo->movement_request = false;
-		servo->movement_in_progress = true;
-	}
+	switch(servo->positioning) {
+        case IDLE:
+			servo->movement_done = false;
+			break;
+		
+		case REQUESTED:
+			// First occurence of movement request, save the position of movement beginning
+			if (servo->next_stop >= servo->current_pos) {
+				// Positive direction
+				servo->positive_direction = true;
+				servo->current_acc = servo->nominal_acc;
+				servo->current_speed = servo->nominal_speed;
+			} else {
+				// Negative direction
+				servo->positive_direction = false;
+				servo->current_acc = -servo->nominal_acc;
+				servo->current_speed = -servo->nominal_speed;
+			}
+			servo->positioning = ACCELERATING;
+			break;
 
-	servo->movement_done = false;
-	// Periodic computation of new position 
-	if (servo->movement_in_progress == true) {
-		if (servo->braking == false) {
-			// Accelerating
+		case ACCELERATING:
 			servo->computed_speed += servo->current_acc * servo->cycle_time;
 
 			// check if nominal speed has been reached
@@ -186,41 +164,49 @@ void robust_pos_compute(servo_t servo)
 			// Check if braking is needed
 			if (servo->positive_direction) {
 				if (servo->next_stop - servo->set_pos < get_breaking_distance(servo)) {
-					servo->braking = true;
+					servo->positioning = BRAKING;
 				}
-			}
-			else {
+			} else {
 				if (servo->next_stop - servo->set_pos > get_breaking_distance(servo)) {
-					servo->braking = true;
+					servo->positioning = BRAKING;
 				}
 			}
-		}
-		else {
-			// Braking
+			break;
+
+		case BRAKING:
 			servo->computed_speed -= servo->current_acc * servo->cycle_time;
 			servo->set_pos += servo->computed_speed * servo->cycle_time;
 			
 			// Check if desired position has been reached
-			// if (fabs(servo->set_pos - servo->current_pos) < 0.01) {
-			if (fabs(servo->set_pos - servo->next_stop) < 0.01) {
-				servo->set_pos = servo->next_stop;
-				servo->movement_in_progress = false;
-				servo->movement_done = true;
+			if (servo->positive_direction) {
+				if (servo->set_pos - servo->next_stop <= 0.0) {
+					servo->positioning = POSITION_REACHED;
+				}
+			} else {
+				if (servo->set_pos - servo->next_stop >= 0.0) {
+					servo->positioning = POSITION_REACHED;
+				}
 			}
-		}
+			break;
+
+		case POSITION_REACHED:
+			servo->set_pos = servo->next_stop;
+			servo->movement_done = true;
+			servo->positioning = IDLE;
+			break;
 	}
 }
 
 void servo_manual_handling(servo_t  servo) {
-	if ((*servo->man_plus)->state_raised == 1) {
+	if ((*servo->man_plus)->state_raised) {
 			servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 2.5);
 		}
 
-		if ((*servo->man_minus)->state_raised == 1) {
+		if ((*servo->man_minus)->state_raised) {
 			servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
 		}
 
-		if ((*servo->man_plus)->state_dropped == 1 || (*servo->man_minus)->state_dropped == 1) {
+		if ((*servo->man_plus)->state_dropped || (*servo->man_minus)->state_dropped) {
 			servo->next_stop = servo->set_pos + get_breaking_distance(servo);
 			servo->braking = true;
 		}
@@ -268,11 +254,9 @@ float get_dist_to_stop(servo_t servo)
 
 void servo_reset_all(servo_t servo) {
 	pid_reset_all(servo->pid_pos);
-	// *servo->pid_pos->output = 0.0;
 	pid_reset_all(servo->pid_vel);
 	*servo->pid_vel->output = 0.0;
-	servo->movement_request = false;
-	servo->movement_in_progress = false;
+	servo->positioning = IDLE;
 	servo->pos_error_internal = false;
 	servo->computed_speed = 0.0;
 	servo->set_pos = servo->current_pos;
