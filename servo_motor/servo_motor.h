@@ -79,7 +79,9 @@ typedef struct servo_motor {
 	char servo_name[10];
 
 	// Servo controler
-	enum positioning positioning; 
+	enum positioning positioning;
+	uint32_t delay_start;
+	uint32_t delay_finish;
 	bool *enable;
 	bool enable_previous;
 	float computed_speed;

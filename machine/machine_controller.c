@@ -92,7 +92,7 @@ void machine_compute(machine_t machine)
                 set_text_10(machine->F2_text, "Noz->0");
                 if (machine->F2->state_raised == true) {
                     machine->servo_0->set_zero = true;
-                     machine->cutter_state = READY;
+                    machine->cutter_state = READY;
                     machine->homed = true;
                 }
             }
@@ -110,27 +110,24 @@ void machine_compute(machine_t machine)
             set_text_20(machine->state_text, "Automat");
             set_text_10(machine->F1_text, "Stop");
             set_text_10(machine->F2_text, "");
-            // if (machine->servo_0->positioning == POSITION_REACHED) {
-            //     set_pause();
-            // }
-            // if (waiting) {
-            //     if (is_time(current_cycle_time)) {
-            //         if (end) {
-            //             servo_goto(machine->servo_0, 0.0, 10.0);
-            //             gpio_put(17, false);
-            //         } else {
-            //             servo_goto(machine->servo_0, 10.0, 10.0);
-            //             gpio_put(17, true);
-            //         }
-            //     }
-            // }
-
+            // add_alarm_in_ms(2000, alarm_callback, NULL, false);
+       
             if (machine->servo_0->positioning == IDLE) {
                 if (fabs(machine->servo_0->current_pos - 10.0) < 0.5) {
                     end = true;
                     servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 2.5);
                 } else if (fabs(machine->servo_0->current_pos) < 0.5) {
                     end = false;
+                }
+                
+                if (end) {
+                    machine->servo_0->delay_start = 2000;
+                    servo_goto(machine->servo_0, 0.0, 10.0);
+                    gpio_put(17, false);
+                } else {
+                    machine->servo_0->delay_start = 2000;
+                    servo_goto(machine->servo_0, 10.0, 10.0);
+                    gpio_put(17, true);
                 }
             }
 

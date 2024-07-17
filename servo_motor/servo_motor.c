@@ -9,6 +9,8 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 	servo_t servo = (servo_t)malloc(sizeof(struct servo_motor));
 	strcpy(servo->servo_name, servo_name);
 	// servo->servo_name = servo_name;
+	servo->delay_start = 0;
+	servo->delay_finish = 0;
 	servo->enable = enable;
 	servo->enable_previous = false;
 	servo->positioning = IDLE;
@@ -159,6 +161,10 @@ void robust_pos_compute(servo_t servo)
 				servo->positive_direction = false;
 				servo->current_acc = -servo->nominal_acc;
 				servo->current_speed = -servo->nominal_speed;
+			}
+			if (servo->delay_start > 0) {
+				servo->delay_start--;
+				break;
 			}
 			servo->positioning = ACCELERATING;
 			break;
