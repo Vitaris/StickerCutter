@@ -9,13 +9,27 @@
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 
+#define PRECUT_LENGTH 100.0
+#define CUT_LENGTH 500.0
+
+enum cutter_state{
+	NOT_HOMED,
+	READY,
+	TO_PRECUT,
+	BACK_HOME,
+	CUT_TO_END,
+	CUT_DONE};
+
 enum machine_state{
 	MANUAL_DISABLED_MOTORS, 
 	MANUAL, 
 	AUTOMAT, 
 	FAILURE
 	};
-enum machine_condition{OK, ERROR};
+
+enum machine_condition{
+	OK,
+	ERROR};
 
 typedef struct machine {
 
@@ -50,6 +64,8 @@ typedef struct machine {
 	// Mark probe
 	struct detector ctrldata_detector;
 	detector_t detector;
+
+	enum cutter_state cutter_state;
 } * machine_t; 
 
 
@@ -75,7 +91,7 @@ extern "C" {
 	 * 
 	 * @param      machine  Machine controller data structure
 	 */
-	void machine_compute(machine_t machine, const float current_cycle_time);
+	void machine_compute(machine_t machine);
 
 	void set_text(char LCD_text[], char text[], uint8_t len);
 
@@ -86,6 +102,8 @@ extern "C" {
 	void set_pause();
 
 	bool is_time(float cycle_time);
+
+	void perform_sticker_cut(machine_t machine);
 
 #ifdef	__cplusplus
 }

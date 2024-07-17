@@ -65,7 +65,7 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 	return servo;
 }
 
-void servo_compute(servo_t servo, float cycle_time)
+void servo_compute(servo_t servo)
 { 
 	// Get current position, calculate velocity
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
@@ -78,7 +78,7 @@ void servo_compute(servo_t servo, float cycle_time)
 		servo->set_pos = 0.0;
 		servo->set_zero = false;
 	}
-	servo->current_vel = enc2speed(enc_new - servo->enc_old, cycle_time);
+	servo->current_vel = enc2speed(enc_new - servo->enc_old);
 	servo->enc_old = enc_new; // N eeded for velocity calculation
 
 	if (*servo->enable) {
@@ -91,9 +91,6 @@ void servo_compute(servo_t servo, float cycle_time)
 		// Evaluate following error
 		if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
 			servo->pos_error_internal = true;
-
-		// Current delta
-		servo->cycle_time = cycle_time;
 
 		robust_pos_compute(servo);
 
@@ -123,7 +120,7 @@ void servo_compute(servo_t servo, float cycle_time)
 	}
 }  
 
-float enc2speed(int32_t enc_diff, float current_cycle){
+float enc2speed(int32_t enc_diff){
 	// Time difference of measured encoder tics
 	// is ~1 milisecond but we want to get it in seconds,
 	// so we have to multiply by 1000
@@ -134,7 +131,7 @@ float enc2speed(int32_t enc_diff, float current_cycle){
 	// (enc_diff * 1000.0) / 4000.0
 	
 	// return (float)enc_diff / 4.0;
-	return (float)enc_diff * (1.0 / current_cycle) / 4000.0;
+	return (float)enc_diff * (1.0 / CYCLE_TIME) / 4000.0;
 }
 
 void servo_goto(servo_t servo, float position, float speed){
@@ -167,7 +164,7 @@ void robust_pos_compute(servo_t servo)
 			break;
 
 		case ACCELERATING:
-			servo->computed_speed += servo->current_acc * servo->cycle_time;
+			servo->computed_speed += servo->current_acc * CYCLE_TIME;
 
 			// check if nominal speed has been reached
 			if (fabs(servo->computed_speed) > fabs(servo->current_speed)) {
@@ -175,7 +172,7 @@ void robust_pos_compute(servo_t servo)
 			}
 
 			// Compute position for next cycle time
-			servo->set_pos += servo->computed_speed * servo->cycle_time;
+			servo->set_pos += servo->computed_speed * CYCLE_TIME;
 
 			// Check if braking is needed
 			if (servo->positive_direction) {
@@ -190,8 +187,8 @@ void robust_pos_compute(servo_t servo)
 			break;
 
 		case BRAKING:
-			servo->computed_speed -= servo->current_acc * servo->cycle_time;
-			servo->set_pos += servo->computed_speed * servo->cycle_time;
+			servo->computed_speed -= servo->current_acc * CYCLE_TIME;
+			servo->set_pos += servo->computed_speed * CYCLE_TIME;
 			
 			// Check if desired position has been reached
 			if (servo->positive_direction) {

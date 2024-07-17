@@ -69,44 +69,7 @@ void core1_entry() {
 }
 
 bool servo_timer_callback(struct repeating_timer *t) {
-
-    // Get current time 
-	float current_cycle_time = (float)(time_us_64() - old_cycle_time) * 1e-6;
-	old_cycle_time = time_us_64();
-
-    machine_compute(cutter, current_cycle_time);
-
-    // if (servo_error) {
-    //     enable = false;
-    // }
-
-    // // if (F1->state_raised) {
-    // //     if (mode == MANUAL) {
-    // //         mode = AUTOMAT;
-    // //     }
-    // //     else {
-    // //         mode = MANUAL;
-    // //     }
-    // // }
-
-    // if (F2->state_raised) {
-    //     servo_error = false;
-    //     enable = true;
-    //     auto_man = false;
-    //     strcpy(*error_message_0, "OK                  ");
-    // }
-
-    // button_compute(F1);
-    // button_compute(F2);
-    // button_compute(Right);
-    // button_compute(Left);
-    // button_compute(In);
-    // button_compute(Out);
- 
-    // servo_compute(servo_0, current_cycle_time);
-    // servo_compute(servo_1, current_cycle_time);
-
-
+    machine_compute(cutter);
     return true;
 }
 
@@ -123,7 +86,7 @@ int main() {
     stdio_init_all();
 
     // Timer for servo control
-    add_repeating_timer_ms(1, servo_timer_callback, NULL, &servo_timer);
+    add_repeating_timer_ms(-1, servo_timer_callback, NULL, &servo_timer);
 
     // 100ms LCD refresh timer
     add_repeating_timer_ms(100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);

@@ -18,9 +18,18 @@
 #define CUT_OFFSET 10.0
 #define MAN_SPEED 5.0
 #define FOLLOWING_ERROR 0.5 // Maximum permisible position deviation
+#define CYCLE_TIME 0.001
 
-enum op_state{SERVO_OK, ERR};
-enum positioning{IDLE, REQUESTED, ACCELERATING, BRAKING, POSITION_REACHED};
+enum op_state{
+	SERVO_OK,
+	ERR};
+
+enum positioning{
+	IDLE,
+	REQUESTED,
+	ACCELERATING,
+	BRAKING,
+	POSITION_REACHED};
 
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
@@ -73,7 +82,6 @@ typedef struct servo_motor {
 	enum positioning positioning; 
 	bool *enable;
 	bool enable_previous;
-	float cycle_time;
 	float computed_speed;
 	bool positive_direction;
 	bool movement_done;
@@ -135,7 +143,7 @@ extern "C" {
 	 * @brief Computation function for teh servo motor, have to be called in a servo loop (1ms)
 	 * @param servo A pointer to a servo_motor structure
 	 */
-	void servo_compute(servo_t servo, float cycle_time);
+	void servo_compute(servo_t servo);
 
 	/**
 	 * @brief Send the servo to a position
@@ -148,7 +156,7 @@ extern "C" {
 	 * @param servo A pointer to a servo_motor structure
 	 * @return returns the speed in rev/s
 	 */
-	float enc2speed(int32_t enc, float current_cycle);
+	float enc2speed(int32_t enc);
 
 	void robust_pos_compute(servo_t servo);
 

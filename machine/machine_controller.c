@@ -38,15 +38,22 @@ machine_t create_machine()
     machine->servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, 1.0, &machine->Right, &machine->Left, &machine->enable, &machine->machine_error, &machine->error_message);
     machine->servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, 1.0, &machine->In, &machine->Out, &machine->enable, &machine->machine_error, &machine->error_message);
 
+    // Knife
+    gpio_init(17);
+    gpio_set_dir(17, GPIO_OUT);
+
+    // Cutter
+    machine->cutter_state = NOT_HOMED;
+
     // Mark probe
     // create_detector(&machine->ctrldata_detector, 0, &machine->test_servo_0.current_pos);
     return machine;
 }
 
-void machine_compute(machine_t machine, const float current_cycle_time)
+void machine_compute(machine_t machine)
 {
-    servo_compute(machine->servo_0, current_cycle_time);
-    servo_compute(machine->servo_1, current_cycle_time);
+    servo_compute(machine->servo_0);
+    servo_compute(machine->servo_1);
 
     button_compute(machine->F1);
     button_compute(machine->F2);
@@ -81,10 +88,11 @@ void machine_compute(machine_t machine, const float current_cycle_time)
                     machine->state = AUTOMAT;
                 }
             }
-            else {
+            else { 
                 set_text_10(machine->F2_text, "Noz->0");
                 if (machine->F2->state_raised == true) {
                     machine->servo_0->set_zero = true;
+                     machine->cutter_state = READY;
                     machine->homed = true;
                 }
             }
@@ -96,25 +104,26 @@ void machine_compute(machine_t machine, const float current_cycle_time)
             if (machine->F1->state_raised == true) {
                 machine->state = MANUAL_DISABLED_MOTORS;
             }
-
             break;
 
         case AUTOMAT:
             set_text_20(machine->state_text, "Automat");
             set_text_10(machine->F1_text, "Stop");
             set_text_10(machine->F2_text, "");
-            if (machine->servo_0->positioning == POSITION_REACHED) {
-                set_pause();
-            }
-            if (waiting) {
-                if (is_time(current_cycle_time)) {
-                    if (end) {
-                        servo_goto(machine->servo_0, 0.0, 10.0);
-                    } else {
-                        servo_goto(machine->servo_0, 10.0, 10.0);
-                    }
-                }
-            }
+            // if (machine->servo_0->positioning == POSITION_REACHED) {
+            //     set_pause();
+            // }
+            // if (waiting) {
+            //     if (is_time(current_cycle_time)) {
+            //         if (end) {
+            //             servo_goto(machine->servo_0, 0.0, 10.0);
+            //             gpio_put(17, false);
+            //         } else {
+            //             servo_goto(machine->servo_0, 10.0, 10.0);
+            //             gpio_put(17, true);
+            //         }
+            //     }
+            // }
 
             if (machine->servo_0->positioning == IDLE) {
                 if (fabs(machine->servo_0->current_pos - 10.0) < 0.5) {
@@ -128,7 +137,6 @@ void machine_compute(machine_t machine, const float current_cycle_time)
             if (machine->F1->state_raised) {
                 machine->state = MANUAL;
             }
-
             break;
 
         case FAILURE:
@@ -190,5 +198,6 @@ bool is_time(float cycle_time) {
     }
 }
 
+void perform_sticker_cut(machine_t machine) {
 
-
+}
