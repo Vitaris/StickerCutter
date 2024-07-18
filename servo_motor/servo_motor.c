@@ -166,6 +166,7 @@ void robust_pos_compute(servo_t servo)
 				servo->delay_start--;
 				break;
 			}
+			servo->computed_speed = 0.0;
 			servo->positioning = ACCELERATING;
 			break;
 
@@ -198,11 +199,11 @@ void robust_pos_compute(servo_t servo)
 			
 			// Check if desired position has been reached
 			if (servo->positive_direction) {
-				if (servo->set_pos - servo->next_stop <= 0.0) {
+				if (servo->computed_speed <= 0.0) {
 					servo->positioning = POSITION_REACHED;
 				}
 			} else {
-				if (servo->set_pos - servo->next_stop >= 0.0) {
+				if (servo->computed_speed >= 0.0) {
 					servo->positioning = POSITION_REACHED;
 				}
 			}
