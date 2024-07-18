@@ -139,6 +139,9 @@ float enc2speed(int32_t enc_diff){
 void servo_goto(servo_t servo, float position, float speed){
 	servo->next_stop = position;
 	servo->nominal_speed = speed;
+	if (servo->delay_start == 0) { // TODO, add some sign to not add delay, e.g. maximum number
+		servo->delay_start = 500;
+	}
 	servo->positioning = REQUESTED;
 }
 

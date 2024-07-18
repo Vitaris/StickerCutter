@@ -9,16 +9,19 @@
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 
-#define PRECUT_LENGTH 100.0
-#define CUT_LENGTH 500.0
+#define PRECUT_POSITION 10.0
+#define CUT_LENGTH 25.0
 
 enum cutter_state{
-	NOT_HOMED,
-	READY,
+	CUTTER_IDLE,
+	CUTTER_REQUESTED,
+	TO_HOME,
 	TO_PRECUT,
 	BACK_HOME,
 	CUT_TO_END,
-	CUT_DONE};
+	FINAL_RETURN,
+	CUT_DONE,
+	STOP_CUTTING};
 
 enum machine_state{
 	MANUAL_DISABLED_MOTORS, 
@@ -92,6 +95,8 @@ extern "C" {
 	 * @param      machine  Machine controller data structure
 	 */
 	void machine_compute(machine_t machine);
+
+	void sticker_cut_compute(machine_t machine);
 
 	void set_text(char LCD_text[], char text[], uint8_t len);
 

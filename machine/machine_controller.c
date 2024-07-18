@@ -43,7 +43,7 @@ machine_t create_machine()
     gpio_set_dir(17, GPIO_OUT);
 
     // Cutter
-    machine->cutter_state = NOT_HOMED;
+    machine->cutter_state = CUTTER_IDLE;
 
     // Mark probe
     // create_detector(&machine->ctrldata_detector, 0, &machine->test_servo_0.current_pos);
@@ -84,7 +84,6 @@ void machine_compute(machine_t machine)
             if (machine->homed == true) {
                 set_text_10(machine->F2_text, "Start");
                 if (machine->F2->state_raised == true) {
-                    servo_goto(machine->servo_0, 10.0, 10.0);
                     machine->state = AUTOMAT;
                 }
             }
@@ -92,7 +91,7 @@ void machine_compute(machine_t machine)
                 set_text_10(machine->F2_text, "Noz->0");
                 if (machine->F2->state_raised == true) {
                     machine->servo_0->set_zero = true;
-                    machine->cutter_state = READY;
+                    machine->cutter_state = CUTTER_IDLE;
                     machine->homed = true;
                 }
             }
@@ -110,9 +109,12 @@ void machine_compute(machine_t machine)
             set_text_20(machine->state_text, "Automat");
             set_text_10(machine->F1_text, "Stop");
             set_text_10(machine->F2_text, "");
-            // add_alarm_in_ms(2000, alarm_callback, NULL, false);
+
+            if (machine->cutter_state == CUTTER_IDLE) {
+                machine->cutter_state = CUTTER_REQUESTED;
+            }
        
-            if (machine->servo_0->positioning == IDLE) {
+            if (machine->servo_0->positioning == IDLE && false) {
                 if (fabs(machine->servo_0->current_pos - 10.0) < 0.5) {
                     end = true;
                     servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 2.5);
@@ -133,6 +135,7 @@ void machine_compute(machine_t machine)
 
             if (machine->F1->state_raised) {
                 machine->state = MANUAL;
+                machine->cutter_state = STOP_CUTTING;
             }
             break;
 
@@ -152,6 +155,87 @@ void machine_compute(machine_t machine)
 
     if (machine->machine_error) {
         machine->state = FAILURE;
+    }
+    // if (machine->state != AUTOMAT) {
+    //     machine->cutter_state = CUTTER_IDLE;
+    // }
+    sticker_cut_compute(machine);
+}
+
+void sticker_cut_compute(machine_t machine) {
+    switch(machine->cutter_state) {
+        case CUTTER_IDLE:
+            gpio_put(17, false);
+            break;
+
+        case CUTTER_REQUESTED:
+            if (machine->servo_0->current_pos == 0.0) {
+                machine->cutter_state = TO_PRECUT;
+            } else {
+                machine->cutter_state = TO_HOME;
+            }
+            break;
+
+        case TO_HOME:
+            if (machine->servo_0->positioning == IDLE) {
+                servo_goto(machine->servo_0, 0.0, 10.0);
+            } else {
+                if (machine->servo_0->positioning == POSITION_REACHED) {
+                    machine->cutter_state = TO_PRECUT;
+                }
+            }
+            break;
+
+        case TO_PRECUT:
+            if (machine->servo_0->positioning == IDLE) {
+                servo_goto(machine->servo_0, PRECUT_POSITION, 10.0);
+            } else {
+                if (machine->servo_0->positioning == POSITION_REACHED) {
+                    machine->cutter_state = BACK_HOME;
+                }
+            }
+            break;
+
+        case BACK_HOME:
+            if (machine->servo_0->positioning == IDLE) {
+                servo_goto(machine->servo_0, 0.0, 10.0);
+                gpio_put(17, true);
+            } else {
+                if (machine->servo_0->positioning == POSITION_REACHED) {
+                    machine->cutter_state = CUT_TO_END;
+                }
+            }
+            break;
+
+        case CUT_TO_END:
+            if (machine->servo_0->positioning == IDLE) {
+                servo_goto(machine->servo_0, CUT_LENGTH, 10.0);
+            } else {
+                if (machine->servo_0->positioning == POSITION_REACHED) {
+                    machine->cutter_state = FINAL_RETURN;
+                }
+            }
+            break;
+
+        case FINAL_RETURN:
+            if (machine->servo_0->positioning == IDLE) {
+                servo_goto(machine->servo_0, 0.0, 10.0);
+                gpio_put(17, false);
+            } else {
+                if (machine->servo_0->positioning == POSITION_REACHED) {
+                    machine->cutter_state = CUT_DONE;
+                }
+            }
+            break;
+
+        case CUT_DONE:
+            machine->cutter_state = CUTTER_IDLE;
+            break; 
+            
+        case STOP_CUTTING:
+            machine->servo_0->positioning = IDLE;
+            machine->cutter_state = CUTTER_IDLE;
+            break;
     }
 }
 
@@ -196,5 +280,4 @@ bool is_time(float cycle_time) {
 }
 
 void perform_sticker_cut(machine_t machine) {
-
 }
