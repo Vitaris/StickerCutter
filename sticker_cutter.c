@@ -63,6 +63,9 @@ void core1_entry() {
             // string2LCD(lcd, 7, 2, cutter->position_feeder);
             string2LCD(lcd, 0, 3, cutter->F1_text);
             string2LCD(lcd, 10, 3, cutter->F2_text);
+
+            int2LCD(lcd, 10, 1, 10, cutter->detector->result);
+
             lcd_refresh = false;
         }
     }

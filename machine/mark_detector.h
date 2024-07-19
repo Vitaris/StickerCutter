@@ -7,7 +7,7 @@
 
 
 
-#define MEM_SIZE 500
+#define MEM_SIZE 1000
 #define AVG_SIZE 10
 
 typedef struct detector {
@@ -28,7 +28,7 @@ typedef struct detector {
 	float positions[MEM_SIZE];		// Positions of measured values
 
 	float *feeder_position;			// Current position of feeder
-} detector_t;
+} * detector_t;
 
 #ifdef	__cplusplus
 extern "C" {
@@ -43,9 +43,9 @@ extern "C" {
 	 *
 	 * @return     { description_of_the_return_value }
 	 */
-	void create_detector(detector_t* detector, uint8_t sensor_pin, float *feeder_position);
+	detector_t create_detector(uint8_t sensor_pin);
 
-	void detector_compute(detector_t* machine);
+	void detector_compute(detector_t machine);
 
 #ifdef	__cplusplus
 }

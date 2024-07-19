@@ -1,15 +1,18 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
 
 #include "mark_detector.h"
 
-void create_detector(detector_t* detector, uint8_t sensor_pin, float *feeder_position)
-{
+detector_t create_detector(uint8_t sensor_pin) {
+    // Create machine data structure
+    detector_t detector = (detector_t)malloc(sizeof(struct detector));
+
     // Feeder position pointer
-    detector->feeder_position = feeder_position;
+    // detector->feeder_position = feeder_position;
 
     // Set gpio pin as ADC
     // Avaible pins:    26, 27, 28, 29 (29 is cpu temperature)
@@ -20,17 +23,19 @@ void create_detector(detector_t* detector, uint8_t sensor_pin, float *feeder_pos
 
     detector->sensor_pin = sensor_pin;
     detector->shift_size = sizeof(uint16_t) * MEM_SIZE - 1;
-    
+
+    detector->diff_old = 0;
+    return detector;
 }
 
-void detector_compute(detector_t* detector)
+void detector_compute(detector_t detector)
 {
     // Get new value of reflectivity
     // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
     const float conversion_factor = 3.3f / (1 << 12);
     // uint16_t result = adc_read() * conversion_factor;
     detector->result = adc_read();
-    
+
     // Shift the memory of 1 position (it will free position 0 and delete last pos)
     uint16_t tmp_memory[MEM_SIZE - 1];
     memcpy(tmp_memory, detector->memory, detector->shift_size);
@@ -39,7 +44,7 @@ void detector_compute(detector_t* detector)
     detector->memory[0] = detector->result;
 
     // Acumulate average value by keeping every 100th value (will take 1 second)
-    if (detector->sampling_done == false)
+    if (detector->sampling_done == false && false)
     {
         if (detector->samples == 100 && detector->sampling_done == false )
         {
@@ -73,14 +78,12 @@ void detector_compute(detector_t* detector)
     
 
     // Detect moment when diff goes from positive to negative
-    if (detector->diff > 50 && detector->diff_old < -50)
+    if (detector->diff > 50 && detector->diff_old < -50 && false)
     {
         detector->positions[0] = *detector->feeder_position;
     }
     detector->diff_old = detector->diff;
 
     // Detect a spike on memory data
-    
-
     
 }

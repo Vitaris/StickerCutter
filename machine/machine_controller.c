@@ -6,6 +6,7 @@
 #include "machine_controller.h"
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
+#include "mark_detector.h"
 
 bool end = false;
 float pause_time;
@@ -46,7 +47,7 @@ machine_t create_machine()
     machine->cutter_state = CUTTER_IDLE;
 
     // Mark probe
-    // create_detector(&machine->ctrldata_detector, 0, &machine->test_servo_0.current_pos);
+    machine->detector = create_detector(0);
     return machine;
 }
 
@@ -62,7 +63,7 @@ void machine_compute(machine_t machine)
     button_compute(machine->In);
     button_compute(machine->Out);
 
-    // detector_compute(&machine->ctrldata_detector);
+    detector_compute(machine->detector);
 
     // State machine
     switch(machine->state) {
@@ -188,7 +189,7 @@ void sticker_cut_compute(machine_t machine) {
 
         case TO_PRECUT:
             if (machine->servo_0->positioning == IDLE) {
-                servo_goto(machine->servo_0, PRECUT_POSITION, 10.0);
+                servo_goto(machine->servo_0, PRECUT_POSITION, 4.0);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {
                     machine->cutter_state = BACK_HOME;
@@ -209,7 +210,7 @@ void sticker_cut_compute(machine_t machine) {
 
         case CUT_TO_END:
             if (machine->servo_0->positioning == IDLE) {
-                servo_goto(machine->servo_0, CUT_LENGTH, 10.0);
+                servo_goto(machine->servo_0, CUT_LENGTH, 4.0);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {
                     machine->cutter_state = FINAL_RETURN;
@@ -219,7 +220,7 @@ void sticker_cut_compute(machine_t machine) {
 
         case FINAL_RETURN:
             if (machine->servo_0->positioning == IDLE) {
-                servo_goto(machine->servo_0, 0.0, 10.0);
+                servo_goto(machine->servo_0, 0.0, 4.0);
                 gpio_put(17, false);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {

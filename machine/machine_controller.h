@@ -65,7 +65,6 @@ typedef struct machine {
 	char F2_text[11];
 
 	// Mark probe
-	struct detector ctrldata_detector;
 	detector_t detector;
 
 	enum cutter_state cutter_state;
