@@ -109,6 +109,8 @@ extern "C" {
 
 	void perform_sticker_cut(machine_t machine);
 
+	
+
 #ifdef	__cplusplus
 }
 #endif

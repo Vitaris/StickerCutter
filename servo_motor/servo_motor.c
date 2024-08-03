@@ -139,8 +139,11 @@ float enc2speed(int32_t enc_diff){
 void servo_goto(servo_t servo, float position, float speed){
 	servo->next_stop = position;
 	servo->nominal_speed = speed;
-	if (servo->delay_start == 0) { // TODO, add some sign to not add delay, e.g. maximum number
+	if (servo->delay_start == 0) {
 		servo->delay_start = 500;
+	}
+	else if (servo->delay_start == UINT32_MAX) { // TODO, add some sign to not add delay, e.g. maximum number
+		servo->delay_start = 0;
 	}
 	servo->positioning = REQUESTED;
 }
@@ -222,17 +225,17 @@ void robust_pos_compute(servo_t servo)
 
 void servo_manual_handling(servo_t  servo) {
 	if ((*servo->man_plus)->state_raised) {
-			servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 2.5);
-		}
-
-		if ((*servo->man_minus)->state_raised) {
-			servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
-		}
-
-		if ((*servo->man_plus)->state_dropped || (*servo->man_minus)->state_dropped) {
-			servo->next_stop = servo->set_pos + get_breaking_distance(servo);
-			servo->braking = true;
-		}
+		servo->delay_start = UINT32_MAX;
+		servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 2.5);
+	}
+	else if ((*servo->man_minus)->state_raised) {
+		servo->delay_start = UINT32_MAX;
+		servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
+	}
+	else if ((*servo->man_plus)->state_dropped || (*servo->man_minus)->state_dropped) {
+		servo->next_stop = servo->set_pos + get_breaking_distance(servo);
+		servo->braking = true;
+	}
 }
 
 void add_stop(servo_t servo)

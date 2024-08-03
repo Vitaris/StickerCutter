@@ -31,36 +31,17 @@ void core1_entry() {
     lcd = lcd_create(10, 11, 12, 13, 14, 15, 16, 16, 4);
     while (1)
     {
-        // LCD Layout
-        //      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16   
-        //   0         State                 
-        //   1      OK / Error Message
-        //   2      Position Cutter    |     Position Feeder
-        //   3          F1             |            F2
-        // 
-        
-        // LCD Layout
-        //      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15   
-        //   0  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *
-        //   1  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *
-        //   2  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *
-        //   3  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *
-        // 
-
         if (lcd_refresh == true)
-        {   
+        { 
             string2LCD(lcd, 0, 0, cutter->state_text);
             string2LCD(lcd, 0, 1, cutter->error_message);
 
-            // string2LCD(lcd, 0, 2, "F: ");
             float2LCD(lcd, 0, 2, 8, cutter->servo_0->current_pos);
             string2LCD(lcd, 8, 2, "mm");
             
             float2LCD(lcd, 10, 2, 8, cutter->servo_1->current_pos);
             string2LCD(lcd, 18, 2, "mm");
 
-            // string2LCD(lcd, 0, 2, cutter->position_cutter);
-            // string2LCD(lcd, 7, 2, cutter->position_feeder);
             string2LCD(lcd, 0, 3, cutter->F1_text);
             string2LCD(lcd, 10, 3, cutter->F2_text);
 
@@ -78,7 +59,6 @@ bool servo_timer_callback(struct repeating_timer *t) {
 
 bool LCD_refresh_timer_callback(struct repeating_timer *t) {
     lcd_refresh = true;
-    
     return true;
 }
 

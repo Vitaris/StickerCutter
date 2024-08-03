@@ -109,34 +109,53 @@ void machine_compute(machine_t machine)
         case AUTOMAT:
             set_text_20(machine->state_text, "Automat");
             set_text_10(machine->F1_text, "Stop");
-            set_text_10(machine->F2_text, "");
-
-            if (machine->cutter_state == CUTTER_IDLE) {
-                machine->cutter_state = CUTTER_REQUESTED;
-            }
-       
-            if (machine->servo_0->positioning == IDLE && false) {
-                if (fabs(machine->servo_0->current_pos - 10.0) < 0.5) {
-                    end = true;
-                    servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 2.5);
-                } else if (fabs(machine->servo_0->current_pos) < 0.5) {
-                    end = false;
-                }
-                
-                if (end) {
-                    machine->servo_0->delay_start = 2000;
-                    servo_goto(machine->servo_0, 0.0, 10.0);
-                    gpio_put(17, false);
-                } else {
-                    machine->servo_0->delay_start = 2000;
-                    servo_goto(machine->servo_0, 10.0, 10.0);
-                    gpio_put(17, true);
-                }
-            }
 
             if (machine->F1->state_raised) {
                 machine->state = MANUAL;
                 machine->cutter_state = STOP_CUTTING;
+            }
+
+            if (machine->detector->detector_state == UNCALIBRATED) {
+                set_text_10(machine->F2_text, "Zacat kalibraciu");
+                if (machine->F2->state_raised) {
+                    machine->detector->detector_state = DETECTOR_CALIBRATION;
+                }
+            else if (machine->detector->detector_state == DETECTOR_CALIBRATION) {
+                set_text_10(machine->F2_text, "Kalibracia prebieha");
+            }
+                
+
+
+            } else {
+                set_text_10(machine->F2_text, "");
+
+                if (machine->cutter_state == CUTTER_IDLE) {
+                    machine->cutter_state = CUTTER_REQUESTED;
+                }
+        
+                if (machine->servo_0->positioning == IDLE && false) {
+                    if (fabs(machine->servo_0->current_pos - 10.0) < 0.5) {
+                        end = true;
+                        servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 2.5);
+                    } else if (fabs(machine->servo_0->current_pos) < 0.5) {
+                        end = false;
+                    }
+                    
+                    if (end) {
+                        machine->servo_0->delay_start = 2000;
+                        servo_goto(machine->servo_0, 0.0, 10.0);
+                        gpio_put(17, false);
+                    } else {
+                        machine->servo_0->delay_start = 2000;
+                        servo_goto(machine->servo_0, 10.0, 10.0);
+                        gpio_put(17, true);
+                    }
+                }
+
+                if (machine->F1->state_raised) {
+                    machine->state = MANUAL;
+                    machine->cutter_state = STOP_CUTTING;
+                }
             }
             break;
 
