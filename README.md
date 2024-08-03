@@ -1,10 +1,10 @@
 # StickerCutter Conversion Project
 
-Large Format Printer Repurposing for Sticker Cutting
+Converting a large format printer to cut stickers
 
 Project Overview
 
-This project aims to repurpose a non-functional large format printer into a sticker cutting machine. The system will be controlled by a Raspberry Pi Pico rp2040 microcontroller board. An optical sensor on the former printhead will detect marks around printed stickers, and a blade on the printhead that originally cut the print job after completion will now cut strips of stickers. The project will be written in C and released as open-source on GitHub.
+This project aims to repurpose a non-functional large format printer into a sticker cutting machine. The system will be controlled by a Raspberry Pi Pico rp2040 microcontroller board. An optical sensor on the former print head will detect marks around printed stickers, and a blade on the print head, which originally cut the print job after completion, will now cut strips of stickers. The project is written in C and will be released as open source on GitHub.
 
 ## Features
 
