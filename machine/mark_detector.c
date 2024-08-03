@@ -26,7 +26,13 @@ detector_t create_detector(uint8_t sensor_pin) {
 
     detector->diff_old = 0;
 
-    detector->detector_state = UNCALIBRATED;
+    detector->detector_state = DETECTOR_UNCALIBRATED;
+
+    // Calibration
+    detector->calibration_sum = 0;
+	detector->calibration_samples = 0;
+	detector->calibration_min = 0;
+	detector->calibration_max = 0;
     
     // Simulation
     size_calibration = CALIBRATION_SIZE;
@@ -89,7 +95,6 @@ void detector_compute(detector_t detector)
 
     // Compute difference between current and previous value
     detector->diff = detector->result - detector->memory[1];
-    
 
     // Detect moment when diff goes from positive to negative
     if (detector->diff > 50 && detector->diff_old < -50 && false)
@@ -101,13 +106,15 @@ void detector_compute(detector_t detector)
     // Detect a spike on memory data
 
     switch(detector->detector_state) {
-        case UNCALIBRATED:
+        case DETECTOR_UNCALIBRATED:
             break;
         case DETECTOR_CALIBRATION:
             // Calibracia by mala pozostavat ze pocas kratkeho posuvu nebude nascenovana ziadna znacka
             // moze byt ze si to uzivatel ani nemusi vsimnut, len ked sa objavi tak hodi error 
             break;
 	    case DETECTOR_READY:
+            break;	    
+        case DETECTOR_CALIBRATION_FAILED:
             break;	    
 	    case DETECTOR_SCANNING:
             break;
@@ -1238,4 +1245,8 @@ void fill_simulation_data() {
         2004,
         1994
     }, sizeof (data_simulation));
+}
+
+void evaluate_calibration_data(detector_t detector) {
+
 }

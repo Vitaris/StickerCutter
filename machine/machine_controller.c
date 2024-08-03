@@ -115,41 +115,23 @@ void machine_compute(machine_t machine)
                 machine->cutter_state = STOP_CUTTING;
             }
 
-            if (machine->detector->detector_state == UNCALIBRATED) {
-                set_text_10(machine->F2_text, "Zacat kalibraciu");
+            if (machine->detector->detector_state == DETECTOR_UNCALIBRATED) {
+                set_text_10(machine->F2_text, "Kalibrovat");
                 if (machine->F2->state_raised) {
                     machine->detector->detector_state = DETECTOR_CALIBRATION;
                 }
+            } 
             else if (machine->detector->detector_state == DETECTOR_CALIBRATION) {
-                set_text_10(machine->F2_text, "Kalibracia prebieha");
-            }
-                
-
-
-            } else {
+                set_text_10(machine->F2_text, "Kalibruje");
+                if (machine->servo_1->positioning == IDLE) {
+                    servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 20.0, 2.5, 2000);
+                }
+            } 
+            else if (machine->detector->detector_state == DETECTOR_READY) {
                 set_text_10(machine->F2_text, "");
 
                 if (machine->cutter_state == CUTTER_IDLE) {
                     machine->cutter_state = CUTTER_REQUESTED;
-                }
-        
-                if (machine->servo_0->positioning == IDLE && false) {
-                    if (fabs(machine->servo_0->current_pos - 10.0) < 0.5) {
-                        end = true;
-                        servo_goto(machine->servo_1, machine->servo_1->current_pos + 5.0, 2.5);
-                    } else if (fabs(machine->servo_0->current_pos) < 0.5) {
-                        end = false;
-                    }
-                    
-                    if (end) {
-                        machine->servo_0->delay_start = 2000;
-                        servo_goto(machine->servo_0, 0.0, 10.0);
-                        gpio_put(17, false);
-                    } else {
-                        machine->servo_0->delay_start = 2000;
-                        servo_goto(machine->servo_0, 10.0, 10.0);
-                        gpio_put(17, true);
-                    }
                 }
 
                 if (machine->F1->state_raised) {
@@ -198,7 +180,7 @@ void sticker_cut_compute(machine_t machine) {
 
         case TO_HOME:
             if (machine->servo_0->positioning == IDLE) {
-                servo_goto(machine->servo_0, 0.0, 10.0);
+                servo_goto_delayed(machine->servo_0, 0.0, 10.0, 500);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {
                     machine->cutter_state = TO_PRECUT;
@@ -208,7 +190,7 @@ void sticker_cut_compute(machine_t machine) {
 
         case TO_PRECUT:
             if (machine->servo_0->positioning == IDLE) {
-                servo_goto(machine->servo_0, PRECUT_POSITION, 4.0);
+                servo_goto_delayed(machine->servo_0, PRECUT_POSITION, 4.0, 500);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {
                     machine->cutter_state = BACK_HOME;
@@ -218,7 +200,7 @@ void sticker_cut_compute(machine_t machine) {
 
         case BACK_HOME:
             if (machine->servo_0->positioning == IDLE) {
-                servo_goto(machine->servo_0, 0.0, 10.0);
+                servo_goto_delayed(machine->servo_0, 0.0, 10.0, 500);
                 gpio_put(17, true);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {
@@ -229,7 +211,7 @@ void sticker_cut_compute(machine_t machine) {
 
         case CUT_TO_END:
             if (machine->servo_0->positioning == IDLE) {
-                servo_goto(machine->servo_0, CUT_LENGTH, 4.0);
+                servo_goto_delayed(machine->servo_0, CUT_LENGTH, 4.0, 500);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {
                     machine->cutter_state = FINAL_RETURN;
@@ -239,7 +221,7 @@ void sticker_cut_compute(machine_t machine) {
 
         case FINAL_RETURN:
             if (machine->servo_0->positioning == IDLE) {
-                servo_goto(machine->servo_0, 0.0, 4.0);
+                servo_goto_delayed(machine->servo_0, 0.0, 4.0, 500);
                 gpio_put(17, false);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {

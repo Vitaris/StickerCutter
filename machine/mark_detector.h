@@ -11,12 +11,15 @@
 #define SIMULATION_SIZE 850
 
 enum detector_state{
-	UNCALIBRATED,
+	DETECTOR_UNCALIBRATED,
 	DETECTOR_CALIBRATION,
+	DETECTOR_CALIBRATION_FAILED,
 	DETECTOR_READY,
 	DETECTOR_SCANNING,
 	DETECTOR_LINE_FOUND,
-	DETECTOR_APPEND_STOP};
+	DETECTOR_APPEND_STOP
+};
+
 typedef struct detector {
 	enum detector_state detector_state;
 	uint8_t sensor_pin;				// GPIO ADC Pin, possible choice: 26, 27, 28
@@ -25,7 +28,14 @@ typedef struct detector {
 	uint16_t samples;				// Current number of samples
 	uint16_t average_samples;		// Current number of average samples
 	bool sampling_done;				// Sampling done flag
+	
+	// Calibration
 	bool calibrated;
+	uint32_t calibration_sum;
+	uint16_t calibration_samples;
+	uint16_t calibration_min;
+	uint16_t calibration_max;
+
 
 	uint16_t memory[MEM_SIZE];		// Memory for results
 	uint16_t average_memory[MEM_SIZE];		// Memory for average result
