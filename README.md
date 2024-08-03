@@ -1,5 +1,4 @@
 # StickerCutter Conversion Project
-StickerCutter Conversion Project
 
 Converting a large format printer to cut stickers
 
