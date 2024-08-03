@@ -3,8 +3,7 @@
 #include <string.h>
 
 servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, 
-							button_t *man_plus, button_t *man_minus, bool *enable, bool *error, char (*message)[21])
-{
+							button_t *man_plus, button_t *man_minus, bool *enable, bool *error, char (*message)[21]) {
 	// Create servo data structure
 	servo_t servo = (servo_t)malloc(sizeof(struct servo_motor));
 	strcpy(servo->servo_name, servo_name);
@@ -67,8 +66,7 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 	return servo;
 }
 
-void servo_compute(servo_t servo)
-{ 
+void servo_compute(servo_t servo) { 
 	// Get current position, calculate velocity
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
 	servo->current_pos = ((float)enc_new / 4000.0) - servo->offset;
@@ -122,7 +120,7 @@ void servo_compute(servo_t servo)
 	}
 }  
 
-float enc2speed(int32_t enc_diff){
+float enc2speed(int32_t enc_diff) {
 	// Time difference of measured encoder tics
 	// is ~1 milisecond but we want to get it in seconds,
 	// so we have to multiply by 1000
@@ -136,7 +134,17 @@ float enc2speed(int32_t enc_diff){
 	return (float)enc_diff * (1.0 / CYCLE_TIME) / 4000.0;
 }
 
-void servo_goto(servo_t servo, float position, float speed){
+void servo_goto_delayed(servo_t servo, float position, float speed, uint32_t delay) {
+	servo->delay_start = delay;
+	_servo_goto(servo, position, speed);
+}
+
+void servo_goto(servo_t servo, float position, float speed) {
+	servo->delay_start = 0;
+	_servo_goto(servo, position, speed);
+}
+
+void _servo_goto(servo_t servo, float position, float speed) {
 	servo->next_stop = position;
 	servo->nominal_speed = speed;
 	if (servo->delay_start == 0) {
@@ -148,8 +156,7 @@ void servo_goto(servo_t servo, float position, float speed){
 	servo->positioning = REQUESTED;
 }
 
-void robust_pos_compute(servo_t servo)
-{
+void robust_pos_compute(servo_t servo) {
 	switch(servo->positioning) {
         case IDLE:
 			servo->movement_done = false;
@@ -238,16 +245,14 @@ void servo_manual_handling(servo_t  servo) {
 	}
 }
 
-void add_stop(servo_t servo)
-{
+void add_stop(servo_t servo) {
 	// add stop
     // servo->stops[servo->no_of_stops] = servo->set_pos + CUT_OFFSET;
 	servo->stops[servo->no_of_stops] = 60.0;
     servo->no_of_stops++;
 }
 
-void remove_stop(servo_t servo)
-{
+void remove_stop(servo_t servo) {
 	for (int i = 0; i < servo->no_of_stops; i++)
     {   
         servo->stops[i] = servo->stops[i+1];
@@ -255,32 +260,23 @@ void remove_stop(servo_t servo)
     servo->no_of_stops--;
 }
 
-bool stop_ahead(servo_t servo)
-{
+bool stop_ahead(servo_t servo) {
 	return get_breaking_distance(servo) >= get_dist_to_stop(servo) ? true : false;
 }
 
-float get_breaking_distance(servo_t servo)
-{
+float get_breaking_distance(servo_t servo) {
 	return 0.5 * (pow(servo->computed_speed, 2) / servo->current_acc);
 }
 
-float get_dist_to_stop(servo_t servo)
-{
-	if (servo->no_of_stops > 0)
-	{
+float get_dist_to_stop(servo_t servo) {
+	if (servo->no_of_stops > 0) {
 		return servo->stops[0] - servo->current_pos;
-	}
-	else
-	{
-		// return big number, far away (~inf)
-		return 10000.0;
+	} else {
+		return 10000.0; // return big number, far away (~inf)
 	}
 }
 
-void set_zero(servo_t servo) {
-	
-}
+void set_zero(servo_t servo) {}
 
 void servo_reset_all(servo_t servo) {
 	pid_reset_all(servo->pid_pos);

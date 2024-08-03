@@ -147,11 +147,16 @@ extern "C" {
 	 */
 	void servo_compute(servo_t servo);
 
+	void servo_goto_delayed(servo_t servo, float position, float speed, uint32_t delay);
+
 	/**
 	 * @brief Send the servo to a position
 	 * @param servo A pointer to a servo_motor structure
 	 */
 	void servo_goto(servo_t servo, float position, float speed);
+	
+	void _servo_goto(servo_t servo, float position, float speed);
+
 
 	/**
 	 * @brief Compute the speed from the encoder value
