@@ -21,6 +21,7 @@ enum cutter_state{
 	CUT_TO_END,
 	FINAL_RETURN,
 	CUT_DONE,
+	ROLL_OUT_PAPER,
 	STOP_CUTTING};
 
 enum machine_state{

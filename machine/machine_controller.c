@@ -124,7 +124,10 @@ void machine_compute(machine_t machine)
             else if (machine->detector->detector_state == DETECTOR_CALIBRATION) {
                 set_text_10(machine->F2_text, "Kalibruje");
                 if (machine->servo_1->positioning == IDLE) {
-                    servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 20.0, 2.5, 2000);
+                    servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 5.0, 2.5, 2000);
+                }
+                else if (machine->servo_1->positioning == POSITION_REACHED) {
+                    machine->detector->detector_state = DETECTOR_READY;
                 }
             } 
             else if (machine->detector->detector_state == DETECTOR_READY) {
@@ -231,9 +234,18 @@ void sticker_cut_compute(machine_t machine) {
             break;
 
         case CUT_DONE:
-            machine->cutter_state = CUTTER_IDLE;
+            machine->cutter_state = ROLL_OUT_PAPER;
             break; 
-            
+        
+        case ROLL_OUT_PAPER:
+            if (machine->servo_0->positioning == IDLE &&  machine->servo_1->positioning == IDLE) {
+                servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 5.0, 5.0, 500);
+            }
+            else if (machine->servo_1->positioning == POSITION_REACHED) {
+                machine->cutter_state = CUTTER_IDLE;
+            }
+            break;
+
         case STOP_CUTTING:
             machine->servo_0->positioning = IDLE;
             machine->cutter_state = CUTTER_IDLE;
