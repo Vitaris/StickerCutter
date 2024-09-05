@@ -140,7 +140,7 @@ void servo_goto_delayed(servo_t servo, float position, float speed, uint32_t del
 }
 
 void servo_goto(servo_t servo, float position, float speed) {
-	servo->delay_start = 0;
+	servo->delay_start = UINT32_MAX;
 	_servo_goto(servo, position, speed);
 }
 
@@ -233,11 +233,11 @@ void robust_pos_compute(servo_t servo) {
 void servo_manual_handling(servo_t  servo) {
 	if ((*servo->man_plus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 2.5);
+		servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 20.5);
 	}
 	else if ((*servo->man_minus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 2.5);
+		servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 20.5);
 	}
 	else if ((*servo->man_plus)->state_dropped || (*servo->man_minus)->state_dropped) {
 		servo->next_stop = servo->set_pos + get_breaking_distance(servo);
