@@ -117,7 +117,7 @@ extern "C" {
 
 	void knife_down();
 
-	void raise_error(machine_t machine, char[] text);
+	void raise_error(machine_t machine, char text[]);
 
 	
 

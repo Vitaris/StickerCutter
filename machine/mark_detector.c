@@ -5,6 +5,8 @@
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
 
+#include "mark_detector.h"
+
 detector_t create_detector(uint8_t sensor_pin) {
     // Create machine data structure
     detector_t detector = (detector_t)malloc(sizeof(struct detector));

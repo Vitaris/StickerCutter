@@ -324,8 +324,7 @@ void knife_down() {
     gpio_put(KNIFE_OUTPUT_PIN, true);
 }
 
-void raise_error(machine_t machine, char[] text) {
-    set_text_20(machine->error_message, );
+void raise_error(machine_t machine, char text[]) {
     set_text_20(machine->error_message, text);
     machine->machine_error = true;
 }

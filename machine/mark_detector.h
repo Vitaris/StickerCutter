@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "../servo_motor.h"
+#include "../servo_motor/servo_motor.h"
 
 #define MEM_SIZE 1000
 #define AVG_SIZE 10
