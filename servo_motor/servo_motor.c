@@ -276,6 +276,12 @@ float get_dist_to_stop(servo_t servo) {
 	}
 }
 
+void stop_positioning(servo_t servo) {
+	if (servo->positioning == ACCELERATING) {
+		servo->positioning = BRAKING;
+	}
+}
+
 void set_zero(servo_t servo) {}
 
 void servo_reset_all(servo_t servo) {

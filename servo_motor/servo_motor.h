@@ -206,6 +206,8 @@ extern "C" {
 
 	void servo_manual_handling(servo_t  servo);
 
+	void stop_positioning(servo_t servo);
+
 
 #ifdef	__cplusplus
 }

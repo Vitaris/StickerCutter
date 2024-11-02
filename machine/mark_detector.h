@@ -4,9 +4,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "../servo_motor.h"
 
 #define MEM_SIZE 1000
 #define AVG_SIZE 10
+#define STOP_MEMORY_LENGHT 10
 #define CALIBRATION_SIZE 250
 #define SIMULATION_SIZE 850
 
@@ -22,12 +24,12 @@ enum detector_state{
 
 typedef struct detector {
 	enum detector_state detector_state;
-	uint8_t sensor_pin;				// GPIO ADC Pin, possible choice: 26, 27, 28
-	uint16_t result;				// Result of ADC conversion
-	uint16_t average;				// Average of result values based on 100 samples
-	uint16_t samples;				// Current number of samples
-	uint16_t average_samples;		// Current number of average samples
-	bool sampling_done;				// Sampling done flag
+	uint8_t sensor_pin;						// GPIO ADC Pin, possible choice: 26, 27, 28
+	uint16_t result;						// Result of ADC conversion
+	uint16_t average;						// Average of result values based on 100 samples
+	uint16_t samples;						// Current number of samples
+	uint16_t average_samples;				// Current number of average samples
+	bool sampling_done;						// Sampling done flag
 	
 	// Calibration
 	bool calibrated;
@@ -37,16 +39,17 @@ typedef struct detector {
 	uint16_t calibration_max;
 
 
-	uint16_t memory[MEM_SIZE];		// Memory for results
+	uint16_t memory[MEM_SIZE];				// Memory for results
 	uint16_t average_memory[MEM_SIZE];		// Memory for average result
-	uint16_t occupancy;				// Occupancy of a results memory
-	int16_t diff;					// Difference between current and previous result
-	int16_t diff_old;				// Last difference between current and previous result
-	size_t shift_size;				// Size of 500 - 1 uint16_ts
+	uint16_t occupancy;						// Occupancy of a results memory
+	int16_t diff;							// Difference between current and previous result
+	int16_t diff_old;						// Last difference between current and previous result
+	size_t shift_size;						// Size of 500 - 1 uint16_ts
 
-	float positions[MEM_SIZE];		// Positions of measured values
+	float positions[MEM_SIZE];				// Positions of measured values
+	float stops[STOP_MEMORY_LENGHT];		// Stops memory
 
-	float *feeder_position;			// Current position of feeder
+	float *feeder_position;					// Current position of feeder
 } * detector_t;
 
 // Simulation
@@ -81,6 +84,8 @@ extern "C" {
 
 	void fill_calibration_data();
 	void fill_simulation_data();
+
+	float get_next_stop(detector_t detector, float current_pos);
 
 #ifdef	__cplusplus
 }

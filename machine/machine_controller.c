@@ -12,11 +12,11 @@ bool end = false;
 float pause_time;
 bool waiting;
 
-machine_t create_machine() // init, urobit destrutor
+machine_t create_machine()
 {
     // Create machine data structure
     machine_t machine = (machine_t)malloc(sizeof(struct machine));
-    machine->state = MANUAL_DISABLED_MOTORS;
+    machine->state = MANUAL;
     machine->machine_condition = OK;
 
     // Init buttons
@@ -40,8 +40,8 @@ machine_t create_machine() // init, urobit destrutor
     machine->servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, 1.0, &machine->In, &machine->Out, &machine->enable, &machine->machine_error, &machine->error_message);
 
     // Knife
-    gpio_init(17);
-    gpio_set_dir(17, GPIO_OUT);
+    gpio_init(KNIFE_OUTPUT_PIN);
+    gpio_set_dir(KNIFE_OUTPUT_PIN, GPIO_OUT);
 
     // Cutter
     machine->cutter_state = CUTTER_IDLE;
@@ -67,24 +67,36 @@ void machine_compute(machine_t machine)
 
     // State machine
     switch(machine->state) {
-        case MANUAL_DISABLED_MOTORS:
-            set_text_20(machine->state_text, "Manual - Volne mot.");
-            set_text_10(machine->F1_text, "Mot->ON");
-            set_text_10(machine->F2_text, "");
-
-            if (machine->F1->state_raised == true) {
-                machine->state = MANUAL;
-            }
-            machine->enable = false;
-            break;
-
         case MANUAL:
-            set_text_20(machine->state_text, "Manual");
-            set_text_10(machine->F1_text, "Mot->OFF");
 
+            // Motory on/off
+            if (machine->enable == false) {
+                set_text_20(machine->state_text, "Manual, Volne motory");
+                set_text_10(machine->F1_text, "Mot->ON");
+
+                if (machine->F1->state_raised == true) {
+                    machine->enable = true;
+                }
+            }
+            else {
+                set_text_20(machine->state_text, "Manual");
+                set_text_10(machine->F1_text, "Mot->OFF");
+
+                servo_manual_handling(machine->servo_0);
+                servo_manual_handling(machine->servo_1);
+
+                if (machine->F1->state_raised == true) {
+                    machine->enable = false;
+                }
+            }
+            
+            // Home / Start cutting
             if (machine->homed == true) {
                 set_text_10(machine->F2_text, "Start");
                 if (machine->F2->state_raised == true) {
+                    stop_positioning(machine->servo_0);
+                    stop_positioning(machine->servo_1);
+                    knife_up();
                     machine->state = AUTOMAT;
                 }
             }
@@ -97,13 +109,6 @@ void machine_compute(machine_t machine)
                 }
             }
 
-            machine->enable = true;
-            servo_manual_handling(machine->servo_0);
-            servo_manual_handling(machine->servo_1);
-
-            if (machine->F1->state_raised == true) {
-                machine->state = MANUAL_DISABLED_MOTORS;
-            }
             break;
 
         case AUTOMAT:
@@ -151,7 +156,7 @@ void machine_compute(machine_t machine)
             set_text_10(machine->F2_text, "");
 
             if (machine->F1->state_raised) {
-                machine->state = MANUAL_DISABLED_MOTORS;
+                machine->state = MANUAL;
                 set_text_20(machine->error_message, "OK");
                 machine->machine_error = false;
             }
@@ -170,12 +175,12 @@ void machine_compute(machine_t machine)
 void sticker_cut_compute(machine_t machine) {
     switch(machine->cutter_state) {
         case CUTTER_IDLE:
-            gpio_put(17, false);
+            knife_up();
             break;
 
         case CUTTER_REQUESTED:
             if (machine->servo_0->current_pos == 0.0) {
-                machine->cutter_state = TO_PRECUT;
+                machine->cutter_state = AT_HOME;
             } else {
                 machine->cutter_state = TO_HOME;
             }
@@ -183,16 +188,27 @@ void sticker_cut_compute(machine_t machine) {
 
         case TO_HOME:
             if (machine->servo_0->positioning == IDLE) {
+                knife_up();
                 servo_goto_delayed(machine->servo_0, 0.0, 10.0, 500);
-            } else {
-                if (machine->servo_0->positioning == POSITION_REACHED) {
-                    machine->cutter_state = TO_PRECUT;
-                }
+            } 
+            else if (machine->servo_0->positioning == POSITION_REACHED) {
+                    machine->cutter_state = AT_HOME;
+            }
+            break;
+
+        case AT_HOME:
+            // Check if knife is above the mark
+            if (get_next_stop(machine->detector, machine->servo_1->current_pos) != machine->servo_1->current_pos) {
+                raise_error(machine, "Znacka nenajdena");
+            }
+            else {
+                machine->cutter_state = TO_PRECUT;
             }
             break;
 
         case TO_PRECUT:
             if (machine->servo_0->positioning == IDLE) {
+                knife_up();
                 servo_goto_delayed(machine->servo_0, PRECUT_POSITION, 4.0, 500);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {
@@ -203,8 +219,8 @@ void sticker_cut_compute(machine_t machine) {
 
         case BACK_HOME:
             if (machine->servo_0->positioning == IDLE) {
+                knife_down();
                 servo_goto_delayed(machine->servo_0, 0.0, 10.0, 500);
-                gpio_put(17, true);
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {
                     machine->cutter_state = CUT_TO_END;
@@ -225,7 +241,7 @@ void sticker_cut_compute(machine_t machine) {
         case FINAL_RETURN:
             if (machine->servo_0->positioning == IDLE) {
                 servo_goto_delayed(machine->servo_0, 0.0, 4.0, 500);
-                gpio_put(17, false);
+                knife_up();
             } else {
                 if (machine->servo_0->positioning == POSITION_REACHED) {
                     machine->cutter_state = CUT_DONE;
@@ -251,6 +267,10 @@ void sticker_cut_compute(machine_t machine) {
             machine->cutter_state = CUTTER_IDLE;
             break;
     }
+}
+
+void feeder_compute(machine_t machine) {
+    
 }
 
 void set_text(char LCD_text[], char text[], uint8_t len) {
@@ -294,4 +314,18 @@ bool is_time(float cycle_time) {
 }
 
 void perform_sticker_cut(machine_t machine) {
+}
+
+void knife_up() {
+    gpio_put(KNIFE_OUTPUT_PIN, false);
+}
+
+void knife_down() {
+    gpio_put(KNIFE_OUTPUT_PIN, true);
+}
+
+void raise_error(machine_t machine, char[] text) {
+    set_text_20(machine->error_message, );
+    set_text_20(machine->error_message, text);
+    machine->machine_error = true;
 }
