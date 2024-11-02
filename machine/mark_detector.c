@@ -5,8 +5,6 @@
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
 
-#include "mark_detector.h"
-
 detector_t create_detector(uint8_t sensor_pin) {
     // Create machine data structure
     detector_t detector = (detector_t)malloc(sizeof(struct detector));
@@ -20,6 +18,9 @@ detector_t create_detector(uint8_t sensor_pin) {
     adc_init();
     adc_gpio_init(sensor_pin + 26);
     adc_select_input(sensor_pin);
+
+    // Initialize array
+    memset(detector->stops, 0.0, sizeof(detector->stops));
 
     detector->sensor_pin = sensor_pin;
     detector->shift_size = sizeof(uint16_t) * MEM_SIZE - 1;
@@ -46,20 +47,20 @@ detector_t create_detector(uint8_t sensor_pin) {
     return detector;
 }
 
-void detector_compute(detector_t detector) {
+void detector_compute(detector_t detector)
+{
     // Get new value of reflectivity
     // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
     const float conversion_factor = 3.3f / (1 << 12);
     // uint16_t result = adc_read() * conversion_factor;
     // detector->result = adc_read();
-    detector->result = adc_read_simulation(data_calibration, &sample_calibration, size_calibration);
-    // detector->result = adc_read_simulation(data_simulation, &sample_simulation, size_simulation);
+    // detector->result = adc_read_simulation(data_calibration, &sample_calibration, size_calibration);
+    detector->result = adc_read_simulation(data_simulation, &sample_simulation, size_simulation);
 
     // Shift the memory of 1 position (it will free position 0 and delete last pos)
     uint16_t tmp_memory[MEM_SIZE - 1];
     memcpy(tmp_memory, detector->memory, detector->shift_size);
     memcpy(detector->memory + 1, tmp_memory, detector->shift_size);
-    
     // Add new value to the memory
     detector->memory[0] = detector->result;
 
@@ -86,7 +87,9 @@ void detector_compute(detector_t detector) {
                 detector->average = sum / AVG_SIZE;
             }
             
-        } else {
+        }
+        else
+        {
             detector->samples++;
         }
     }
@@ -1247,4 +1250,15 @@ void fill_simulation_data() {
 
 void evaluate_calibration_data(detector_t detector) {
 
+}
+
+float get_next_stop(detector_t detector, float current_pos) {
+    // If there are no stops in memory, send feeder somewhere far away to find some
+    if (detector->stops[0] == 0.0) {
+        return current_pos + 1000.0;
+    }
+    else
+    {
+        return detector->stops[0];
+    }
 }

@@ -11,11 +11,13 @@
 
 #define PRECUT_POSITION 10.0
 #define CUT_LENGTH 25.0
+#define KNIFE_OUTPUT_PIN 17
 
 enum cutter_state{
 	CUTTER_IDLE,
 	CUTTER_REQUESTED,
 	TO_HOME,
+	AT_HOME,
 	TO_PRECUT,
 	BACK_HOME,
 	CUT_TO_END,
@@ -25,7 +27,6 @@ enum cutter_state{
 	STOP_CUTTING};
 
 enum machine_state{
-	MANUAL_DISABLED_MOTORS, 
 	MANUAL, 
 	AUTOMAT, 
 	FAILURE
@@ -98,6 +99,8 @@ extern "C" {
 
 	void sticker_cut_compute(machine_t machine);
 
+	void feeder_compute(machine_t machine);
+
 	void set_text(char LCD_text[], char text[], uint8_t len);
 
 	void set_text_10(char LCD_text[], char text[]);
@@ -109,6 +112,12 @@ extern "C" {
 	bool is_time(float cycle_time);
 
 	void perform_sticker_cut(machine_t machine);
+
+	void knife_up();
+
+	void knife_down();
+
+	void raise_error(machine_t machine, char[] text);
 
 	
 
