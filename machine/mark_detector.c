@@ -46,20 +46,20 @@ detector_t create_detector(uint8_t sensor_pin) {
     return detector;
 }
 
-void detector_compute(detector_t detector)
-{
+void detector_compute(detector_t detector) {
     // Get new value of reflectivity
     // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
     const float conversion_factor = 3.3f / (1 << 12);
     // uint16_t result = adc_read() * conversion_factor;
     // detector->result = adc_read();
-    // detector->result = adc_read_simulation(data_calibration, &sample_calibration, size_calibration);
-    detector->result = adc_read_simulation(data_simulation, &sample_simulation, size_simulation);
+    detector->result = adc_read_simulation(data_calibration, &sample_calibration, size_calibration);
+    // detector->result = adc_read_simulation(data_simulation, &sample_simulation, size_simulation);
 
     // Shift the memory of 1 position (it will free position 0 and delete last pos)
     uint16_t tmp_memory[MEM_SIZE - 1];
     memcpy(tmp_memory, detector->memory, detector->shift_size);
     memcpy(detector->memory + 1, tmp_memory, detector->shift_size);
+    
     // Add new value to the memory
     detector->memory[0] = detector->result;
 
@@ -86,9 +86,7 @@ void detector_compute(detector_t detector)
                 detector->average = sum / AVG_SIZE;
             }
             
-        }
-        else
-        {
+        } else {
             detector->samples++;
         }
     }

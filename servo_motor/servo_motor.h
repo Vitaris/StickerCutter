@@ -17,7 +17,7 @@
 #define AUTO true
 #define CUT_OFFSET 10.0
 #define MAN_SPEED 5.0
-#define FOLLOWING_ERROR 0.5 // Maximum permisible position deviation
+#define FOLLOWING_ERROR 1.0 // Maximum permisible position deviation
 #define CYCLE_TIME 0.001
 
 enum op_state{

@@ -25,11 +25,11 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 	servo->pwm_slice = pwm_chan_init(pwm_pin);
 
 	// PID
-	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 50.0, 0.0, 5.0);
-	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 4.0, 3.0);
+	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 40.0, 0.0, 0.5);
+	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 3.0, 1.0);
 
 	// Positional controller
-	servo->nominal_acc = 300.0;
+	servo->nominal_acc = 100.0;
 	servo->nominal_speed = 30.0;
 	servo->enc_old = 0;
 	servo->computed_speed = 0.0;
@@ -233,11 +233,11 @@ void robust_pos_compute(servo_t servo) {
 void servo_manual_handling(servo_t  servo) {
 	if ((*servo->man_plus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 20.5);
+		servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 10.0);
 	}
 	else if ((*servo->man_minus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 20.5);
+		servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 10.0);
 	}
 	else if ((*servo->man_plus)->state_dropped || (*servo->man_minus)->state_dropped) {
 		servo->next_stop = servo->set_pos + get_breaking_distance(servo);

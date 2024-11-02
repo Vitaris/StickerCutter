@@ -12,7 +12,7 @@ bool end = false;
 float pause_time;
 bool waiting;
 
-machine_t create_machine()
+machine_t create_machine() // init, urobit destrutor
 {
     // Create machine data structure
     machine_t machine = (machine_t)malloc(sizeof(struct machine));
