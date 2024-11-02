@@ -36,8 +36,8 @@ machine_t create_machine()
     // Init PIO
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
-    machine->servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, 1.0, &machine->Right, &machine->Left, &machine->enable, &machine->machine_error, &machine->error_message);
-    machine->servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, 1.0, &machine->In, &machine->Out, &machine->enable, &machine->machine_error, &machine->error_message);
+    machine->servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, -20.0, &machine->Right, &machine->Left, &machine->enable, &machine->machine_error, &machine->error_message);
+    machine->servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, 6.4, &machine->Out, &machine->In, &machine->enable, &machine->machine_error, &machine->error_message);
 
     // Knife
     gpio_init(KNIFE_OUTPUT_PIN);

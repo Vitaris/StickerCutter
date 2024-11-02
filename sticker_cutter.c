@@ -36,16 +36,14 @@ void core1_entry() {
             string2LCD(lcd, 0, 0, cutter->state_text);
             string2LCD(lcd, 0, 1, cutter->error_message);
 
-            float2LCD(lcd, 0, 2, 8, cutter->servo_0->current_pos);
+            float2LCD(lcd, 0, 2, 8, cutter->servo_0->servo_position);
             string2LCD(lcd, 8, 2, "mm");
             
-            float2LCD(lcd, 10, 2, 8, cutter->servo_1->current_pos);
+            float2LCD(lcd, 10, 2, 8, cutter->servo_1->servo_position);
             string2LCD(lcd, 18, 2, "mm");
 
             string2LCD(lcd, 0, 3, cutter->F1_text);
             string2LCD(lcd, 10, 3, cutter->F2_text);
-
-            int2LCD(lcd, 10, 1, 10, cutter->detector->result);
 
             lcd_refresh = false;
         }

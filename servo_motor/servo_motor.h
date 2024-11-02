@@ -19,6 +19,7 @@
 #define MAN_SPEED 5.0
 #define FOLLOWING_ERROR 1.0 // Maximum permisible position deviation
 #define CYCLE_TIME 0.001
+#define MANUAL_SPEED 100.0
 
 enum op_state{
 	SERVO_OK,
@@ -80,6 +81,7 @@ typedef struct servo_motor {
 
 	// Servo controler
 	enum positioning positioning;
+	float servo_position;
 	uint32_t delay_start;
 	uint32_t delay_finish;
 	bool *enable;

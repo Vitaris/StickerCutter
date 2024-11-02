@@ -118,6 +118,7 @@ void servo_compute(servo_t servo) {
 		set_two_chans_pwm(servo->pwm_slice, 0.0);
 		servo->enable_previous = true;
 	}
+	servo->servo_position = servo->current_pos * servo->scale;
 }  
 
 float enc2speed(int32_t enc_diff) {
@@ -146,7 +147,7 @@ void servo_goto(servo_t servo, float position, float speed) {
 
 void _servo_goto(servo_t servo, float position, float speed) {
 	servo->next_stop = position;
-	servo->nominal_speed = speed;
+	servo->nominal_speed = speed / fabs(servo->scale);
 	if (servo->delay_start == 0) {
 		servo->delay_start = 500;
 	}
@@ -233,11 +234,11 @@ void robust_pos_compute(servo_t servo) {
 void servo_manual_handling(servo_t  servo) {
 	if ((*servo->man_plus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, 10.0);
+		servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, MANUAL_SPEED);
 	}
 	else if ((*servo->man_minus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, 10.0);
+		servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, MANUAL_SPEED);
 	}
 	else if ((*servo->man_plus)->state_dropped || (*servo->man_minus)->state_dropped) {
 		servo->next_stop = servo->set_pos + get_breaking_distance(servo);
