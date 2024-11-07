@@ -23,6 +23,7 @@ detector_t create_detector(uint8_t sensor_pin) {
 
     // Initialize array
     memset(detector->stops, 0.0, sizeof(detector->stops));
+    detector->samples = 0;
 
     detector->sensor_pin = sensor_pin;
     detector->shift_size = sizeof(uint16_t) * MEM_SIZE - 1;
@@ -55,9 +56,9 @@ void detector_compute(detector_t detector)
     // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
     const float conversion_factor = 3.3f / (1 << 12);
     // uint16_t result = adc_read() * conversion_factor;
-    // detector->result = adc_read();
+    detector->result = adc_read();
     // detector->result = adc_read_simulation(data_calibration, &sample_calibration, size_calibration);
-    detector->result = adc_read_simulation(data_simulation, &sample_simulation, size_simulation);
+    // detector->result = adc_read_simulation(data_simulation, &sample_simulation, size_simulation);
 
     // Shift the memory of 1 position (it will free position 0 and delete last pos)
     uint16_t tmp_memory[MEM_SIZE - 1];
@@ -95,6 +96,11 @@ void detector_compute(detector_t detector)
             detector->samples++;
         }
     }
+    detector->samples++;
+
+    if (detector->samples > 500) {
+        detector->average = calculate_average(detector->memory, MEM_SIZE);
+    }
 
     // Compute difference between current and previous value
     detector->diff = detector->result - detector->memory[1];
@@ -129,8 +135,18 @@ void detector_compute(detector_t detector)
     
 }
 
-void calibraion(detector_t detector) {
+void calibration(detector_t detector) {
     
+}
+
+uint16_t calculate_average(uint16_t data_array[], uint16_t array_length) {
+    int i;
+    uint32_t sum = 0;
+    for (i = 0; i < array_length; i++) {
+        sum += data_array[i];
+    }
+
+    return sum / array_length;
 }
 
 uint16_t adc_read_simulation(uint16_t data[], uint16_t *sample, uint8_t size) {

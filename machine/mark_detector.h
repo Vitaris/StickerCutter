@@ -78,7 +78,9 @@ extern "C" {
 
 	void detector_compute(detector_t machine);
 
-	void calibraion(detector_t detector);
+	void calibration(detector_t detector);
+
+	uint16_t calculate_average(uint16_t data_array[], uint16_t array_length);
 
 	uint16_t adc_read_simulation(uint16_t data[], uint16_t *sample, uint8_t size);
 
