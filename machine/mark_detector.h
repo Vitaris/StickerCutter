@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "../servo_motor/servo_motor.h"
 
-#define MEM_SIZE 1000
+#define MEM_SIZE 200
 #define AVG_SIZE 10
 #define STOP_MEMORY_LENGHT 10
 #define CALIBRATION_SIZE 250
@@ -44,7 +44,8 @@ typedef struct detector {
 	uint16_t occupancy;						// Occupancy of a results memory
 	int16_t diff;							// Difference between current and previous result
 	int16_t diff_old;						// Last difference between current and previous result
-	size_t shift_size;						// Size of 500 - 1 uint16_ts
+	size_t shift_size;						// Size of 499 - 1 uint16_ts
+	size_t float_shift_size;				// Size of 499 - 1 floats
 
 	float positions[MEM_SIZE];				// Positions of measured values
 	float stops[STOP_MEMORY_LENGHT];		// Stops memory
@@ -74,7 +75,7 @@ extern "C" {
 	 *
 	 * @return     { description_of_the_return_value }
 	 */
-	detector_t create_detector(uint8_t sensor_pin);
+	detector_t create_detector(uint8_t sensor_pin, float *feeder_position);
 
 	void detector_compute(detector_t machine);
 

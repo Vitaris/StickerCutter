@@ -47,7 +47,7 @@ machine_t create_machine()
     machine->cutter_state = CUTTER_IDLE;
 
     // Mark probe
-    machine->detector = create_detector(0);
+    machine->detector = create_detector(0, &machine->servo_1->servo_position);
     return machine;
 }
 

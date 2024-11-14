@@ -7,7 +7,7 @@
 
 #include "mark_detector.h"
 
-detector_t create_detector(uint8_t sensor_pin) {
+detector_t create_detector(uint8_t sensor_pin, float *feeder_position) {
     // Create machine data structure
     detector_t detector = (detector_t)malloc(sizeof(struct detector));
 
@@ -27,12 +27,15 @@ detector_t create_detector(uint8_t sensor_pin) {
 
     detector->sensor_pin = sensor_pin;
     detector->shift_size = sizeof(uint16_t) * MEM_SIZE - 1;
+    detector->float_shift_size = sizeof(float) * MEM_SIZE - 1;
+    detector->feeder_position = feeder_position;
 
     detector->diff_old = 0;
 
     detector->detector_state = DETECTOR_UNCALIBRATED;
 
     // Calibration
+    detector->calibrated = false;
     detector->calibration_sum = 0;
 	detector->calibration_samples = 0;
 	detector->calibration_min = 0;
@@ -67,6 +70,13 @@ void detector_compute(detector_t detector)
     // Add new value to the memory
     detector->memory[0] = detector->result;
 
+
+    float tmp_positions[MEM_SIZE - 1];
+    memcpy(tmp_positions, detector->positions, detector->float_shift_size);
+    memcpy(detector->positions + 1, tmp_positions, detector->float_shift_size);
+    // Add new value to the memory
+    detector->positions[0] = *detector->feeder_position;
+
     // Acumulate average value by keeping every 100th value (will take 1 second)
     if (detector->sampling_done == false && false)
     {
@@ -98,8 +108,9 @@ void detector_compute(detector_t detector)
     }
     detector->samples++;
 
-    if (detector->samples > 500) {
+    if (detector->samples > 500 && detector->calibrated == false) {
         detector->average = calculate_average(detector->memory, MEM_SIZE);
+        detector->calibrated = true;
     }
 
     // Compute difference between current and previous value
