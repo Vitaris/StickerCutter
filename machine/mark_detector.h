@@ -11,15 +11,14 @@
 #define STOP_MEMORY_LENGHT 10
 #define CALIBRATION_SIZE 250
 #define SIMULATION_SIZE 850
+#define BELLOW_AVG_MIN 100
 
 enum detector_state{
-	DETECTOR_UNCALIBRATED,
-	DETECTOR_CALIBRATION,
-	DETECTOR_CALIBRATION_FAILED,
-	DETECTOR_READY,
+	DETECTOR_IDLE,
 	DETECTOR_SCANNING,
 	DETECTOR_LINE_FOUND,
-	DETECTOR_APPEND_STOP
+	DETECTOR_APPEND_STOP,
+	DETECTOR_MARK_NOT_FOUND
 };
 
 typedef struct detector {
@@ -27,6 +26,7 @@ typedef struct detector {
 	uint8_t sensor_pin;						// GPIO ADC Pin, possible choice: 26, 27, 28
 	uint16_t result;						// Result of ADC conversion
 	uint16_t average;						// Average of result values based on 100 samples
+	uint16_t initial_average;				// Average of result values based on 100 samples
 	uint16_t samples;						// Current number of samples
 	uint16_t average_samples;				// Current number of average samples
 	bool sampling_done;						// Sampling done flag
@@ -81,7 +81,7 @@ extern "C" {
 
 	void calibration(detector_t detector);
 
-	uint16_t calculate_average(uint16_t data_array[], uint16_t array_length);
+	uint16_t calculate_average(uint16_t data_array[], uint16_t array_length, uint16_t initial_average);
 
 	uint16_t adc_read_simulation(uint16_t data[], uint16_t *sample, uint8_t size);
 
@@ -89,6 +89,11 @@ extern "C" {
 	void fill_simulation_data();
 
 	float get_next_stop(detector_t detector, float current_pos);
+	bool find_range(uint16_t data_array[], uint16_t array_length, uint16_t base_value,
+					int16_t *point_a, int16_t *point_b, bool *error, int8_t *error_code);
+
+	bool find_minimum_at_range(uint16_t data_array[], uint16_t array_length, uint16_t *index_of_minimum,
+                int16_t *point_a, int16_t *point_b, bool *error, int8_t *error_code);
 
 #ifdef	__cplusplus
 }

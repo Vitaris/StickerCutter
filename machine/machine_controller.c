@@ -120,33 +120,40 @@ void machine_compute(machine_t machine)
                 machine->cutter_state = STOP_CUTTING;
             }
 
-            if (machine->detector->detector_state == DETECTOR_UNCALIBRATED) {
+            if (machine->detector->detector_state == DETECTOR_IDLE) {
                 set_text_10(machine->F2_text, "Kalibrovat");
                 if (machine->F2->state_raised) {
-                    machine->detector->detector_state = DETECTOR_CALIBRATION;
+                    machine->detector->detector_state = DETECTOR_SCANNING;
                 }
             } 
-            else if (machine->detector->detector_state == DETECTOR_CALIBRATION) {
-                set_text_10(machine->F2_text, "Kalibruje");
+            else if (machine->detector->detector_state == DETECTOR_SCANNING) {
+                set_text_10(machine->F2_text, "Hlada znak");
                 if (machine->servo_1->positioning == IDLE) {
-                    servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 5.0, 2.5, 2000);
+                    servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 50.0, 15.0, 500);
                 }
-                else if (machine->servo_1->positioning == POSITION_REACHED) {
-                    machine->detector->detector_state = DETECTOR_READY;
-                }
-            } 
-            else if (machine->detector->detector_state == DETECTOR_READY) {
-                set_text_10(machine->F2_text, "");
-
-                if (machine->cutter_state == CUTTER_IDLE) {
-                    machine->cutter_state = CUTTER_REQUESTED;
-                }
-
-                if (machine->F1->state_raised) {
-                    machine->state = MANUAL;
-                    machine->cutter_state = STOP_CUTTING;
+                if (machine->servo_1->positioning == POSITION_REACHED) {
+                    machine->detector->detector_state = DETECTOR_MARK_NOT_FOUND;
                 }
             }
+            else if (machine->detector->detector_state == DETECTOR_LINE_FOUND) {
+                machine->servo_1->next_stop = machine->detector->positions[0] + 5.0;
+                machine->detector->detector_state == DETECTOR_IDLE;
+            }
+                
+            
+
+            // else if (machine->detector->detector_state == DETECTOR_READY) {
+            //     set_text_10(machine->F2_text, "");
+
+            //     if (machine->cutter_state == CUTTER_IDLE) {
+            //         machine->cutter_state = CUTTER_REQUESTED;
+            //     }
+
+            //     if (machine->F1->state_raised) {
+            //         machine->state = MANUAL;
+            //         machine->cutter_state = STOP_CUTTING;
+            //     }
+            // }
             break;
 
         case FAILURE:
