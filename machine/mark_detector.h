@@ -9,22 +9,30 @@
 #define MEM_SIZE 200
 #define AVG_SIZE 10
 #define STOP_MEMORY_LENGHT 10
-#define CALIBRATION_SIZE 250
-#define SIMULATION_SIZE 850
 #define BELLOW_AVG_MIN 100
 
 enum detector_state{
+	DETECTOR_GET_ACTIVATED,
 	DETECTOR_IDLE,
 	DETECTOR_SCANNING,
 	DETECTOR_LINE_FOUND,
+	DETECTOR_WAITING,
 	DETECTOR_APPEND_STOP,
-	DETECTOR_MARK_NOT_FOUND
+	DETECTOR_MARK_NOT_FOUND,
+	DETECTOR_ERROR
+};
+
+enum detector_error{
+	ACTIVATION_ERROR
 };
 
 typedef struct detector {
 	enum detector_state detector_state;
+	enum detector_error detector_error;
+	bool detecting_request;
+	bool line_found;
 	uint8_t sensor_pin;						// GPIO ADC Pin, possible choice: 26, 27, 28
-	uint16_t result;						// Result of ADC conversion
+	uint16_t current_reflectivity;			// Current result from reflectivity sensor
 	uint16_t average;						// Average of result values based on 100 samples
 	uint16_t initial_average;				// Average of result values based on 100 samples
 	uint16_t samples;						// Current number of samples
@@ -53,15 +61,6 @@ typedef struct detector {
 	float *feeder_position;					// Current position of feeder
 } * detector_t;
 
-// Simulation
-static uint16_t size_calibration;
-static uint16_t sample_calibration;
-static uint16_t data_calibration[CALIBRATION_SIZE];
-
-static uint16_t size_simulation;
-static uint16_t sample_simulation;
-static uint16_t data_simulation[SIMULATION_SIZE];
-
 #ifdef	__cplusplus
 extern "C" {
 #endif
@@ -79,14 +78,9 @@ extern "C" {
 
 	void detector_compute(detector_t machine);
 
-	void calibration(detector_t detector);
-
 	uint16_t calculate_average(uint16_t data_array[], uint16_t array_length, uint16_t initial_average);
 
 	uint16_t adc_read_simulation(uint16_t data[], uint16_t *sample, uint8_t size);
-
-	void fill_calibration_data();
-	void fill_simulation_data();
 
 	float get_next_stop(detector_t detector, float current_pos);
 	bool find_range(uint16_t data_array[], uint16_t array_length, uint16_t base_value,

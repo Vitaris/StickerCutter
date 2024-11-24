@@ -51,8 +51,7 @@ machine_t create_machine()
     return machine;
 }
 
-void machine_compute(machine_t machine)
-{
+void machine_compute(machine_t machine) {
     servo_compute(machine->servo_0);
     servo_compute(machine->servo_1);
 
@@ -121,27 +120,28 @@ void machine_compute(machine_t machine)
             }
 
             if (machine->detector->detector_state == DETECTOR_IDLE) {
-                set_text_10(machine->F2_text, "Kalibrovat");
+                set_text_10(machine->F2_text, "Hladat zn.");
                 if (machine->F2->state_raised) {
-                    machine->detector->detector_state = DETECTOR_SCANNING;
+                    if (machine->servo_1->positioning == IDLE) {
+                        servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 1000.0, 15.0, 500);
+                    }
+                    machine->detector->detector_state = DETECTOR_GET_ACTIVATED;
                 }
             } 
             else if (machine->detector->detector_state == DETECTOR_SCANNING) {
                 set_text_10(machine->F2_text, "Hlada znak");
-                if (machine->servo_1->positioning == IDLE) {
-                    servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 50.0, 15.0, 500);
-                }
-                if (machine->servo_1->positioning == POSITION_REACHED) {
-                    machine->detector->detector_state = DETECTOR_MARK_NOT_FOUND;
-                }
             }
             else if (machine->detector->detector_state == DETECTOR_LINE_FOUND) {
-                machine->servo_1->next_stop = machine->detector->positions[0] + 5.0;
-                machine->detector->detector_state == DETECTOR_IDLE;
+                set_text_10(machine->F2_text, "Zn Najdeny");
+                machine->servo_1->next_stop = (machine->detector->stops[0] + 14.0) / machine->servo_1->scale;
+                machine->detector->detector_state = DETECTOR_WAITING;
+            }
+            else if (machine->detector->detector_state == DETECTOR_WAITING) {
+                if (machine->F2->state_raised) {
+                    machine->detector->detector_state = IDLE;
+                }
             }
                 
-            
-
             // else if (machine->detector->detector_state == DETECTOR_READY) {
             //     set_text_10(machine->F2_text, "");
 
