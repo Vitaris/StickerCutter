@@ -10,8 +10,9 @@
 #define AVG_SIZE 10
 #define STOP_MEMORY_LENGHT 10
 #define BELLOW_AVG_MIN 100
+#define VOID_REFLECTIVITY_THRESHOLD 120
 
-enum detector_state{
+enum detector_state {
 	DETECTOR_GET_ACTIVATED,
 	DETECTOR_IDLE,
 	DETECTOR_SCANNING,
@@ -19,7 +20,15 @@ enum detector_state{
 	DETECTOR_WAITING,
 	DETECTOR_APPEND_STOP,
 	DETECTOR_MARK_NOT_FOUND,
-	DETECTOR_ERROR
+	DETECTOR_ERROR,
+};
+
+enum edge_detection {
+	EDGE_IDLE,
+	EDGE_ACTIVATED,
+	EDGE_SCANNING,
+	EDGE_FOUND,
+	EDGE_ERROR
 };
 
 enum detector_error{
@@ -28,9 +37,11 @@ enum detector_error{
 
 typedef struct detector {
 	enum detector_state detector_state;
+	enum edge_detection edge_detection;
 	enum detector_error detector_error;
 	bool detecting_request;
 	bool line_found;
+	bool edge_found;
 	uint8_t sensor_pin;						// GPIO ADC Pin, possible choice: 26, 27, 28
 	uint16_t current_reflectivity;			// Current result from reflectivity sensor
 	uint16_t average;						// Average of result values based on 100 samples
@@ -57,6 +68,7 @@ typedef struct detector {
 
 	float positions[MEM_SIZE];				// Positions of measured values
 	float stops[STOP_MEMORY_LENGHT];		// Stops memory
+	float edge_position;
 
 	float *feeder_position;					// Current position of feeder
 } * detector_t;

@@ -99,12 +99,27 @@ void machine_compute(machine_t machine) {
                     machine->state = AUTOMAT;
                 }
             }
-            else { 
-                set_text_10(machine->F2_text, "Noz->0");
-                if (machine->F2->state_raised == true) {
-                    machine->servo_0->set_zero = true;
-                    machine->cutter_state = CUTTER_IDLE;
+            else {
+                if (machine->detector->edge_detection == EDGE_IDLE) { 
+                    set_text_10(machine->F2_text, "Home");
+                    if (machine->F2->state_raised == true) {
+                        machine->detector->edge_detection = EDGE_ACTIVATED;
+                    }
+                }
+                else if (machine->detector->edge_detection == EDGE_ACTIVATED) {
+                    servo_goto_delayed(machine->servo_0, -100.0, -10.0, 500);
+                        machine->detector->edge_detection = EDGE_SCANNING;
+                }
+                else if (machine->detector->edge_detection == EDGE_SCANNING) {
+                    set_text_10(machine->F2_text, "Hlada sa->");    
+                }
+                else if (machine->detector->edge_detection == EDGE_FOUND) {
+                    stop_positioning(machine->servo_0);
+                    servo_goto_delayed(machine->servo_0, 0.0, 20.0, 500);
                     machine->homed = true;
+                }
+                else if (machine->detector->edge_detection == EDGE_ERROR) {
+                    set_text_10(machine->F2_text, "Error!");
                 }
             }
 

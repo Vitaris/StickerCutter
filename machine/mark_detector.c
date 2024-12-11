@@ -34,6 +34,7 @@ detector_t create_detector(uint8_t sensor_pin, float *feeder_position) {
     detector->diff_old = 0;
 
     detector->detector_state = DETECTOR_IDLE;
+    detector->edge_detection = EDGE_IDLE;
     detector->detecting_request = false;
 
     // Calibration
@@ -123,6 +124,31 @@ void detector_compute(detector_t detector)
         case DETECTOR_ERROR:
             break;
     }
+
+    // Edge detector state machine
+    switch(detector->edge_detection) {
+        case EDGE_IDLE:
+            detector->edge_found = false;
+            detector->edge_position = 0.0;
+            break;
+        case EDGE_ACTIVATED:
+            if (detector->current_reflectivity < VOID_REFLECTIVITY_THRESHOLD) {
+                detector->edge_detection = EDGE_ERROR;
+            }
+            break;
+        case EDGE_SCANNING:
+            if (detector->current_reflectivity < VOID_REFLECTIVITY_THRESHOLD) {
+                detector->edge_position = *detector->feeder_position;
+            }
+            break;
+        case EDGE_FOUND:
+            detector->edge_detection = EDGE_IDLE;
+            break;
+        case EDGE_ERROR:
+            detector->edge_detection = EDGE_IDLE;
+            break;
+    }
+
 }
 
 
