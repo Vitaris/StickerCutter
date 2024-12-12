@@ -139,10 +139,12 @@ void detector_compute(detector_t detector)
         case EDGE_SCANNING:
             if (detector->current_reflectivity < VOID_REFLECTIVITY_THRESHOLD) {
                 detector->edge_position = *detector->feeder_position;
+                detector->edge_detection = EDGE_FOUND;
             }
             break;
         case EDGE_FOUND:
-            detector->edge_detection = EDGE_IDLE;
+            break;
+        case EDGE_RETURN_TO_ZERO:
             break;
         case EDGE_ERROR:
             detector->edge_detection = EDGE_IDLE;

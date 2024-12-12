@@ -28,6 +28,7 @@ enum edge_detection {
 	EDGE_ACTIVATED,
 	EDGE_SCANNING,
 	EDGE_FOUND,
+	EDGE_RETURN_TO_ZERO,
 	EDGE_ERROR
 };
 

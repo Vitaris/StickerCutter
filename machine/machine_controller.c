@@ -107,16 +107,31 @@ void machine_compute(machine_t machine) {
                     }
                 }
                 else if (machine->detector->edge_detection == EDGE_ACTIVATED) {
-                    servo_goto_delayed(machine->servo_0, -100.0, -10.0, 500);
+                    if (machine->servo_0->positioning == IDLE) {
+                        servo_goto_delayed(machine->servo_0, 100.0, 50.0, 500);
                         machine->detector->edge_detection = EDGE_SCANNING;
+                    }
                 }
                 else if (machine->detector->edge_detection == EDGE_SCANNING) {
                     set_text_10(machine->F2_text, "Hlada sa->");    
                 }
                 else if (machine->detector->edge_detection == EDGE_FOUND) {
-                    stop_positioning(machine->servo_0);
-                    servo_goto_delayed(machine->servo_0, 0.0, 20.0, 500);
-                    machine->homed = true;
+                    if (machine->servo_0->positioning == ACCELERATING) {
+                        stop_positioning(machine->servo_0);
+                    }
+                    else if (machine->servo_0->positioning == POSITION_REACHED) {
+                        // machine->detector->edge_detection = EDGE_RETURN_TO_ZERO;
+                    }
+                }
+                else if (machine->detector->edge_detection == EDGE_RETURN_TO_ZERO) {
+                    if (machine->servo_0->positioning == IDLE) {
+                        servo_goto_delayed(machine->servo_0, machine->servo_0->servo_position + 25.0, 20.0, 500);
+                    }
+                    else if (machine->servo_0->positioning == POSITION_REACHED) {
+                        machine->servo_0->set_zero = true;
+                        machine->homed = true;
+                        machine->detector->edge_detection = EDGE_IDLE;
+                    }
                 }
                 else if (machine->detector->edge_detection == EDGE_ERROR) {
                     set_text_10(machine->F2_text, "Error!");
