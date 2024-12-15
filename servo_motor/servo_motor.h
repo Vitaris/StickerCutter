@@ -54,14 +54,14 @@ typedef struct servo_motor {
 	// PID
 	// Position
 	pidc_t pid_pos;
-	float current_pos;
+	float enc_position;
 	float out_pos;
 	float set_pos;
 
 	// PID
 	// Velocity
 	pidc_t pid_vel;
-	float current_vel;
+	float enc_speed;
 	float out_vel;
 	float set_vel;
 
@@ -82,6 +82,7 @@ typedef struct servo_motor {
 	// Servo controler
 	enum positioning positioning;
 	float servo_position;
+	float servo_speed;
 	uint32_t delay_start;
 	uint32_t delay_finish;
 	bool *enable;
@@ -91,7 +92,7 @@ typedef struct servo_motor {
 	bool movement_done;
 	bool braking;
 	bool set_zero;
-	float offset;
+	float enc_offset;
 
 	// Default movement
 	float nominal_speed; 	// Desired motor speed
@@ -167,7 +168,7 @@ extern "C" {
 	 */
 	float enc2speed(int32_t enc);
 
-	void robust_pos_compute(servo_t servo);
+	void next_positon_compute(servo_t servo);
 
 	/**
 	 * @brief Adds a stop to the array of stops
@@ -203,6 +204,8 @@ extern "C" {
 	float get_dist_to_stop(servo_t servo);
 
 	void set_zero(servo_t servo);
+
+	void set_position(servo_t servo, float position);
 
 	void servo_reset_all(servo_t servo);
 

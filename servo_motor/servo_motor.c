@@ -25,14 +25,15 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 	servo->pwm_slice = pwm_chan_init(pwm_pin);
 
 	// PID
-	servo->pid_pos = pid_create(&servo->current_pos, &servo->out_pos, &servo->set_pos, 40.0, 0.0, 0.5);
-	servo->pid_vel = pid_create(&servo->current_vel, &servo->out_vel, &servo->set_vel, 5.0, 3.0, 1.0);
+	servo->pid_pos = pid_create(&servo->enc_position, &servo->out_pos, &servo->set_pos, 40.0, 0.0, 0.5);
+	servo->pid_vel = pid_create(&servo->enc_speed, &servo->out_vel, &servo->set_vel, 5.0, 3.0, 1.0);
 
 	// Positional controller
 	servo->nominal_acc = 100.0;
 	servo->nominal_speed = 30.0;
 	servo->enc_old = 0;
 	servo->computed_speed = 0.0;
+	servo->servo_speed = 0.0;
 
 	// Limits
 	servo->pos_limit_enabled = true;
@@ -42,7 +43,7 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 	servo->error_message = message;
 	strcpy(*servo->error_message, "OK");
 	servo->pos_error_internal = false;
-	servo->offset = 0.0;
+	servo->enc_offset = 0.0;
 	servo->set_zero = false;
 
 	/**
@@ -69,17 +70,17 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 void servo_compute(servo_t servo) { 
 	// Get current position, calculate velocity
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
-	servo->current_pos = ((float)enc_new / 4000.0) - servo->offset;
+	servo->enc_position = ((float)enc_new / 4000.0) - servo->enc_offset;
 	if (servo->set_zero) {
-		servo->offset = servo->current_pos;
-		servo->current_pos = 0.0;
+		servo->enc_offset = servo->enc_position;
+		servo->enc_position = 0.0;
 		pid_reset_all(servo->pid_pos);
 		pid_reset_all(servo->pid_vel);
 		servo->set_pos = 0.0;
 		servo->set_zero = false;
 	}
-	servo->current_vel = enc2speed(enc_new - servo->enc_old);
-	servo->enc_old = enc_new; // N eeded for velocity calculation
+	servo->enc_speed = enc2speed(enc_new - servo->enc_old);
+	servo->enc_old = enc_new; // Needed for velocity calculation
 
 	if (*servo->enable) {
 		// Reset All on positive edge of enable
@@ -89,10 +90,10 @@ void servo_compute(servo_t servo) {
 		}
 
 		// Evaluate following error
-		if (fabs(servo->current_pos - servo->set_pos) >= FOLLOWING_ERROR)
+		if (fabs(servo->enc_position - servo->set_pos) >= FOLLOWING_ERROR)
 			servo->pos_error_internal = true;
 
-		robust_pos_compute(servo);
+		next_positon_compute(servo);
 
 		// PID Computation
 		pid_compute(servo->pid_pos);
@@ -118,7 +119,8 @@ void servo_compute(servo_t servo) {
 		set_two_chans_pwm(servo->pwm_slice, 0.0);
 		servo->enable_previous = true;
 	}
-	servo->servo_position = servo->current_pos * servo->scale;
+	servo->servo_position = servo->enc_position * servo->scale;
+	servo->servo_speed = servo->enc_speed * servo->scale;
 }  
 
 float enc2speed(int32_t enc_diff) {
@@ -146,8 +148,8 @@ void servo_goto(servo_t servo, float position, float speed) {
 }
 
 void _servo_goto(servo_t servo, float position, float speed) {
-	servo->next_stop = position;
-	servo->nominal_speed = speed / fabs(servo->scale);
+	servo->next_stop = position / servo->scale;
+	servo->nominal_speed = speed / servo->scale;
 	if (servo->delay_start == 0) {
 		servo->delay_start = 500;
 	}
@@ -157,7 +159,7 @@ void _servo_goto(servo_t servo, float position, float speed) {
 	servo->positioning = REQUESTED;
 }
 
-void robust_pos_compute(servo_t servo) {
+void next_positon_compute(servo_t servo) {
 	switch(servo->positioning) {
         case IDLE:
 			servo->movement_done = false;
@@ -165,7 +167,7 @@ void robust_pos_compute(servo_t servo) {
 		
 		case REQUESTED:
 			// First occurence of movement request, save the position of movement beginning
-			if (servo->next_stop >= servo->current_pos) {
+			if (servo->next_stop >= servo->enc_position) {
 				// Positive direction
 				servo->positive_direction = true;
 				servo->current_acc = servo->nominal_acc;
@@ -234,15 +236,14 @@ void robust_pos_compute(servo_t servo) {
 void servo_manual_handling(servo_t  servo) {
 	if ((*servo->man_plus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->current_pos + 500.0, MANUAL_SPEED);
+		servo_goto(servo, servo->next_stop = servo->servo_position + 1000.0 * servo->scale, MANUAL_SPEED);
 	}
 	else if ((*servo->man_minus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->current_pos - 500.0, MANUAL_SPEED);
+		servo_goto(servo, servo->next_stop = servo->servo_position - 1000.0 * servo->scale, MANUAL_SPEED);
 	}
 	else if ((*servo->man_plus)->state_dropped || (*servo->man_minus)->state_dropped) {
-		servo->next_stop = servo->set_pos + get_breaking_distance(servo);
-		servo->braking = true;
+		stop_positioning(servo);
 	}
 }
 
@@ -271,19 +272,25 @@ float get_breaking_distance(servo_t servo) {
 
 float get_dist_to_stop(servo_t servo) {
 	if (servo->no_of_stops > 0) {
-		return servo->stops[0] - servo->current_pos;
+		return servo->stops[0] - servo->enc_position;
 	} else {
 		return 10000.0; // return big number, far away (~inf)
 	}
 }
 
 void stop_positioning(servo_t servo) {
-	if (servo->positioning == ACCELERATING) {
-		servo->positioning = BRAKING;
-	}
+	servo->next_stop = servo->set_pos + get_breaking_distance(servo);
 }
 
 void set_zero(servo_t servo) {}
+
+void set_position(servo_t servo, float position) {
+	servo->enc_offset += servo->enc_position - (position / servo->scale);
+	servo->enc_position = position / servo->scale;
+	pid_reset_all(servo->pid_pos);
+	pid_reset_all(servo->pid_vel);
+	servo->set_pos = position;
+}
 
 void servo_reset_all(servo_t servo) {
 	pid_reset_all(servo->pid_pos);
@@ -292,5 +299,5 @@ void servo_reset_all(servo_t servo) {
 	servo->positioning = IDLE;
 	servo->pos_error_internal = false;
 	servo->computed_speed = 0.0;
-	servo->set_pos = servo->current_pos;
+	servo->set_pos = servo->enc_position;
 }

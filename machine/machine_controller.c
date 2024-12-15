@@ -36,8 +36,8 @@ machine_t create_machine()
     // Init PIO
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
-    machine->servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, -20.0, &machine->Right, &machine->Left, &machine->enable, &machine->machine_error, &machine->error_message);
-    machine->servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, 6.4, &machine->Out, &machine->In, &machine->enable, &machine->machine_error, &machine->error_message);
+    machine->servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, &machine->Right, &machine->Left, &machine->enable, &machine->machine_error, &machine->error_message);
+    machine->servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, SCALE_FEEDER, &machine->Out, &machine->In, &machine->enable, &machine->machine_error, &machine->error_message);
 
     // Knife
     gpio_init(KNIFE_OUTPUT_PIN);
@@ -101,14 +101,14 @@ void machine_compute(machine_t machine) {
             }
             else {
                 if (machine->detector->edge_detection == EDGE_IDLE) { 
-                    set_text_10(machine->F2_text, "Home");
+                    set_text_10(machine->F2_text, "    Home");
                     if (machine->F2->state_raised == true) {
                         machine->detector->edge_detection = EDGE_ACTIVATED;
                     }
                 }
                 else if (machine->detector->edge_detection == EDGE_ACTIVATED) {
                     if (machine->servo_0->positioning == IDLE) {
-                        servo_goto_delayed(machine->servo_0, 100.0, 50.0, 500);
+                        servo_goto_delayed(machine->servo_0, 1000.0, 50.0, 500);
                         machine->detector->edge_detection = EDGE_SCANNING;
                     }
                 }
@@ -120,15 +120,16 @@ void machine_compute(machine_t machine) {
                         stop_positioning(machine->servo_0);
                     }
                     else if (machine->servo_0->positioning == POSITION_REACHED) {
-                        // machine->detector->edge_detection = EDGE_RETURN_TO_ZERO;
+                        machine->detector->edge_detection = EDGE_RETURN_TO_ZERO;
                     }
                 }
                 else if (machine->detector->edge_detection == EDGE_RETURN_TO_ZERO) {
                     if (machine->servo_0->positioning == IDLE) {
-                        servo_goto_delayed(machine->servo_0, machine->servo_0->servo_position + 25.0, 20.0, 500);
+                        machine->servo_0->set_zero = true;
+                        servo_goto_delayed(machine->servo_0, -50.0, 100.0, 500);
                     }
                     else if (machine->servo_0->positioning == POSITION_REACHED) {
-                        machine->servo_0->set_zero = true;
+                        // machine->servo_0->set_zero = true;
                         machine->homed = true;
                         machine->detector->edge_detection = EDGE_IDLE;
                     }
@@ -153,7 +154,7 @@ void machine_compute(machine_t machine) {
                 set_text_10(machine->F2_text, "Hladat zn.");
                 if (machine->F2->state_raised) {
                     if (machine->servo_1->positioning == IDLE) {
-                        servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 1000.0, 15.0, 500);
+                        servo_goto_delayed(machine->servo_1, machine->servo_1->enc_position + 1000.0, 15.0, 500);
                     }
                     machine->detector->detector_state = DETECTOR_GET_ACTIVATED;
                 }
@@ -216,7 +217,7 @@ void sticker_cut_compute(machine_t machine) {
             break;
 
         case CUTTER_REQUESTED:
-            if (machine->servo_0->current_pos == 0.0) {
+            if (machine->servo_0->enc_position == 0.0) {
                 machine->cutter_state = AT_HOME;
             } else {
                 machine->cutter_state = TO_HOME;
@@ -235,7 +236,7 @@ void sticker_cut_compute(machine_t machine) {
 
         case AT_HOME:
             // Check if knife is above the mark
-            if (get_next_stop(machine->detector, machine->servo_1->current_pos) != machine->servo_1->current_pos) {
+            if (get_next_stop(machine->detector, machine->servo_1->enc_position) != machine->servo_1->enc_position) {
                 raise_error(machine, "Znacka nenajdena");
             }
             else {
@@ -292,7 +293,7 @@ void sticker_cut_compute(machine_t machine) {
         
         case ROLL_OUT_PAPER:
             if (machine->servo_0->positioning == IDLE &&  machine->servo_1->positioning == IDLE) {
-                servo_goto_delayed(machine->servo_1, machine->servo_1->current_pos + 5.0, 5.0, 500);
+                servo_goto_delayed(machine->servo_1, machine->servo_1->enc_position + 5.0, 5.0, 500);
             }
             else if (machine->servo_1->positioning == POSITION_REACHED) {
                 machine->cutter_state = CUTTER_IDLE;

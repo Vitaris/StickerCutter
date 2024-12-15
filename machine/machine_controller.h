@@ -12,6 +12,8 @@
 #define PRECUT_POSITION 10.0
 #define CUT_LENGTH 25.0
 #define KNIFE_OUTPUT_PIN 17
+#define SCALE_CUTTER 20.0
+#define SCALE_FEEDER 6.4
 
 enum cutter_state{
 	CUTTER_IDLE,
