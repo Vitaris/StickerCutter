@@ -34,9 +34,8 @@ void core1_entry() {
         if (lcd_refresh == true)
         { 
             string2LCD(lcd, 0, 0, cutter->state_text);
-            // string2LCD(lcd, 0, 1, cutter->error_message);
+            string2LCD(lcd, 0, 1, cutter->error_message);
             int2LCD(lcd, 10, 1, 10, cutter->detector->current_reflectivity); 
-            float2LCD(lcd, 0, 1, 10, cutter->servo_0->servo_speed); 
 
             float2LCD(lcd, 0, 2, 8, cutter->servo_0->servo_position);
             string2LCD(lcd, 8, 2, "mm");
