@@ -233,14 +233,25 @@ void next_positon_compute(servo_t servo) {
 	}
 }
 
-void servo_manual_handling(servo_t  servo) {
+void servo_manual_handling(servo_t servo, float min, float max, bool homed) {
+	float limit_min;
+	float limit_max;
+
+	if (homed) {
+		limit_min = min;
+		limit_max = max; 
+	}
+	else {
+		limit_min = -2000;
+		limit_max = 2000;
+	}
 	if ((*servo->man_plus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->servo_position + 1000.0 * servo->scale, MANUAL_SPEED);
+		servo_goto(servo, servo->next_stop = limit_max, MANUAL_SPEED);
 	}
 	else if ((*servo->man_minus)->state_raised) {
 		servo->delay_start = UINT32_MAX;
-		servo_goto(servo, servo->next_stop = servo->servo_position - 1000.0 * servo->scale, MANUAL_SPEED);
+		servo_goto(servo, servo->next_stop = limit_min, MANUAL_SPEED);
 	}
 	else if ((*servo->man_plus)->state_dropped || (*servo->man_minus)->state_dropped) {
 		stop_positioning(servo);

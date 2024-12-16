@@ -209,7 +209,7 @@ extern "C" {
 
 	void servo_reset_all(servo_t servo);
 
-	void servo_manual_handling(servo_t  servo);
+	void servo_manual_handling(servo_t servo, float min, float max, bool homed);
 
 	void stop_positioning(servo_t servo);
 
