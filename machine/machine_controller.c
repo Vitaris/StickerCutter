@@ -48,6 +48,11 @@ machine_t create_machine()
 
     // Mark probe
     machine->detector = create_detector(0, &machine->servo_1->servo_position);
+
+    // Machine states
+    machine->paper_edge_position = 0.0;
+    machine->mark_position = 0.0;
+
     return machine;
 }
 
@@ -72,17 +77,22 @@ void machine_compute(machine_t machine) {
             if (machine->enable == false) {
                 set_text_20(machine->state_text, "Manual, Volne motory");
                 set_text_10(machine->F1_text, "Mot->ON");
+                machine->homed = false;
 
                 if (machine->F1->state_raised == true) {
                     machine->enable = true;
                 }
             }
             else {
-                set_text_20(machine->state_text, "Manual");
+                if (machine->homed) {
+                    set_text_20(machine->state_text, "Manual");
+                } else {
+                    set_text_20(machine->state_text, "Manual - NO Home");
+                }
                 set_text_10(machine->F1_text, "Mot->OFF");
 
-                servo_manual_handling(machine->servo_0);
-                servo_manual_handling(machine->servo_1);
+                servo_manual_handling(machine->servo_0, -1500, 20, machine->homed);
+                servo_manual_handling(machine->servo_1, 0, 0, false);
 
                 if (machine->F1->state_raised == true) {
                     machine->enable = false;
@@ -91,24 +101,38 @@ void machine_compute(machine_t machine) {
             
             // Home / Start cutting
             if (machine->homed == true) {
-                set_text_10(machine->F2_text, "Start");
-                if (machine->F2->state_raised == true) {
-                    stop_positioning(machine->servo_0);
-                    stop_positioning(machine->servo_1);
-                    knife_up();
-                    machine->state = AUTOMAT;
+                if (machine->paper_edge_position == 0.0) {
+                    set_text_10(machine->F2_text, "Paper");
+                    if (machine->F2->state_raised == true) {
+                        machine->paper_edge_position = machine->servo_0->servo_position;
+                    }
+                }
+                else if (machine->mark_position == 0.0) {
+                    set_text_10(machine->F2_text, "Mark");
+                    if (machine->F2->state_raised == true) {
+                        machine->mark_position = machine->servo_0->servo_position;
+                    }
+                }
+                else {
+                    set_text_10(machine->F2_text, "Start");
+                    if (machine->F2->state_raised == true) {
+                        stop_positioning(machine->servo_0);
+                        stop_positioning(machine->servo_1);
+                        knife_up();
+                        machine->state = AUTOMAT;
+                    }
                 }
             }
             else {
                 if (machine->detector->edge_detection == EDGE_IDLE) { 
-                    set_text_10(machine->F2_text, "    Home");
+                    set_text_10(machine->F2_text, "     Home");
                     if (machine->F2->state_raised == true) {
                         machine->detector->edge_detection = EDGE_ACTIVATED;
                     }
                 }
                 else if (machine->detector->edge_detection == EDGE_ACTIVATED) {
                     if (machine->servo_0->positioning == IDLE) {
-                        servo_goto_delayed(machine->servo_0, 1000.0, 50.0, 500);
+                        servo_goto_delayed(machine->servo_0, 2000.0, 100.0, 500);
                         machine->detector->edge_detection = EDGE_SCANNING;
                     }
                 }

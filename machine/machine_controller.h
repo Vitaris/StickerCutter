@@ -59,6 +59,8 @@ typedef struct machine {
 	enum machine_state state;
 	enum machine_condition machine_condition;
 	char error_message[21];
+	float paper_edge_position;
+	float mark_position;
 
 	// LCD Texts
 	char state_text[21];
