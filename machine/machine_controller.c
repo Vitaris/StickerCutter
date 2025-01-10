@@ -19,6 +19,10 @@ machine_t create_machine()
     machine->state = MANUAL;
     machine->machine_condition = OK;
 
+    machine->machine_state = MANUAL;
+    machine->manual_substate = MANUAL_IDLE;
+    machine->auto_substate = AUTO_IDLE;
+
     // Init buttons
     machine->F1 = create_button(5);
     machine->F2 = create_button(2);
@@ -77,7 +81,7 @@ void machine_compute(machine_t machine) {
             if (machine->enable == false) {
                 set_text_20(machine->state_text, "Manual, Volne motory");
                 set_text_10(machine->F1_text, "Mot->ON");
-                machine->homed = false;
+                reset_params(machine);
 
                 if (machine->F1->state_raised == true) {
                     machine->enable = true;
@@ -213,7 +217,7 @@ void machine_compute(machine_t machine) {
 
         case FAILURE:
             set_text_20(machine->state_text, "Porucha!");
-            machine->enable = false;
+            reset_params(machine);
             set_text_10(machine->F1_text, "Potvrdit");
             set_text_10(machine->F2_text, "");
 
@@ -389,4 +393,12 @@ void knife_down() {
 void raise_error(machine_t machine, char text[]) {
     set_text_20(machine->error_message, text);
     machine->machine_error = true;
+}
+
+void reset_params(machine_t machine) {
+    machine->enable = false;
+    machine->homed = false;
+    machine->paper_edge_position = 0.0;
+    machine->mark_position = 0.0;
+    machine->detector->edge_detection = EDGE_IDLE;
 }

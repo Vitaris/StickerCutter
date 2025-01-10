@@ -15,6 +15,26 @@
 #define SCALE_CUTTER 20.0
 #define SCALE_FEEDER 6.4
 
+typedef enum {
+    STATE_MANUAL,
+    STATE_AUTOMATIC,
+    STATE_ERROR
+} machine_state_t;
+
+typedef enum {
+    MANUAL_IDLE,
+    MANUAL_HOMING,
+    MANUAL_READY,
+    MANUAL_JOG
+} manual_substate_t;
+
+typedef enum {
+    AUTO_IDLE,
+    AUTO_PAPER_DETECT,
+    AUTO_MARK_DETECT,
+    AUTO_CUTTING
+} auto_substate_t;
+
 enum cutter_state{
 	CUTTER_IDLE,
 	CUTTER_REQUESTED,
@@ -53,6 +73,9 @@ typedef struct machine {
 	button_t Out;
 
 	// Machine status
+	machine_state_t machine_state;
+	manual_substate_t manual_substate;
+	auto_substate_t auto_substate;
 	bool enable;
 	bool machine_error;
 	bool homed;
@@ -122,6 +145,8 @@ extern "C" {
 	void knife_down();
 
 	void raise_error(machine_t machine, char text[]);
+
+	void reset_params(machine_t machine);
 
 	
 
