@@ -4,401 +4,254 @@
 #include <string.h>
 
 #include "machine_controller.h"
+#include "machine_manual_mode.h"
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
 #include "mark_detector.h"
+#include "../lcd/display_20x4.h"
 
-bool end = false;
-float pause_time;
-bool waiting;
+machine_t machine;
 
-machine_t create_machine()
-{
-    // Create machine data structure
-    machine_t machine = (machine_t)malloc(sizeof(struct machine));
-    machine->state = MANUAL;
-    machine->machine_condition = OK;
-
-    machine->machine_state = MANUAL;
-    machine->manual_substate = MANUAL_IDLE;
-    machine->auto_substate = AUTO_IDLE;
+void machine_init(void) {
+    // Initialize machine state
+    machine.state = MANUAL;
+    machine.machine_condition = OK;
+    machine.auto_substate = AUTO_IDLE;
 
     // Init buttons
-    machine->F1 = create_button(5);
-    machine->F2 = create_button(2);
-    machine->Right = create_button(1);
-    machine->Left = create_button(3);
-    machine->In = create_button(4);
-    machine->Out = create_button(0);
+    machine.F1 = create_button(5);
+    machine.F2 = create_button(2);
+    machine.Right = create_button(1);
+    machine.Left = create_button(3);
+    machine.In = create_button(4);
+    machine.Out = create_button(0);
 
     // Init servos
-    machine->machine_error = false;
-    machine->enable = true;
-    machine->homed = false;
-    set_text_20(machine->error_message, "OK");
+    machine.machine_error = false;
+    machine.enable = true;
+    machine.homed = false;
+    set_text_20(machine.error_message, "OK");
 
     // Init PIO
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
-    machine->servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, &machine->Right, &machine->Left, &machine->enable, &machine->machine_error, &machine->error_message);
-    machine->servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, SCALE_FEEDER, &machine->Out, &machine->In, &machine->enable, &machine->machine_error, &machine->error_message);
+    machine.servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, &machine.Right, &machine.Left, &machine.enable, &machine.machine_error, &machine.error_message);
+    machine.servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, SCALE_FEEDER, &machine.Out, &machine.In, &machine.enable, &machine.machine_error, &machine.error_message);
 
     // Knife
     gpio_init(KNIFE_OUTPUT_PIN);
     gpio_set_dir(KNIFE_OUTPUT_PIN, GPIO_OUT);
 
     // Cutter
-    machine->cutter_state = CUTTER_IDLE;
+    machine.cutter_state = CUTTER_IDLE;
 
     // Mark probe
-    machine->detector = create_detector(0, &machine->servo_1->servo_position);
+    machine.detector = create_detector(0, &machine.servo_1->servo_position);
 
     // Machine states
-    machine->paper_edge_position = 0.0;
-    machine->mark_position = 0.0;
-
-    return machine;
+    machine.paper_edge_position = 0.0;
+    machine.mark_position = 0.0;
 }
 
-void machine_compute(machine_t machine) {
-    servo_compute(machine->servo_0);
-    servo_compute(machine->servo_1);
+void machine_compute(void) {
+    // Update I/O
+    servo_compute(machine.servo_0);
+    servo_compute(machine.servo_1);
+    button_compute(machine.F1);
+    button_compute(machine.F2);
+    button_compute(machine.Right);
+    button_compute(machine.Left);
+    button_compute(machine.In);
+    button_compute(machine.Out);
+    detector_compute(machine.detector);
 
-    button_compute(machine->F1);
-    button_compute(machine->F2);
-    button_compute(machine->Right);
-    button_compute(machine->Left);
-    button_compute(machine->In);
-    button_compute(machine->Out);
+    // Handle main state machine
+    switch(machine.state) {
+        case MANUAL:    handle_manual_state(); break;
+        case AUTOMAT:   handle_automatic_state(); break;
+        case FAILURE:   handle_failure_state(); break;
+    }
 
-    detector_compute(machine->detector);
+    // Handle error conditions and cutter state machine
+    if (machine.machine_error) {
+        machine.state = FAILURE;
+    }
+    handle_cutter_state();
+}
 
-    // State machine
-    switch(machine->state) {
-        case MANUAL:
+void handle_automatic_state(void) {
+    set_text_20(display.state_text, "Automat");
+    set_text_10(display.F1_text, "Stop");
 
-            // Motory on/off
-            if (machine->enable == false) {
-                set_text_20(machine->state_text, "Manual, Volne motory");
-                set_text_10(machine->F1_text, "Mot->ON");
-                reset_params(machine);
+    if (machine.F1->state_raised) {
+        machine.state = MANUAL;
+        machine.cutter_state = STOP_CUTTING;
+        return;
+    }
 
-                if (machine->F1->state_raised == true) {
-                    machine->enable = true;
-                }
+    // Handle mark detection states
+    switch(machine.detector->detector_state) {
+        case DETECTOR_IDLE:
+            set_text_10(display.F2_text, "Hladat zn.");
+            if (machine.F2->state_raised && machine.servo_1->positioning == IDLE) {
+                servo_goto_delayed(machine.servo_1, machine.servo_1->enc_position + 1000.0, 15.0, 500);
+                machine.detector->detector_state = DETECTOR_GET_ACTIVATED;
             }
-            else {
-                if (machine->homed) {
-                    set_text_20(machine->state_text, "Manual");
-                } else {
-                    set_text_20(machine->state_text, "Manual - NO Home");
-                }
-                set_text_10(machine->F1_text, "Mot->OFF");
-
-                servo_manual_handling(machine->servo_0, -1500, 20, machine->homed);
-                servo_manual_handling(machine->servo_1, 0, 0, false);
-
-                if (machine->F1->state_raised == true) {
-                    machine->enable = false;
-                }
-            }
-            
-            // Home / Start cutting
-            if (machine->homed == true) {
-                if (machine->paper_edge_position == 0.0) {
-                    set_text_10(machine->F2_text, "Paper");
-                    if (machine->F2->state_raised == true) {
-                        machine->paper_edge_position = machine->servo_0->servo_position;
-                    }
-                }
-                else if (machine->mark_position == 0.0) {
-                    set_text_10(machine->F2_text, "Mark");
-                    if (machine->F2->state_raised == true) {
-                        machine->mark_position = machine->servo_0->servo_position;
-                    }
-                }
-                else {
-                    set_text_10(machine->F2_text, "Start");
-                    if (machine->F2->state_raised == true) {
-                        stop_positioning(machine->servo_0);
-                        stop_positioning(machine->servo_1);
-                        knife_up();
-                        machine->state = AUTOMAT;
-                    }
-                }
-            }
-            else {
-                if (machine->detector->edge_detection == EDGE_IDLE) { 
-                    set_text_10(machine->F2_text, "     Home");
-                    if (machine->F2->state_raised == true) {
-                        machine->detector->edge_detection = EDGE_ACTIVATED;
-                    }
-                }
-                else if (machine->detector->edge_detection == EDGE_ACTIVATED) {
-                    if (machine->servo_0->positioning == IDLE) {
-                        servo_goto_delayed(machine->servo_0, 2000.0, 100.0, 500);
-                        machine->detector->edge_detection = EDGE_SCANNING;
-                    }
-                }
-                else if (machine->detector->edge_detection == EDGE_SCANNING) {
-                    set_text_10(machine->F2_text, "Hlada sa->");    
-                }
-                else if (machine->detector->edge_detection == EDGE_FOUND) {
-                    if (machine->servo_0->positioning == ACCELERATING) {
-                        stop_positioning(machine->servo_0);
-                    }
-                    else if (machine->servo_0->positioning == POSITION_REACHED) {
-                        machine->detector->edge_detection = EDGE_RETURN_TO_ZERO;
-                    }
-                }
-                else if (machine->detector->edge_detection == EDGE_RETURN_TO_ZERO) {
-                    if (machine->servo_0->positioning == IDLE) {
-                        machine->servo_0->set_zero = true;
-                        servo_goto_delayed(machine->servo_0, -50.0, 100.0, 500);
-                    }
-                    else if (machine->servo_0->positioning == POSITION_REACHED) {
-                        // machine->servo_0->set_zero = true;
-                        machine->homed = true;
-                        machine->detector->edge_detection = EDGE_IDLE;
-                    }
-                }
-                else if (machine->detector->edge_detection == EDGE_ERROR) {
-                    set_text_10(machine->F2_text, "Error!");
-                }
-            }
-
             break;
 
-        case AUTOMAT:
-            set_text_20(machine->state_text, "Automat");
-            set_text_10(machine->F1_text, "Stop");
-
-            if (machine->F1->state_raised) {
-                machine->state = MANUAL;
-                machine->cutter_state = STOP_CUTTING;
-            }
-
-            if (machine->detector->detector_state == DETECTOR_IDLE) {
-                set_text_10(machine->F2_text, "Hladat zn.");
-                if (machine->F2->state_raised) {
-                    if (machine->servo_1->positioning == IDLE) {
-                        servo_goto_delayed(machine->servo_1, machine->servo_1->enc_position + 1000.0, 15.0, 500);
-                    }
-                    machine->detector->detector_state = DETECTOR_GET_ACTIVATED;
-                }
-            } 
-            else if (machine->detector->detector_state == DETECTOR_SCANNING) {
-                set_text_10(machine->F2_text, "Hlada znak");
-            }
-            else if (machine->detector->detector_state == DETECTOR_LINE_FOUND) {
-                set_text_10(machine->F2_text, "Zn Najdeny");
-                machine->servo_1->next_stop = (machine->detector->stops[0] + 14.0) / machine->servo_1->scale;
-                machine->detector->detector_state = DETECTOR_WAITING;
-            }
-            else if (machine->detector->detector_state == DETECTOR_WAITING) {
-                if (machine->F2->state_raised) {
-                    machine->detector->detector_state = IDLE;
-                }
-            }
-                
-            // else if (machine->detector->detector_state == DETECTOR_READY) {
-            //     set_text_10(machine->F2_text, "");
-
-            //     if (machine->cutter_state == CUTTER_IDLE) {
-            //         machine->cutter_state = CUTTER_REQUESTED;
-            //     }
-
-            //     if (machine->F1->state_raised) {
-            //         machine->state = MANUAL;
-            //         machine->cutter_state = STOP_CUTTING;
-            //     }
-            // }
+        case DETECTOR_SCANNING:
+            set_text_10(display.F2_text, "Hlada znak");
             break;
 
-        case FAILURE:
-            set_text_20(machine->state_text, "Porucha!");
-            reset_params(machine);
-            set_text_10(machine->F1_text, "Potvrdit");
-            set_text_10(machine->F2_text, "");
+        case DETECTOR_LINE_FOUND:
+            set_text_10(display.F2_text, "Zn Najdeny");
+            machine.servo_1->next_stop = (machine.detector->stops[0] + 14.0) / machine.servo_1->scale;
+            machine.detector->detector_state = DETECTOR_WAITING;
+            break;
 
-            if (machine->F1->state_raised) {
-                machine->state = MANUAL;
-                set_text_20(machine->error_message, "OK");
-                machine->machine_error = false;
+        case DETECTOR_WAITING:
+            if (machine.F2->state_raised) {
+                machine.detector->detector_state = IDLE;
             }
             break;
     }
-
-    if (machine->machine_error) {
-        machine->state = FAILURE;
-    }
-    // if (machine->state != AUTOMAT) {
-    //     machine->cutter_state = CUTTER_IDLE;
-    // }
-    sticker_cut_compute(machine);
 }
 
-void sticker_cut_compute(machine_t machine) {
-    switch(machine->cutter_state) {
+void handle_failure_state(void) {
+    set_text_20(display.state_text, "Porucha!");
+    reset_params();
+    set_text_10(display.F1_text, "Potvrdit");
+    set_text_10(display.F2_text, "");
+
+    if (machine.F1->state_raised) {
+        machine.state = MANUAL;
+        set_text_20(machine.error_message, "OK");
+        machine.machine_error = false;
+    }
+}
+
+void handle_cutter_state(void) {
+    // Existing sticker_cut_compute function renamed and content moved here
+    switch(machine.cutter_state) {
         case CUTTER_IDLE:
             knife_up();
             break;
 
         case CUTTER_REQUESTED:
-            if (machine->servo_0->enc_position == 0.0) {
-                machine->cutter_state = AT_HOME;
+            if (machine.servo_0->enc_position == 0.0) {
+                machine.cutter_state = AT_HOME;
             } else {
-                machine->cutter_state = TO_HOME;
+                machine.cutter_state = TO_HOME;
             }
             break;
 
         case TO_HOME:
-            if (machine->servo_0->positioning == IDLE) {
+            if (machine.servo_0->positioning == IDLE) {
                 knife_up();
-                servo_goto_delayed(machine->servo_0, 0.0, 10.0, 500);
+                servo_goto_delayed(machine.servo_0, 0.0, 10.0, 500);
             } 
-            else if (machine->servo_0->positioning == POSITION_REACHED) {
-                    machine->cutter_state = AT_HOME;
+            else if (machine.servo_0->positioning == POSITION_REACHED) {
+                    machine.cutter_state = AT_HOME;
             }
             break;
 
         case AT_HOME:
             // Check if knife is above the mark
-            if (get_next_stop(machine->detector, machine->servo_1->enc_position) != machine->servo_1->enc_position) {
-                raise_error(machine, "Znacka nenajdena");
+            if (get_next_stop(machine.detector, machine.servo_1->enc_position) != machine.servo_1->enc_position) {
+                raise_error("Znacka nenajdena");
             }
             else {
-                machine->cutter_state = TO_PRECUT;
+                machine.cutter_state = TO_PRECUT;
             }
             break;
 
         case TO_PRECUT:
-            if (machine->servo_0->positioning == IDLE) {
+            if (machine.servo_0->positioning == IDLE) {
                 knife_up();
-                servo_goto_delayed(machine->servo_0, PRECUT_POSITION, 4.0, 500);
+                servo_goto_delayed(machine.servo_0, PRECUT_POSITION, 4.0, 500);
             } else {
-                if (machine->servo_0->positioning == POSITION_REACHED) {
-                    machine->cutter_state = BACK_HOME;
+                if (machine.servo_0->positioning == POSITION_REACHED) {
+                    machine.cutter_state = BACK_HOME;
                 }
             }
             break;
 
         case BACK_HOME:
-            if (machine->servo_0->positioning == IDLE) {
+            if (machine.servo_0->positioning == IDLE) {
                 knife_down();
-                servo_goto_delayed(machine->servo_0, 0.0, 10.0, 500);
+                servo_goto_delayed(machine.servo_0, 0.0, 10.0, 500);
             } else {
-                if (machine->servo_0->positioning == POSITION_REACHED) {
-                    machine->cutter_state = CUT_TO_END;
+                if (machine.servo_0->positioning == POSITION_REACHED) {
+                    machine.cutter_state = CUT_TO_END;
                 }
             }
             break;
 
         case CUT_TO_END:
-            if (machine->servo_0->positioning == IDLE) {
-                servo_goto_delayed(machine->servo_0, CUT_LENGTH, 4.0, 500);
+            if (machine.servo_0->positioning == IDLE) {
+                servo_goto_delayed(machine.servo_0, CUT_LENGTH, 4.0, 500);
             } else {
-                if (machine->servo_0->positioning == POSITION_REACHED) {
-                    machine->cutter_state = FINAL_RETURN;
+                if (machine.servo_0->positioning == POSITION_REACHED) {
+                    machine.cutter_state = FINAL_RETURN;
                 }
             }
             break;
 
         case FINAL_RETURN:
-            if (machine->servo_0->positioning == IDLE) {
-                servo_goto_delayed(machine->servo_0, 0.0, 4.0, 500);
+            if (machine.servo_0->positioning == IDLE) {
+                servo_goto_delayed(machine.servo_0, 0.0, 4.0, 500);
                 knife_up();
             } else {
-                if (machine->servo_0->positioning == POSITION_REACHED) {
-                    machine->cutter_state = CUT_DONE;
+                if (machine.servo_0->positioning == POSITION_REACHED) {
+                    machine.cutter_state = CUT_DONE;
                 }
             }
             break;
 
         case CUT_DONE:
-            machine->cutter_state = ROLL_OUT_PAPER;
+            machine.cutter_state = ROLL_OUT_PAPER;
             break; 
         
         case ROLL_OUT_PAPER:
-            if (machine->servo_0->positioning == IDLE &&  machine->servo_1->positioning == IDLE) {
-                servo_goto_delayed(machine->servo_1, machine->servo_1->enc_position + 5.0, 5.0, 500);
+            if (machine.servo_0->positioning == IDLE &&  machine.servo_1->positioning == IDLE) {
+                servo_goto_delayed(machine.servo_1, machine.servo_1->enc_position + 5.0, 5.0, 500);
             }
-            else if (machine->servo_1->positioning == POSITION_REACHED) {
-                machine->cutter_state = CUTTER_IDLE;
+            else if (machine.servo_1->positioning == POSITION_REACHED) {
+                machine.cutter_state = CUTTER_IDLE;
             }
             break;
 
         case STOP_CUTTING:
-            machine->servo_0->positioning = IDLE;
-            machine->cutter_state = CUTTER_IDLE;
+            machine.servo_0->positioning = IDLE;
+            machine.cutter_state = CUTTER_IDLE;
             break;
     }
 }
 
-void feeder_compute(machine_t machine) {
+void feeder_compute(void) {
     
 }
 
-void set_text(char LCD_text[], char text[], uint8_t len) {
-    bool fill_spaces = false;
-    uint8_t i = 0;
-	while (i < len)	{
-        if (text[i] == '\0') {
-            fill_spaces = true;
-        }
-        if (fill_spaces == false) {
-            LCD_text[i] = text[i];
-        } else {
-            LCD_text[i] = ' ';
-        }
-		i++;
-	}
-    LCD_text[len] = '\0';
+void perform_sticker_cut(void) {
 }
 
-void set_text_10(char LCD_text[], char text[]) {
-    set_text(LCD_text, text, 10);
-}
-
-void set_text_20(char LCD_text[], char text[]) {
-    set_text(LCD_text, text, 20);
-}
-
-void set_pause() {
-    waiting = true;
-    pause_time = 0.0;
-}
-
-bool is_time(float cycle_time) {
-    pause_time += cycle_time;
-    if (pause_time >= 1.0) {
-        waiting = false;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-void perform_sticker_cut(machine_t machine) {
-}
-
-void knife_up() {
+void knife_up(void) {
     gpio_put(KNIFE_OUTPUT_PIN, false);
 }
 
-void knife_down() {
+void knife_down(void) {
     gpio_put(KNIFE_OUTPUT_PIN, true);
 }
 
-void raise_error(machine_t machine, char text[]) {
-    set_text_20(machine->error_message, text);
-    machine->machine_error = true;
+void raise_error(char text[]) {
+    set_text_20(machine.error_message, text);
+    machine.machine_error = true;
 }
 
-void reset_params(machine_t machine) {
-    machine->enable = false;
-    machine->homed = false;
-    machine->paper_edge_position = 0.0;
-    machine->mark_position = 0.0;
-    machine->detector->edge_detection = EDGE_IDLE;
+void reset_params(void) {
+    machine.enable = false;
+    machine.homed = false;
+    machine.paper_edge_position = 0.0;
+    machine.mark_position = 0.0;
+    machine.detector->edge_detection = EDGE_IDLE;
 }

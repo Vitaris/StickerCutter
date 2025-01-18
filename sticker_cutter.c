@@ -7,7 +7,7 @@
 #include "hardware/timer.h"
 #include "machine/machine_controller.h"
 
-#include "lcd/ant_lcd.h"
+#include "lcd/display_20x4.h"
 #include "servo_motor/servo_motor.h"
 #include "servo_motor/button.h"
 
@@ -16,35 +16,33 @@ uint64_t old_cycle_time = 0;
 struct repeating_timer servo_timer;
 struct repeating_timer LCD_refresh_timer;
 
-// LCD
-lcd_t lcd;
+// Display controller
+// display_20x4_t* display;
 
 bool blink_500ms;
 bool lcd_refresh;
 
 // Machine states
-machine_t cutter;
+machine_t* cutter;
 
 void core1_entry() {
+    display_create();
 
-    // LCD
-    lcd = lcd_create(10, 11, 12, 13, 14, 15, 16, 16, 4);
-    while (1)
-    {
-        if (lcd_refresh == true)
-        { 
-            string2LCD(lcd, 0, 0, cutter->state_text);
-            string2LCD(lcd, 0, 1, cutter->error_message);
-            int2LCD(lcd, 10, 1, 10, cutter->detector->current_reflectivity); 
-
-            float2LCD(lcd, 0, 2, 8, cutter->servo_0->servo_position);
-            string2LCD(lcd, 8, 2, "mm");
+    while (1) {
+        if (lcd_refresh == true) { 
+            display_update_line(0, display.state_text);
+            display_update_line(1, cutter->error_message);
             
-            float2LCD(lcd, 10, 2, 8, cutter->servo_1->servo_position);
-            string2LCD(lcd, 18, 2, "mm");
+            display_number(1, 10, cutter->detector->current_reflectivity, 0);
 
-            string2LCD(lcd, 0, 3, cutter->F1_text);
-            string2LCD(lcd, 10, 3, cutter->F2_text);
+            display_number(2, 0, cutter->servo_0->servo_position, 2);
+            display_update_line(2, "      mm");
+            display_number(2, 10, cutter->servo_1->servo_position, 2);
+            display_update_line(2, "      mm");
+
+            display_update_line(3, display.F1_text);
+            display_number(3, 10, 0, 0);
+            display_update_line(3, display.F2_text);
 
             lcd_refresh = false;
         }
@@ -52,7 +50,7 @@ void core1_entry() {
 }
 
 bool servo_timer_callback(struct repeating_timer *t) {
-    machine_compute(cutter);
+    machine_compute();
     return true;
 }
 
@@ -62,7 +60,7 @@ bool LCD_refresh_timer_callback(struct repeating_timer *t) {
 }
 
 int main() {
-    cutter = create_machine();
+    machine_init();
 
     // Initialize
     stdio_init_all();
