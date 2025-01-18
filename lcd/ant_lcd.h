@@ -29,35 +29,43 @@ SOFTWARE.
 #include <stdbool.h>
 #include <stdint.h>
 
-
-#define LCD_CLR 0x01  // Screen Clear Command Address
-#define LCD_DISP_ON 0x0C  // Screen On Command Address
-#define LCD_DISP_OFF 0x08  // Screen Off Command Address
-#define LCD_BLINK_ON 0x0D  // Cursor Blink On Command Address
-#define LCD_BLINK_OFF 0x0C  // Cursor Blink Off Command Address
-#define LCD_CURSOR_ON 0x0E  // Cursor On Command Address
-#define LCD_CURSOR_OFF 0x0C  // Cursor Off Command Address
-#define LCD_2LINE 0x08  // Address for More Than 2 Line LCDs (For Example 4*20)
-#define DELAY 15  // Default Delay
-#define DELAY_5_MS 1
-#define DELAY_5_MS 1
-#define DELAY_250_uS 250
-
-
+/**
+ * LCD Command Definitions
+ * These commands control basic LCD functionality
+ */
+#define LCD_CLR 0x01        // Clear entire display and reset cursor position
+#define LCD_DISP_ON 0x0C    // Turn display on without cursor
+#define LCD_DISP_OFF 0x08   // Turn display off
+#define LCD_BLINK_ON 0x0D   // Enable cursor blinking
+#define LCD_BLINK_OFF 0x0C  // Disable cursor blinking
+#define LCD_CURSOR_ON 0x0E  // Show cursor
+#define LCD_CURSOR_OFF 0x0C // Hide cursor
+#define LCD_2LINE 0x08      // Enable multi-line mode (>2 lines)
 
 /**
- * Structure that holds LCD instance Data, multiple instances are
- * posible using different structures for each controller
+ * Timing Constants
+ * Define delays required for proper LCD operation
+ */
+#define DELAY 15            // Standard operation delay
+#define DELAY_5_MS 1        // 5ms delay for initialization
+#define DELAY_250_uS 250    // 250µs delay for commands
+
+/**
+ * @brief LCD Controller Configuration
+ * 
+ * Structure holding all necessary pins and state information for
+ * controlling a HD44780-compatible LCD in 4-bit mode.
+ * Supports multiple LCD instances through separate structures.
  */
 struct lcd_controller {
-	uint8_t data[4];
-	uint8_t RS;
-	uint8_t RW;
-	uint8_t EN;
-	uint8_t COL;
-	uint8_t ROW;
-	uint8_t Xcurrent;
-	uint8_t Ycurrent;
+    uint8_t data[4];     // D4-D7 data pins
+    uint8_t RS;          // Register Select pin
+    uint8_t RW;          // Read/Write pin
+    uint8_t EN;          // Enable pin
+    uint8_t COL;         // Number of columns
+    uint8_t ROW;         // Number of rows
+    uint8_t Xcurrent;    // Current X position (column)
+    uint8_t Ycurrent;    // Current Y position (row)
 };
 
 typedef struct lcd_controller * lcd_t;
@@ -191,10 +199,9 @@ extern "C" {
 	 */
 	void string2LCD(lcd_t lcd, uint8_t x, uint8_t y, char string[]);
 
-
-
 #ifdef	__cplusplus
 }
 #endif
 
 #endif
+// End of Header file
