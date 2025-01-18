@@ -20,4 +20,7 @@ typedef enum {
  */
 void handle_manual_state();
 
+/**
+ * @brief Handles the homing sequence
+ */
 void handle_homing_sequence(void);
