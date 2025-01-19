@@ -28,21 +28,22 @@ machine_t* cutter;
 void core1_entry() {
     display_create();
 
-    while (1) {
-        if (lcd_refresh == true) { 
-            display_update_line(0, display.state_text);
-            display_update_line(1, cutter->error_message);
+    while (1)
+    {
+        if (lcd_refresh == true)
+        { 
+            string2LCD(display.lcd, 0, 0, display.state_text);
+            string2LCD(display.lcd, 0, 1, cutter->error_message);
+            // int2LCD(display.lcd, 10, 1, 10, cutter->detector->current_reflectivity); 
+
+            float2LCD(display.lcd, 0, 2, 8, cutter->servo_0->servo_position);
+            string2LCD(display.lcd, 8, 2, "mm");
             
-            display_number(1, 10, cutter->detector->current_reflectivity, 0);
+            // float2LCD(display.lcd, 10, 2, 8, cutter->servo_1->servo_position);
+            string2LCD(display.lcd, 18, 2, "mm");
 
-            display_number(2, 0, cutter->servo_0->servo_position, 2);
-            display_update_line(2, "      mm");
-            display_number(2, 10, cutter->servo_1->servo_position, 2);
-            display_update_line(2, "      mm");
-
-            display_update_line(3, display.F1_text);
-            display_number(3, 10, 0, 0);
-            display_update_line(3, display.F2_text);
+            string2LCD(display.lcd, 0, 3, display.F1_text);
+            string2LCD(display.lcd, 10, 3, display.F2_text);
 
             lcd_refresh = false;
         }
@@ -50,7 +51,7 @@ void core1_entry() {
 }
 
 bool servo_timer_callback(struct repeating_timer *t) {
-    machine_compute();
+    // machine_compute();
     return true;
 }
 
@@ -69,7 +70,7 @@ int main() {
     add_repeating_timer_ms(-1, servo_timer_callback, NULL, &servo_timer);
 
     // 100ms LCD refresh timer
-    add_repeating_timer_ms(100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
+    add_repeating_timer_ms(-100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
     
     // Launch core1
     multicore_launch_core1(core1_entry);
