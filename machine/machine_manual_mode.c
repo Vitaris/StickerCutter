@@ -29,20 +29,6 @@ void handle_manual_state() {
             }
             break;
 
-        case MANUAL_HOMING:
-            set_text_10(display.F1_text, "Mot->OFF");
-            handle_homing_sequence();
-            
-            if (machine.F1->state_raised) {
-                machine.enable = false;
-                manual_substate = MANUAL_IDLE;
-                reset_params();
-            }
-            else if (machine.homed) {
-                manual_substate = MANUAL_READY;
-            }
-            break;
-
         case MANUAL_READY:
             set_text_10(display.F1_text, "Mot->OFF");
             
@@ -80,6 +66,20 @@ void handle_manual_state() {
             servo_manual_handling(machine.servo_1, 0, 0, false);
 
             break;
+
+        case MANUAL_HOMING:
+            set_text_10(display.F1_text, "Mot->OFF");
+            handle_homing_sequence();
+            
+            if (machine.F1->state_raised) {
+                machine.enable = false;
+                manual_substate = MANUAL_IDLE;
+                reset_params();
+            }
+            else if (machine.homed) {
+                manual_substate = MANUAL_READY;
+            }
+            break;
     }
 
     // machine.enable/disable motors based on current state
@@ -91,18 +91,18 @@ void handle_manual_state() {
 }
 
 void handle_homing_sequence(void) {
-    switch(machine.detector->edge_detection) {
+    switch(machine.detector.edge_detection) {
         case EDGE_IDLE:
             set_text_10(display.F2_text, "     Home");
             if (machine.F2->state_raised) {
-                machine.detector->edge_detection = EDGE_ACTIVATED;
+                machine.detector.edge_detection = EDGE_ACTIVATED;
             }
             break;
 
         case EDGE_ACTIVATED:
             if (machine.servo_0->positioning == IDLE) {
                 servo_goto_delayed(machine.servo_0, 2000.0, 100.0, 500);
-                machine.detector->edge_detection = EDGE_SCANNING;
+                machine.detector.edge_detection = EDGE_SCANNING;
             }
             break;
 
@@ -115,7 +115,7 @@ void handle_homing_sequence(void) {
                 stop_positioning(machine.servo_0);
             }
             else if (machine.servo_0->positioning == POSITION_REACHED) {
-                machine.detector->edge_detection = EDGE_RETURN_TO_ZERO;
+                machine.detector.edge_detection = EDGE_RETURN_TO_ZERO;
             }
             break;
 
@@ -126,7 +126,7 @@ void handle_homing_sequence(void) {
             }
             else if (machine.servo_0->positioning == POSITION_REACHED) {
                 machine.homed = true;
-                machine.detector->edge_detection = EDGE_IDLE;
+                machine.detector.edge_detection = EDGE_IDLE;
             }
             break;
 

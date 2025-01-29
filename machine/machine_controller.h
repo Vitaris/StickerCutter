@@ -45,7 +45,7 @@ enum machine_condition{
 	OK,
 	ERROR};
 
-typedef struct machine {
+typedef struct {
 
 	// Servo motors
 	servo_t servo_0;

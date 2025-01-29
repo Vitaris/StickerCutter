@@ -22,9 +22,6 @@ struct repeating_timer LCD_refresh_timer;
 bool blink_500ms;
 bool lcd_refresh;
 
-// Machine states
-machine_t* cutter;
-
 void core1_entry() {
     display_create();
 
@@ -33,13 +30,13 @@ void core1_entry() {
         if (lcd_refresh == true)
         { 
             string2LCD(display.lcd, 0, 0, display.state_text);
-            string2LCD(display.lcd, 0, 1, cutter->error_message);
-            // int2LCD(display.lcd, 10, 1, 10, cutter->detector->current_reflectivity); 
+            string2LCD(display.lcd, 0, 1, machine.error_message);
+            int2LCD(display.lcd, 10, 1, 10, machine.detector.current_reflectivity); 
 
-            float2LCD(display.lcd, 0, 2, 8, cutter->servo_0->servo_position);
+            float2LCD(display.lcd, 0, 2, 8, machine.servo_0->servo_position);
             string2LCD(display.lcd, 8, 2, "mm");
             
-            // float2LCD(display.lcd, 10, 2, 8, cutter->servo_1->servo_position);
+            float2LCD(display.lcd, 10, 2, 8, machine.servo_1->servo_position);
             string2LCD(display.lcd, 18, 2, "mm");
 
             string2LCD(display.lcd, 0, 3, display.F1_text);
@@ -51,7 +48,7 @@ void core1_entry() {
 }
 
 bool servo_timer_callback(struct repeating_timer *t) {
-    // machine_compute();
+    machine_compute();
     return true;
 }
 

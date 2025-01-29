@@ -14,13 +14,13 @@
 /**
  * @brief Display GPIO pin assignments
  */
-#define LCD_PIN_RS 11
-#define LCD_PIN_RW 12
-#define LCD_PIN_EN 13
-#define LCD_PIN_D4 14
-#define LCD_PIN_D5 15
-#define LCD_PIN_D6 16
-#define LCD_PIN_D7 17
+#define LCD_PIN_RS 10
+#define LCD_PIN_RW 11
+#define LCD_PIN_EN 12
+#define LCD_PIN_D4 13
+#define LCD_PIN_D5 14
+#define LCD_PIN_D6 15
+#define LCD_PIN_D7 16
 
 /**
  * @brief Display controller structure

@@ -90,28 +90,28 @@ void handle_automatic_state(void) {
     }
 
     // Handle mark detection states
-    switch(machine.detector->detector_state) {
+    switch(machine.detector.state) {
         case DETECTOR_IDLE:
             set_text_10(display.F2_text, "Hladat zn.");
             if (machine.F2->state_raised && machine.servo_1->positioning == IDLE) {
                 servo_goto_delayed(machine.servo_1, machine.servo_1->enc_position + 1000.0, 15.0, 500);
-                machine.detector->detector_state = DETECTOR_GET_ACTIVATED;
+                machine.detector.state = LINE_ACTIVATED;
             }
             break;
 
-        case DETECTOR_SCANNING:
+        case LINE_SCANNING:
             set_text_10(display.F2_text, "Hlada znak");
             break;
 
-        case DETECTOR_LINE_FOUND:
+        case LINE_FOUND:
             set_text_10(display.F2_text, "Zn Najdeny");
-            machine.servo_1->next_stop = (machine.detector->stops[0] + 14.0) / machine.servo_1->scale;
-            machine.detector->detector_state = DETECTOR_WAITING;
+            machine.servo_1->next_stop = (machine.detector.stops[0] + 14.0) / machine.servo_1->scale;
+            machine.detector.state = LINE_WAITING;
             break;
 
-        case DETECTOR_WAITING:
+        case LINE_WAITING:
             if (machine.F2->state_raised) {
-                machine.detector->detector_state = IDLE;
+                machine.detector.state = IDLE;
             }
             break;
     }
@@ -253,5 +253,5 @@ void reset_params(void) {
     machine.homed = false;
     machine.paper_edge_position = 0.0;
     machine.mark_position = 0.0;
-    machine.detector->edge_detection = EDGE_IDLE;
+    machine.detector.edge_detection = EDGE_IDLE;
 }

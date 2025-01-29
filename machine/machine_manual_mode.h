@@ -9,9 +9,8 @@
 
 typedef enum {
     MANUAL_IDLE,      // Motors disabled, waiting for enable command
-    MANUAL_HOMING,    // Executing homing sequence
     MANUAL_READY,     // Motors enabled, ready for operations
-    MANUAL_JOG        // Manual jogging of motors in progress
+    MANUAL_HOMING     // Executing homing sequence
 } manual_substate_t;
 
 /**
