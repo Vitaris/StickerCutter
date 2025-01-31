@@ -121,12 +121,32 @@ extern "C" {
      */
     void detector_compute(detector_t detector);
 
+    /**
+     * @brief Handles the idle state of the detector
+     * @param detector The detector instance
+     * Resets all detector states and values to their defaults
+     */
     void detector_idle_state(detector_t detector);
 
+    /**
+     * @brief Handles the line detection state
+     * @param detector The detector instance
+     * Processes the state machine for finding registration marks
+     */
     void detector_line_detection(detector_t detector);
 
+    /**
+     * @brief Handles the edge detection state
+     * @param detector The detector instance
+     * Processes the state machine for finding material edges
+     */
     void detector_edge_detection(detector_t detector);
 
+    /**
+     * @brief Handles error conditions
+     * @param detector The detector instance
+     * Processes failure states and error recovery
+     */
     void detector_failure_state(detector_t detector);
 
     /**
@@ -183,7 +203,19 @@ extern "C" {
     bool find_minimum_at_range(uint16_t data_array[], uint16_t array_length, uint16_t *index_of_minimum,
                 int16_t *point_a, int16_t *point_b, bool *error, int8_t *error_code);
 
+    /**
+     * @brief Checks if paper/material is present under the sensor
+     * @param detector The detector instance
+     * @return true if paper is detected, false otherwise
+     */
     bool get_paper_presence(detector_t detector);
+
+    /**
+     * @brief Checks if paper/material is absent under the sensor
+     * @param detector The detector instance
+     * @return true if no paper is detected, false otherwise
+     */
+    bool get_paper_absence(detector_t detector);
     
 #ifdef  __cplusplus
 }
