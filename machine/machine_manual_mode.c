@@ -12,7 +12,7 @@
 
 // Define and initialize the global variable
 manual_substate_t manual_substate = MANUAL_IDLE;
-homeing_substate_t homeing_substate = HOMEING_IDLE;
+homing_substate_t homing_substate = HOMING_IDLE;
 
 void activate_manual_state() {
     manual_substate = MANUAL_READY;
@@ -21,8 +21,8 @@ void activate_manual_state() {
 }
 
 void activate_homing_state() {
-    manual_substate = HOMEING_IDLE;
-    machine.state = HOMEING;
+    manual_substate = HOMING_IDLE;
+    machine.state = HOMING;
 }
 
 void handle_manual_state() {
@@ -60,9 +60,9 @@ void handle_manual_state() {
     }
 }
 
-void handle_homeing_state() {
+void handle_homing_state() {
     // Update display
-    set_text_20(display.state_text, "Homeing");
+    set_text_20(display.state_text, "HOMING");
 
     set_text_10(display.F1_text, "Stop");
     if (machine.F1->state_raised) {
@@ -70,23 +70,23 @@ void handle_homeing_state() {
     }
 
     // Handle state transitions
-    switch(homeing_substate) {
-        case HOMEING_IDLE:
+    switch(homing_substate) {
+        case HOMING_IDLE:
             set_text_10(display.F2_text, "Start");
             if (machine.F2->state_raised) {
-                homeing_substate = HOMEING_READY;
+                homing_substate = HOMING_READY;
             }
             break;
 
-        case HOMEING_READY:
+        case HOMING_READY:
             handle_homing_sequence();
     
             if (machine.homed) {
-                homeing_substate = HOMEING_FINISHED;
+                homing_substate = HOMING_FINISHED;
             }
             break;
 
-        case HOMEING_FINISHED:
+        case HOMING_FINISHED:
             activate_manual_state();
             break;
     }

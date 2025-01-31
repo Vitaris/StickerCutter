@@ -13,10 +13,10 @@ typedef enum {
 } manual_substate_t;
 
 typedef enum {
-    HOMEING_IDLE,      
-    HOMEING_READY,     
-    HOMEING_FINISHED
-} homeing_substate_t;
+    HOMING_IDLE,      
+    HOMING_READY,     
+    HOMING_FINISHED
+} homing_substate_t;
 
 void activate_manual_state();
 
@@ -28,7 +28,7 @@ void activate_homing_state();
  */
 void handle_manual_state();
 
-void handle_homeing_state();
+void handle_homing_state();
 
 /**
  * @brief Handles the homing sequence

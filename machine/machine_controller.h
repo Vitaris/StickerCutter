@@ -37,7 +37,7 @@ enum cutter_state{
 
 typedef enum {
 	MANUAL,
-	HOMEING,
+	HOMING,
 	AUTOMAT, 
 	FAILURE
 } machine_state_t;

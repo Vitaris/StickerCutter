@@ -69,7 +69,7 @@ void machine_compute(void) {
     // Handle main state machine
     switch(machine.state) {
         case MANUAL:    handle_manual_state(); break;
-        case HOMEING:   handle_homeing_state(); break;
+        case HOMING:   handle_homing_state(); break;
         case AUTOMAT:   handle_automatic_state(); break;
         case FAILURE:   handle_failure_state(); break;
     }
