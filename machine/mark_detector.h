@@ -204,18 +204,18 @@ extern "C" {
                 int16_t *point_a, int16_t *point_b, bool *error, int8_t *error_code);
 
     /**
-     * @brief Checks if paper/material is present under the sensor
+     * @brief Checks if void is present under the sensor
      * @param detector The detector instance
-     * @return true if paper is detected, false otherwise
+     * @return true if void is detected, false otherwise
      */
-    bool get_paper_presence(detector_t detector);
+    bool get_void_presence(detector_t detector);
 
     /**
-     * @brief Checks if paper/material is absent under the sensor
+     * @brief Checks if void is absent under the sensor
      * @param detector The detector instance
-     * @return true if no paper is detected, false otherwise
+     * @return true if no void is detected, false otherwise
      */
-    bool get_paper_absence(detector_t detector);
+    bool get_void_absence(detector_t detector);
     
 #ifdef  __cplusplus
 }

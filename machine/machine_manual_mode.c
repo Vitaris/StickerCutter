@@ -99,7 +99,7 @@ void handle_homing_sequence(void) {
             break;
 
         case EDGE_ACTIVATED:
-            if (!get_paper_presence(machine.detector)) {
+            if (get_void_presence(machine.detector)) {
                 machine.detector.edge_detection = EDGE_ERROR;
                 
 
@@ -114,7 +114,7 @@ void handle_homing_sequence(void) {
 
         case EDGE_SCANNING:
             set_text_10(display.F2_text, "Hlada sa->");
-            if (!get_paper_presence(machine.detector)) {
+            if (get_void_presence(machine.detector)) {
                 machine.detector.edge_detection = EDGE_FOUND;
             }
 

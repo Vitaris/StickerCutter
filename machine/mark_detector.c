@@ -164,12 +164,12 @@ void detector_edge_detection(detector_t detector) {
 
 void detector_failure_state(detector_t detector) {}
 
-bool get_paper_presence(detector_t detector) {
-    return detector.current_reflectivity > VOID_REFLECTIVITY_THRESHOLD;
+bool get_void_presence(detector_t detector) {
+    return detector.current_reflectivity < VOID_REFLECTIVITY_THRESHOLD;
 }
 
-bool get_paper_absence(detector_t detector) {
-    return detector.current_reflectivity < VOID_REFLECTIVITY_THRESHOLD;
+bool get_void_absence(detector_t detector) {
+    return detector.current_reflectivity > VOID_REFLECTIVITY_THRESHOLD;
 }
 
 uint16_t calculate_average(uint16_t data_array[], uint16_t array_length, uint16_t initial_average) {
