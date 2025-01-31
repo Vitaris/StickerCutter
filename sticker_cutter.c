@@ -31,7 +31,7 @@ void core1_entry() {
         { 
             string2LCD(display.lcd, 0, 0, display.state_text);
             string2LCD(display.lcd, 0, 1, machine.error_message);
-            int2LCD(display.lcd, 10, 1, 10, machine.detector.current_reflectivity); 
+            int2LCD(display.lcd, 10, 1, 10, detector.current_reflectivity); 
 
             float2LCD(display.lcd, 0, 2, 8, machine.servo_0->servo_position);
             string2LCD(display.lcd, 8, 2, "mm");

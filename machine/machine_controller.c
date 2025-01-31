@@ -46,7 +46,7 @@ void machine_init(void) {
     machine.cutter_state = CUTTER_IDLE;
 
     // Mark probe
-    machine.detector = create_detector(0, &machine.servo_1->servo_position);
+    init_detector(0, &machine.servo_1->servo_position);
 
     // Machine states
     machine.paper_edge_position = 0.0;
@@ -64,7 +64,7 @@ void machine_compute(void) {
     button_compute(machine.Left);
     button_compute(machine.In);
     button_compute(machine.Out);
-    detector_compute(machine.detector);
+    detector_compute();
 
     // Handle main state machine
     switch(machine.state) {
@@ -94,12 +94,12 @@ void handle_automatic_state(void) {
     }
 
     // Handle mark detection states
-    switch(machine.detector.state) {
+    switch(detector.state) {
         case DETECTOR_IDLE:
             set_text_10(display.F2_text, "Hladat zn.");
             if (machine.F2->state_raised && machine.servo_1->positioning == IDLE) {
                 servo_goto_delayed(machine.servo_1, machine.servo_1->enc_position + 1000.0, 15.0, 500);
-                machine.detector.state = LINE_ACTIVATED;
+                detector.state = LINE_ACTIVATED;
             }
             break;
 
@@ -109,13 +109,13 @@ void handle_automatic_state(void) {
 
         case LINE_FOUND:
             set_text_10(display.F2_text, "Zn Najdeny");
-            machine.servo_1->next_stop = (machine.detector.stops[0] + 14.0) / machine.servo_1->scale;
-            machine.detector.state = LINE_WAITING;
+            machine.servo_1->next_stop = (detector.stops[0] + 14.0) / machine.servo_1->scale;
+            detector.state = LINE_WAITING;
             break;
 
         case LINE_WAITING:
             if (machine.F2->state_raised) {
-                machine.detector.state = IDLE;
+                detector.state = IDLE;
             }
             break;
     }
@@ -185,7 +185,7 @@ void handle_cutter_state(void) {
 
         case AT_HOME:
             // Check if knife is above the mark
-            if (get_next_stop(machine.detector, machine.servo_1->enc_position) != machine.servo_1->enc_position) {
+            if (get_next_stop(detector, machine.servo_1->enc_position) != machine.servo_1->enc_position) {
                 raise_error("Znacka nenajdena");
             }
             else {

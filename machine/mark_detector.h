@@ -101,6 +101,8 @@ typedef struct {
     float *feeder_position;              // Current feeder position pointer
 } detector_t;
 
+extern detector_t detector;
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -112,14 +114,14 @@ extern "C" {
      * @param feeder_position Pointer to the current feeder position
      * @return Initialized detector instance
      */
-    detector_t create_detector(uint8_t sensor_pin, float *feeder_position);
+    void init_detector(uint8_t sensor_pin, float *feeder_position);
 
     /**
      * @brief Main processing function for the detector
      * Handles state machine logic, sensor reading, and detection algorithms
      * @param detector The detector instance to process
      */
-    void detector_compute(detector_t detector);
+    void detector_compute();
 
     /**
      * @brief Handles the idle state of the detector

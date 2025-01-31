@@ -7,10 +7,9 @@
 
 #include "mark_detector.h"
 
-detector_t create_detector(uint8_t sensor_pin, float *feeder_position) {
-    // Create detector structure directly
-    detector_t detector;
+detector_t detector;
 
+void init_detector(uint8_t sensor_pin, float *feeder_position) {
     // Set gpio pin as ADC
     // Available pins:    26, 27, 28, 29 (29 is cpu temperature)
     // Inputs:           0,  1,  2,  3
@@ -40,11 +39,9 @@ detector_t create_detector(uint8_t sensor_pin, float *feeder_position) {
     detector.calibration_samples = 0;
     detector.calibration_min = 0;
     detector.calibration_max = 0;
-    
-    return detector;
 }
 
-void detector_compute(detector_t detector)
+void detector_compute()
 {
     // Get new value of reflectivity
     detector.current_reflectivity = adc_read();

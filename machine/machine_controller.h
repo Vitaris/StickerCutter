@@ -72,9 +72,6 @@ typedef struct {
 	float paper_edge_position;
 	float mark_position;
 
-	// Mark probe
-	detector_t detector;
-
 	enum cutter_state cutter_state;
 } machine_t; 
 

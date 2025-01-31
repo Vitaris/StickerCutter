@@ -41,7 +41,7 @@ void handle_manual_state() {
             break;
 
         case MANUAL_READY:
-            if (get_void_absence(machine.detector)) {
+            if (get_void_absence(detector)) {
                 set_text_10(display.F2_text, "    Home");
                 if (machine.F1->state_raised) {
                     machine.enable = false;
@@ -90,7 +90,7 @@ void handle_homing_state() {
         
         case HOMING_SCANNING:
             set_text_10(display.F2_text, "Hlada sa->");
-            if (get_void_presence(machine.detector)) {
+            if (get_void_presence(detector)) {
                 homing_substate = HOMING_FOUND;
             }
             break;
