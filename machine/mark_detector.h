@@ -183,6 +183,8 @@ extern "C" {
     bool find_minimum_at_range(uint16_t data_array[], uint16_t array_length, uint16_t *index_of_minimum,
                 int16_t *point_a, int16_t *point_b, bool *error, int8_t *error_code);
 
+    bool get_paper_presence(detector_t detector);
+    
 #ifdef  __cplusplus
 }
 #endif

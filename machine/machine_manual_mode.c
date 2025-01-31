@@ -12,17 +12,28 @@
 
 // Define and initialize the global variable
 manual_substate_t manual_substate = MANUAL_IDLE;
+homeing_substate_t homeing_substate = HOMEING_IDLE;
+
+void activate_manual_state() {
+    manual_substate = MANUAL_READY;
+    machine.state = MANUAL;
+    machine.enable = true;
+}
+
+void activate_homing_state() {
+    manual_substate = HOMEING_IDLE;
+    machine.state = HOMEING;
+}
 
 void handle_manual_state() {
     // Update display
     set_text_20(display.state_text, machine.homed ? "Manual" : "Manual - NO Home");
+    set_text_10(display.F1_text, machine.enable ? "Mot->OFF" : "Mot->ON");
 
     // Handle state transitions
     switch(manual_substate) {
         case MANUAL_IDLE:
-            set_text_10(display.F1_text, "Mot->ON");
-            set_text_10(display.F2_text, "Home");
-            
+            set_text_10(display.F2_text, "");
             if (machine.F1->state_raised) {
                 machine.enable = true;
                 manual_substate = MANUAL_READY;
@@ -30,84 +41,83 @@ void handle_manual_state() {
             break;
 
         case MANUAL_READY:
-            set_text_10(display.F1_text, "Mot->OFF");
+            set_text_10(display.F2_text, "    Home");
             
             if (machine.F1->state_raised) {
                 machine.enable = false;
                 manual_substate = MANUAL_IDLE;
-                reset_params();
                 break;
             }
 
-            // Handle paper edge and mark detection
-            if (machine.paper_edge_position == 0.0) {
-                set_text_10(display.F2_text, "Paper");
-                if (machine.F2->state_raised) {
-                    machine.paper_edge_position = machine.servo_0->servo_position;
-                }
-            }
-            else if (machine.mark_position == 0.0) {
-                set_text_10(display.F2_text, "Mark");
-                if (machine.F2->state_raised) {
-                    machine.mark_position = machine.servo_0->servo_position;
-                }
-            }
-            else {
-                set_text_10(display.F2_text, "Start");
-                if (machine.F2->state_raised) {
-                    stop_positioning(machine.servo_0);
-                    stop_positioning(machine.servo_1);
-                    knife_up();
-                    machine.state = AUTOMAT;
-                }
+            if (machine.F2->state_raised) {
+                activate_homing_state();
             }
 
             servo_manual_handling(machine.servo_0, -1500, 20, machine.homed);
             servo_manual_handling(machine.servo_1, 0, 0, false);
 
             break;
+    }
+}
 
-        case MANUAL_HOMING:
-            set_text_10(display.F1_text, "Mot->OFF");
-            handle_homing_sequence();
-            
-            if (machine.F1->state_raised) {
-                machine.enable = false;
-                manual_substate = MANUAL_IDLE;
-                reset_params();
-            }
-            else if (machine.homed) {
-                manual_substate = MANUAL_READY;
-            }
-            break;
+void handle_homeing_state() {
+    // Update display
+    set_text_20(display.state_text, "Homeing");
+
+    set_text_10(display.F1_text, "Stop");
+    if (machine.F1->state_raised) {
+        activate_manual_state();
     }
 
-    // machine.enable/disable motors based on current state
-    if (!machine.enable) {
-        set_text_20(display.state_text, "Manual, Volne motory");
-        reset_params();
-        manual_substate = MANUAL_IDLE;
+    // Handle state transitions
+    switch(homeing_substate) {
+        case HOMEING_IDLE:
+            set_text_10(display.F2_text, "Start");
+            if (machine.F2->state_raised) {
+                homeing_substate = HOMEING_READY;
+            }
+            break;
+
+        case HOMEING_READY:
+            handle_homing_sequence();
+    
+            if (machine.homed) {
+                homeing_substate = HOMEING_FINISHED;
+            }
+            break;
+
+        case HOMEING_FINISHED:
+            activate_manual_state();
+            break;
     }
 }
 
 void handle_homing_sequence(void) {
     switch(machine.detector.edge_detection) {
         case EDGE_IDLE:
-            set_text_10(display.F2_text, "     Home");
-            if (machine.F2->state_raised) {
-                machine.detector.edge_detection = EDGE_ACTIVATED;
-            }
+            machine.detector.edge_detection = EDGE_ACTIVATED;
             break;
 
         case EDGE_ACTIVATED:
+            if (!get_paper_presence(machine.detector)) {
+                machine.detector.edge_detection = EDGE_ERROR;
+                
+
+            }
+
             if (machine.servo_0->positioning == IDLE) {
                 servo_goto_delayed(machine.servo_0, 2000.0, 100.0, 500);
                 machine.detector.edge_detection = EDGE_SCANNING;
             }
+
             break;
 
         case EDGE_SCANNING:
-            set_text_10(display.F2_text, "Hlada sa->"); 
+            set_text_10(display.F2_text, "Hlada sa->");
+            if (!get_paper_presence(machine.detector)) {
+                machine.detector.edge_detection = EDGE_FOUND;
+            }
+
             break;
 
         case EDGE_FOUND:
@@ -127,6 +137,7 @@ void handle_homing_sequence(void) {
             else if (machine.servo_0->positioning == POSITION_REACHED) {
                 machine.homed = true;
                 machine.detector.edge_detection = EDGE_IDLE;
+                activate_manual_state();
             }
             break;
 

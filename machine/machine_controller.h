@@ -36,7 +36,8 @@ enum cutter_state{
 	STOP_CUTTING};
 
 typedef enum {
-	MANUAL, 
+	MANUAL,
+	HOMEING,
 	AUTOMAT, 
 	FAILURE
 } machine_state_t;

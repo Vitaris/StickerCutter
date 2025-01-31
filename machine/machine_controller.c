@@ -28,7 +28,7 @@ void machine_init(void) {
 
     // Init servos
     machine.machine_error = false;
-    machine.enable = true;
+    machine.enable = false;
     machine.homed = false;
     set_text_20(machine.error_message, "OK");
 
@@ -51,6 +51,7 @@ void machine_init(void) {
     // Machine states
     machine.paper_edge_position = 0.0;
     machine.mark_position = 0.0;
+    activate_manual_state();
 }
 
 void machine_compute(void) {
@@ -68,6 +69,7 @@ void machine_compute(void) {
     // Handle main state machine
     switch(machine.state) {
         case MANUAL:    handle_manual_state(); break;
+        case HOMEING:   handle_homeing_state(); break;
         case AUTOMAT:   handle_automatic_state(); break;
         case FAILURE:   handle_failure_state(); break;
     }
@@ -78,6 +80,8 @@ void machine_compute(void) {
     }
     handle_cutter_state();
 }
+
+
 
 void handle_automatic_state(void) {
     set_text_20(display.state_text, "Automat");
@@ -115,11 +119,35 @@ void handle_automatic_state(void) {
             }
             break;
     }
+
+    
+            // Handle paper edge and mark detection
+            // if (machine.paper_edge_position == 0.0) {
+            //     set_text_10(display.F2_text, "Paper");
+            //     if (machine.F2->state_raised) {
+            //         machine.paper_edge_position = machine.servo_0->servo_position;
+            //     }
+            // }
+            // else if (machine.mark_position == 0.0) {
+            //     set_text_10(display.F2_text, "Mark");
+            //     if (machine.F2->state_raised) {
+            //         machine.mark_position = machine.servo_0->servo_position;
+            //     }
+            // }
+            // else {
+            //     set_text_10(display.F2_text, "Start");
+            //     if (machine.F2->state_raised) {
+            //         stop_positioning(machine.servo_0);
+            //         stop_positioning(machine.servo_1);
+            //         knife_up();
+            //         machine.state = AUTOMAT;
+            //     }
+            // }
+
 }
 
 void handle_failure_state(void) {
     set_text_20(display.state_text, "Porucha!");
-    reset_params();
     set_text_10(display.F1_text, "Potvrdit");
     set_text_10(display.F2_text, "");
 
@@ -246,12 +274,4 @@ void knife_down(void) {
 void raise_error(char text[]) {
     set_text_20(machine.error_message, text);
     machine.machine_error = true;
-}
-
-void reset_params(void) {
-    machine.enable = false;
-    machine.homed = false;
-    machine.paper_edge_position = 0.0;
-    machine.mark_position = 0.0;
-    machine.detector.edge_detection = EDGE_IDLE;
 }
