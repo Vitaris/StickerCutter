@@ -41,12 +41,15 @@ void handle_manual_state() {
             break;
 
         case MANUAL_READY:
-            set_text_10(display.F2_text, "    Home");
-            
-            if (machine.F1->state_raised) {
-                machine.enable = false;
-                manual_substate = MANUAL_IDLE;
-                break;
+            if (get_void_absence(machine.detector)) {
+                set_text_10(display.F2_text, "    Home");
+                if (machine.F1->state_raised) {
+                    machine.enable = false;
+                    manual_substate = MANUAL_IDLE;
+                    break;
+                }
+            } else {
+                set_text_10(display.F2_text, "");
             }
 
             if (machine.F2->state_raised) {
@@ -74,75 +77,46 @@ void handle_homing_state() {
         case HOMING_IDLE:
             set_text_10(display.F2_text, "Start");
             if (machine.F2->state_raised) {
-                homing_substate = HOMING_READY;
+                homing_substate = HOMING_START;
             }
             break;
 
-        case HOMING_READY:
-            handle_homing_sequence();
-    
-            if (machine.homed) {
-                homing_substate = HOMING_FINISHED;
-            }
-            break;
-
-        case HOMING_FINISHED:
-            activate_manual_state();
-            break;
-    }
-}
-
-void handle_homing_sequence(void) {
-    switch(machine.detector.edge_detection) {
-        case EDGE_IDLE:
-            machine.detector.edge_detection = EDGE_ACTIVATED;
-            break;
-
-        case EDGE_ACTIVATED:
-            if (get_void_presence(machine.detector)) {
-                machine.detector.edge_detection = EDGE_ERROR;
-                
-
-            }
-
+        case HOMING_START:
             if (machine.servo_0->positioning == IDLE) {
                 servo_goto_delayed(machine.servo_0, 2000.0, 100.0, 500);
-                machine.detector.edge_detection = EDGE_SCANNING;
+                homing_substate = HOMING_SCANNING;
             }
-
             break;
-
-        case EDGE_SCANNING:
+        
+        case HOMING_SCANNING:
             set_text_10(display.F2_text, "Hlada sa->");
             if (get_void_presence(machine.detector)) {
-                machine.detector.edge_detection = EDGE_FOUND;
+                homing_substate = HOMING_FOUND;
             }
-
             break;
 
-        case EDGE_FOUND:
+        case HOMING_FOUND:
             if (machine.servo_0->positioning == ACCELERATING) {
                 stop_positioning(machine.servo_0);
             }
             else if (machine.servo_0->positioning == POSITION_REACHED) {
-                machine.detector.edge_detection = EDGE_RETURN_TO_ZERO;
+                homing_substate = HOMING_RETURN_TO_ZERO;
             }
             break;
 
-        case EDGE_RETURN_TO_ZERO:
+        case HOMING_RETURN_TO_ZERO:
             if (machine.servo_0->positioning == IDLE) {
                 machine.servo_0->set_zero = true;
                 servo_goto_delayed(machine.servo_0, -50.0, 100.0, 500);
             }
             else if (machine.servo_0->positioning == POSITION_REACHED) {
-                machine.homed = true;
-                machine.detector.edge_detection = EDGE_IDLE;
-                activate_manual_state();
+                homing_substate = HOMING_FINISHED;
             }
             break;
 
-        case EDGE_ERROR:
-            set_text_10(display.F2_text, "Error!");
+        case HOMING_FINISHED:
+            machine.homed = true;
+            activate_manual_state();
             break;
     }
 }

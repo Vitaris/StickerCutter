@@ -14,7 +14,10 @@ typedef enum {
 
 typedef enum {
     HOMING_IDLE,      
-    HOMING_READY,     
+    HOMING_START,
+    HOMING_SCANNING,     
+    HOMING_FOUND,     
+    HOMING_RETURN_TO_ZERO,     
     HOMING_FINISHED
 } homing_substate_t;
 
