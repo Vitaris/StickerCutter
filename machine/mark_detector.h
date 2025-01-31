@@ -40,22 +40,29 @@ typedef enum  {
     EDGE_ERROR            // Error in edge detection
 } edge_detection_t;
 
+/**
+ * @brief Main detector state machine states
+ * Controls the high-level detection process and mode switching
+ */
 typedef enum {
-    DETECTOR_IDLE,
-    DETECTOR_LINE_DETECTION,
-    DETECTOR_EDGE_DETECTION,
-    DETECTOR_ERROR
+    DETECTOR_IDLE,           // Detector inactive, awaiting commands
+    DETECTOR_LINE_DETECTION, // Active registration mark detection mode
+    DETECTOR_EDGE_DETECTION, // Active edge detection mode
+    DETECTOR_ERROR          // Error handling state
 } detector_state_t;
 
 /**
  * @brief Error codes for detector operation
+ * Defines specific error conditions that can occur during detection
  */
 enum detector_error{
-    ACTIVATION_ERROR      // Error during detector activation
+    ACTIVATION_ERROR      // Error during detector initialization/activation
 };
 
 /**
- * @brief Main detector structure containing all operational data
+ * @brief Main detector structure containing all operational data and state information
+ * Manages the complete state of the mark detection system including hardware config,
+ * sensor readings, calibration data, and detection results
  */
 typedef struct {
     // State management
@@ -108,11 +115,9 @@ extern "C" {
 #endif
 
     /**
-     * @brief Creates a detector instance and initializes its parameters
-     * @param detector The detector to create
-     * @param sensor_pin The ADC pin number (26-28) for the reflectivity sensor
-     * @param feeder_position Pointer to the current feeder position
-     * @return Initialized detector instance
+     * @brief Creates and initializes a detector instance
+     * @param sensor_pin ADC pin number (26-28) for the reflectivity sensor
+     * @param feeder_position Pointer to the current feeder position value
      */
     void init_detector(uint8_t sensor_pin, float *feeder_position);
 
@@ -131,16 +136,18 @@ extern "C" {
     void detector_idle_state(detector_t detector);
 
     /**
-     * @brief Handles the line detection state
+     * @brief Handles the line detection state machine
      * @param detector The detector instance
-     * Processes the state machine for finding registration marks
+     * Processes registration mark detection including sampling, validation,
+     * and position recording. Manages transitions between detection substates.
      */
     void detector_line_detection(detector_t detector);
 
     /**
-     * @brief Handles the edge detection state
+     * @brief Handles the edge detection state machine
      * @param detector The detector instance
-     * Processes the state machine for finding material edges
+     * Manages edge detection process including void detection, position recording,
+     * and validation of detected edges.
      */
     void detector_edge_detection(detector_t detector);
 
@@ -152,11 +159,11 @@ extern "C" {
     void detector_failure_state(detector_t detector);
 
     /**
-     * @brief Calculates the average value from an array of sensor readings
-     * @param data_array Array of sensor readings
-     * @param array_length Length of the data array
-     * @param initial_average Initial average value for threshold comparison
-     * @return Calculated average value
+     * @brief Calculates the average value from sensor readings
+     * @param data_array Array of sensor readings to average
+     * @param array_length Number of readings to consider
+     * @param initial_average Reference average for filtering outliers (0 for no filtering)
+     * @return Calculated average value of valid readings
      */
     uint16_t calculate_average(uint16_t data_array[], uint16_t array_length, uint16_t initial_average);
 
