@@ -28,6 +28,16 @@ typedef enum {
 } homing_substate_t;
 
 /**
+ * @brief Defines the substates for parameter setting sequence
+ */
+typedef enum {
+    PARAMS_IDLE,          // Initial state, waiting for parameter setting to begin
+    PARAMS_PAPER_BEGIN,   // Setting the starting position of the paper
+    PARAMS_PAPER_MARK,    // Setting the position of the registration mark
+    PARAMS_PAPER_END,     // Setting the end position of the paper
+} params_substate_t;
+
+/**
  * @brief Activates manual operation mode
  * @details Sets the machine state to MANUAL, enables motors and initializes manual substate
  */
@@ -38,6 +48,12 @@ void activate_manual_state();
  * @details Sets the machine state to HOMING and initializes homing substate
  */
 void activate_homing_state();
+
+/**
+ * @brief Activates parameter setting mode
+ * @details Sets the machine state to PARAMS and initializes the parameter setting substate
+ */
+void activate_params_state();
 
 /**
  * @brief Handles manual operation state of the machine
@@ -56,3 +72,13 @@ void handle_manual_state();
  * 5. Returns to manual mode when complete
  */
 void handle_homing_state();
+
+/**
+ * @brief Handles the parameter setting sequence
+ * @details Guides the user through setting up paper parameters:
+ * 1. Paper beginning position
+ * 2. Registration mark position
+ * 3. Paper end position
+ * Updates display and handles user inputs during the process
+ */
+void handle_params_state();

@@ -15,12 +15,7 @@
 #define SCALE_CUTTER 20.0
 #define SCALE_FEEDER 6.4
 
-typedef enum {
-    AUTO_IDLE,
-    AUTO_PAPER_DETECT,
-    AUTO_MARK_DETECT,
-    AUTO_CUTTING
-} auto_substate_t;
+
 
 enum cutter_state{
 	CUTTER_IDLE,
@@ -38,6 +33,7 @@ enum cutter_state{
 typedef enum {
 	MANUAL,
 	HOMING,
+	PARAMS,
 	AUTOMAT, 
 	FAILURE
 } machine_state_t;
@@ -47,7 +43,6 @@ enum machine_condition{
 	ERROR};
 
 typedef struct {
-
 	// Servo motors
 	servo_t servo_0;
 	servo_t servo_1;
@@ -63,14 +58,18 @@ typedef struct {
 	// Machine status
 	machine_state_t state;
 
-	auto_substate_t auto_substate;
+	// auto_substate_t auto_substate;
 	bool enable;
 	bool machine_error;
 	bool homed;
 	enum machine_condition machine_condition;
 	char error_message[21];
-	float paper_edge_position;
-	float mark_position;
+
+	// Cutter
+	bool params_ready;
+	float paper_begin_position;
+	float paper_mark_position;
+	float paper_end_position;
 
 	enum cutter_state cutter_state;
 } machine_t; 
@@ -104,11 +103,6 @@ extern "C" {
      * @brief Handles failure state
      */
 	void handle_failure_state(void);
-
-	/**
-     * @brief Handles the homing sequence
-     */
-	void handle_homing_sequence(void);
 
 	/**
      * @brief Handles the cutter state transitions
