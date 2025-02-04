@@ -28,8 +28,8 @@ void activate_homing_state() {
 }
 
 void activate_params_state() {
-    machine.state = PARAMS;
     params_substate = PARAMS_IDLE;
+    machine.state = PARAMS;
 }
 
 void handle_manual_state() {
@@ -61,13 +61,13 @@ void handle_manual_state() {
                 }
             }
             else if (!machine.params_ready) {
-                set_text_10(display.F2_text, "Parametre");
+                set_text_10(display.F2_text, " Parametre");
                 if (machine.F2->state_raised) {
                     activate_params_state();
                 }
             }
             else if (machine.homed && machine.params_ready) {
-                set_text_10(display.F2_text, "Automat");
+                set_text_10(display.F2_text, "   Automat");
                 if (machine.F2->state_raised) {
                     activate_automatic_state();
                 }
@@ -183,8 +183,10 @@ void handle_params_state() {
         case PARAMS_PAPER_END:
             set_text_20(display.state_text, "Nastav koniec pap.");
             set_text_10(display.F2_text, "Koniec");
+
             if (machine.F2->state_raised) {
                 machine.paper_end_position = machine.servo_0->servo_position;
+                machine.params_ready = true;
                 activate_manual_state();
             }
             break;
