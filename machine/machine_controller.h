@@ -58,10 +58,9 @@ typedef struct {
 	// Machine status
 	machine_state_t state;
 
-	// auto_substate_t auto_substate;
 	bool enable;
-	bool machine_error;
 	bool homed;
+	bool machine_error;
 	enum machine_condition machine_condition;
 	char error_message[21];
 

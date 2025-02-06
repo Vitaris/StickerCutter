@@ -82,6 +82,13 @@ void handle_automatic_state(void) {
 
         case AUTOMATIC_FOUND:
             set_text_10(display.F2_text, "Zn Najdeny");
+            if (machine.servo_1->positioning == IDLE) {
+                set_text_10(display.F2_text, "Zn Najdeny");
+            }
+
+            if (machine.F2->state_raised) {
+                automatic_substate = AUTOMATIC_MARK_POS_REACHED;
+            }
             // automatic_substate = AUTOMATIC_RETURN_TO_ZERO;
             break;
 

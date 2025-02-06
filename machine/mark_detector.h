@@ -46,6 +46,7 @@ typedef struct {
     uint16_t average;                    // Moving average of readings
     uint16_t initial_average;            // Initial baseline average for calibration
     uint16_t samples;                    // Number of samples collected during initialization
+    int16_t start_of_spike, end_of_spike; // Range of spike in sensor readings
     bool sampling_done;                  // Flag indicating if initial sampling is complete
 
     // Position tracking
@@ -53,6 +54,9 @@ typedef struct {
     float mark_position;                 // Position where mark was detected
     float edge_position;                 // Position where edge was detected
     float *feeder_position;              // Pointer to current feeder position
+
+    bool *error;                         // Pointer to global error bool
+	char (*error_message)[21];           // Error message
 } detector_t;
 
 extern detector_t detector;
@@ -66,7 +70,7 @@ extern "C" {
      * @param sensor_pin ADC pin number (26-28) for the reflectivity sensor
      * @param feeder_position Pointer to the current feeder position value
      */
-    void init_detector(uint8_t sensor_pin, float *feeder_position);
+    void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_error, char (*error_message)[21]);
 
     /**
      * @brief Main processing function for the detector
@@ -117,40 +121,24 @@ extern "C" {
 
     /**
      * @brief Calculates the average value from sensor readings
-     * @param data_array Array of sensor readings to average
-     * @param array_length Number of readings to consider
      * @param initial_average Reference average for filtering outliers (0 for no filtering)
      * @return Calculated average value of valid readings
      */
-    uint16_t calculate_average(uint16_t data_array[], uint16_t array_length, uint16_t initial_average);
+    uint16_t calculate_average(uint16_t initial_average);
 
     /**
      * @brief Finds the range where sensor values drop below average
-     * @param data_array Array of sensor readings
-     * @param array_length Length of the data array
      * @param base_value Base value for comparison
-     * @param point_a Output parameter for start of range
-     * @param point_b Output parameter for end of range
-     * @param error Output parameter indicating error state
-     * @param error_code Output parameter with specific error code
      * @return true if valid range found, false otherwise
      */
-    bool find_range(uint16_t data_array[], uint16_t array_length, uint16_t base_value,
-                    int16_t *point_a, int16_t *point_b, bool *error, int8_t *error_code);
+    bool find_range(uint16_t base_value);
 
     /**
      * @brief Finds the minimum value within a specified range
-     * @param data_array Array of sensor readings
-     * @param array_length Length of the data array
      * @param index_of_minimum Output parameter for index of minimum value
-     * @param point_a Start of range to search
-     * @param point_b End of range to search
-     * @param error Output parameter indicating error state
-     * @param error_code Output parameter with specific error code
      * @return true if minimum found, false if error occurred
      */
-    bool find_minimum_at_range(uint16_t data_array[], uint16_t array_length, uint16_t *index_of_minimum,
-                int16_t *point_a, int16_t *point_b, bool *error, int8_t *error_code);
+    bool find_minimum_at_range(uint16_t *index_of_minimum);
 
     /**
      * @brief Checks if void is present under the sensor

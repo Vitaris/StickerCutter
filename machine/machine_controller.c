@@ -47,7 +47,7 @@ void machine_init(void) {
     machine.params_ready = false;
 
     // Mark probe
-    init_detector(0, &machine.servo_1->servo_position);
+    init_detector(0, &machine.servo_1->servo_position, &machine.machine_error, &machine.error_message);
 
     // Machine states
     activate_manual_state();
