@@ -163,6 +163,7 @@ void next_positon_compute(servo_t servo) {
 	switch(servo->positioning) {
         case IDLE:
 			servo->movement_done = false;
+			servo->nominal_speed_reached = false;
 			break;
 		
 		case REQUESTED:
@@ -191,6 +192,7 @@ void next_positon_compute(servo_t servo) {
 
 			// check if nominal speed has been reached
 			if (fabs(servo->computed_speed) > fabs(servo->current_speed)) {
+				servo->nominal_speed_reached = true;
 				servo->computed_speed = servo->current_speed;
 			}
 
@@ -212,6 +214,7 @@ void next_positon_compute(servo_t servo) {
 		case BRAKING:
 			servo->computed_speed -= servo->current_acc * CYCLE_TIME;
 			servo->set_pos += servo->computed_speed * CYCLE_TIME;
+			servo->nominal_speed_reached = false;
 			
 			// Check if desired position has been reached
 			if (servo->positive_direction) {

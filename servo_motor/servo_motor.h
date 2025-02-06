@@ -20,6 +20,10 @@
 #define FOLLOWING_ERROR 1.0 // Maximum permisible position deviation
 #define CYCLE_TIME 0.001
 #define MANUAL_SPEED 100.0
+#define AUTOMAT_SPEED_SLOW 15.0
+#define AUTOMAT_SPEED_MID 50.0
+#define MANUAL_NORMAL 100.0
+#define MANUAL_FAST 200.0
 
 enum op_state{
 	SERVO_OK,
@@ -92,6 +96,7 @@ typedef struct servo_motor {
 	bool movement_done;
 	bool braking;
 	bool set_zero;
+	bool nominal_speed_reached;
 	float enc_offset;
 
 	// Default movement
