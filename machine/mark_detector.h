@@ -6,58 +6,30 @@
 #include <stdio.h>
 #include "../servo_motor/servo_motor.h"
 
+/**
+ * @brief Buffer size for sensor readings and position history
+ */
 #define MEM_SIZE 200
+
+/**
+ * @brief Size of the moving average window
+ */
 #define AVG_SIZE 10
+
+/**
+ * @brief Length of memory used for stop condition detection
+ */
 #define STOP_MEMORY_LENGHT 10
+
+/**
+ * @brief Minimum difference from average to detect mark
+ */
 #define BELLOW_AVG_MIN 100
+
+/**
+ * @brief Threshold value to detect void/gap in material
+ */
 #define VOID_REFLECTIVITY_THRESHOLD 120
-
-/**
- * @brief States for the main detector state machine
- * Controls the process of finding and tracking registration marks
- */
-typedef enum {
-    LINE_IDLE,          // Edge detection inactive
-    LINE_ACTIVATED,     // Initial state when detector is activated
-    LINE_SCANNING,      // Actively scanning for marks
-    LINE_FOUND,    // Successfully found a registration mark
-    LINE_WAITING,       // Waiting for next operation
-    LINE_APPEND_STOP,   // Adding a stop position to memory
-    LINE_MARK_NOT_FOUND,// Failed to find registration mark
-    LINE_ERROR,         // Error state
-} line_detecting_state_t;
-
-/**
- * @brief States for the edge detection state machine
- * Controls the process of finding material edges
- */
-typedef enum  {
-    EDGE_IDLE,             // Edge detection inactive
-    EDGE_ACTIVATED,        // Edge detection activated
-    EDGE_SCANNING,         // Scanning for edge
-    EDGE_FOUND,           // Edge successfully detected
-    EDGE_RETURN_TO_ZERO,  // Returning to initial position
-    EDGE_ERROR            // Error in edge detection
-} edge_detection_t;
-
-/**
- * @brief Main detector state machine states
- * Controls the high-level detection process and mode switching
- */
-typedef enum {
-    DETECTOR_IDLE,           // Detector inactive, awaiting commands
-    DETECTOR_LINE_DETECTION, // Active registration mark detection mode
-    DETECTOR_EDGE_DETECTION, // Active edge detection mode
-    DETECTOR_ERROR          // Error handling state
-} detector_state_t;
-
-/**
- * @brief Error codes for detector operation
- * Defines specific error conditions that can occur during detection
- */
-enum detector_error{
-    ACTIVATION_ERROR      // Error during detector initialization/activation
-};
 
 /**
  * @brief Main detector structure containing all operational data and state information
@@ -65,47 +37,22 @@ enum detector_error{
  * sensor readings, calibration data, and detection results
  */
 typedef struct {
-    // State management
-    detector_state_t state;              // Current state of the detector
-    line_detecting_state_t line_detecting_state;     // Current state of mark detector
-    edge_detection_t edge_detection;     // Current state of edge detection
-    enum detector_error detector_error;  // Current error status
-    bool detecting_request;              // Flag for detection request
-    bool line_found;                     // Flag indicating mark detection
-    bool edge_found;                     // Flag indicating edge detection
-    
     // Hardware configuration
     uint8_t sensor_pin;                  // GPIO ADC Pin (26, 27, 28)
     
     // Sensor readings and processing
+    uint16_t memory[MEM_SIZE];           // Raw sensor reading history
     uint16_t current_reflectivity;       // Latest sensor reading
     uint16_t average;                    // Moving average of readings
-    uint16_t initial_average;            // Initial baseline average
-    uint16_t samples;                    // Current sample count
-    uint16_t average_samples;            // Samples used for averaging
-    bool sampling_done;                  // Sampling completion flag
-    
-    // Calibration data
-    bool calibrated;                     // Calibration status
-    uint32_t calibration_sum;           // Sum for calibration calculations
-    uint16_t calibration_samples;       // Number of calibration samples
-    uint16_t calibration_min;           // Minimum calibration value
-    uint16_t calibration_max;           // Maximum calibration value
-
-    // Data storage
-    uint16_t memory[MEM_SIZE];          // Raw sensor reading history
-    uint16_t average_memory[MEM_SIZE];   // Averaged reading history
-    uint16_t occupancy;                  // Memory utilization
-    int16_t diff;                        // Current reading difference
-    int16_t diff_old;                    // Previous reading difference
-    size_t shift_size;                   // Memory shift size for uint16
-    size_t float_shift_size;             // Memory shift size for float
+    uint16_t initial_average;            // Initial baseline average for calibration
+    uint16_t samples;                    // Number of samples collected during initialization
+    bool sampling_done;                  // Flag indicating if initial sampling is complete
 
     // Position tracking
-    float positions[MEM_SIZE];           // Position history
-    float stops[STOP_MEMORY_LENGHT];     // Stop position memory
-    float edge_position;                 // Detected edge position
-    float *feeder_position;              // Current feeder position pointer
+    float positions[MEM_SIZE];           // History of feeder positions
+    float mark_position;                 // Position where mark was detected
+    float edge_position;                 // Position where edge was detected
+    float *feeder_position;              // Pointer to current feeder position
 } detector_t;
 
 extern detector_t detector;
@@ -129,32 +76,42 @@ extern "C" {
     void detector_compute();
 
     /**
+     * @brief Restarts the detector sampling process
+     * Resets sample counter and sampling completion flag to begin fresh sampling
+     */
+    void detector_restart();
+
+    /**
+     * @brief Processes current readings to detect registration marks
+     * @return true if mark is detected, false otherwise
+     */
+    bool mark_detection();
+
+    /**
      * @brief Handles the idle state of the detector
      * @param detector The detector instance
-     * Resets all detector states and values to their defaults
+     * Resets all detector states and prepares for new detection cycle
      */
     void detector_idle_state(detector_t detector);
 
     /**
-     * @brief Handles the line detection state machine
+     * @brief Processes sensor readings for mark detection
      * @param detector The detector instance
-     * Processes registration mark detection including sampling, validation,
-     * and position recording. Manages transitions between detection substates.
+     * Analyzes sensor data to identify registration marks and updates position data
      */
     void detector_line_detection(detector_t detector);
 
     /**
-     * @brief Handles the edge detection state machine
+     * @brief Processes sensor readings for edge detection
      * @param detector The detector instance
-     * Manages edge detection process including void detection, position recording,
-     * and validation of detected edges.
+     * Analyzes sensor data to identify material edges and updates position data
      */
     void detector_edge_detection(detector_t detector);
 
     /**
-     * @brief Handles error conditions
+     * @brief Handles error conditions in the detector
      * @param detector The detector instance
-     * Processes failure states and error recovery
+     * Implements error recovery procedures and state management
      */
     void detector_failure_state(detector_t detector);
 
@@ -166,23 +123,6 @@ extern "C" {
      * @return Calculated average value of valid readings
      */
     uint16_t calculate_average(uint16_t data_array[], uint16_t array_length, uint16_t initial_average);
-
-    /**
-     * @brief Simulates ADC readings for testing purposes
-     * @param data Array of simulated sensor values
-     * @param sample Current sample index
-     * @param size Size of the data array
-     * @return Simulated sensor reading
-     */
-    uint16_t adc_read_simulation(uint16_t data[], uint16_t *sample, uint8_t size);
-
-    /**
-     * @brief Determines the next stop position for the feeder
-     * @param detector The detector instance
-     * @param current_pos Current position of the feeder
-     * @return Next target position for the feeder
-     */
-    float get_next_stop(detector_t detector, float current_pos);
 
     /**
      * @brief Finds the range where sensor values drop below average
