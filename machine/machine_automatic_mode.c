@@ -5,6 +5,7 @@
 
 #include "machine_controller.h"
 #include "machine_automatic_mode.h"
+#include "machine_manual_mode.h"
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
 #include "mark_detector.h"
@@ -24,61 +25,77 @@ void handle_automatic_state(void) {
     set_text_10(display.F1_text, "Stop");
 
     if (machine.F1->state_raised) {
-        machine.state = MANUAL;
-        machine.cutter_state = STOP_CUTTING;
+        activate_manual_state();
         return;
     }
 
-    // Handle mark detection states
-    switch(detector.state) {
-        case DETECTOR_IDLE:
-            set_text_10(display.F2_text, "Hladat zn.");
-            if (machine.F2->state_raised && machine.servo_1->positioning == IDLE) {
-                servo_goto_delayed(machine.servo_1, machine.servo_1->enc_position + 1000.0, 15.0, 500);
-                detector.state = LINE_ACTIVATED;
-            }
-            break;
-
-        case LINE_SCANNING:
-            set_text_10(display.F2_text, "Hlada znak");
-            break;
-
-        case LINE_FOUND:
-            set_text_10(display.F2_text, "Zn Najdeny");
-            machine.servo_1->next_stop = (detector.stops[0] + 14.0) / machine.servo_1->scale;
-            detector.state = LINE_WAITING;
-            break;
-
-        case LINE_WAITING:
+    // Handle automatic state transitions
+    switch(automatic_substate) {
+        case AUTOMATIC_IDLE:
+            set_text_10(display.F2_text, "Start");
             if (machine.F2->state_raised) {
-                detector.state = IDLE;
+                automatic_substate = AUTOMATIC_MARK_GOTO;
             }
+            break;
+
+        case AUTOMATIC_MARK_GOTO:
+            if (machine.servo_0->positioning == IDLE) {
+                servo_goto_delayed(machine.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_MID, 500);
+                automatic_substate = AUTOMATIC_MARK_GOTO_IN_PROGRESS;
+            }
+            break;
+
+        case AUTOMATIC_MARK_GOTO_IN_PROGRESS:
+            set_text_10(display.F2_text, "K znacke");
+            if (machine.servo_0->positioning == IDLE) {
+                automatic_substate = AUTOMATIC_MARK_POS_REACHED;
+            }
+            break;
+        
+        case AUTOMATIC_MARK_POS_REACHED:
+            if (machine.servo_0->positioning == IDLE) {
+                set_text_10(display.F2_text, "Na znacke");
+                servo_goto_delayed(machine.servo_1, 1000.0, AUTOMAT_SPEED_SLOW, 500);
+                automatic_substate = AUTOMATIC_REACH_CONSTANT_SPEED;
+            }
+            break;
+
+        case AUTOMATIC_REACH_CONSTANT_SPEED:
+            if (machine.servo_1->nominal_speed_reached) {
+                detector_restart();
+                automatic_substate = AUTOMATIC_WAITING_FOR_SAMPLES;
+            }
+            break;
+
+        case AUTOMATIC_WAITING_FOR_SAMPLES:
+            if (detector.sampling_done) {
+                automatic_substate = AUTOMATIC_SCANNING;
+            }
+            break;
+
+        case AUTOMATIC_SCANNING:
+            if (mark_detection()) {
+                automatic_substate = AUTOMATIC_FOUND;
+                machine.servo_1->next_stop = (detector.mark_position + 14.0) / machine.servo_1->scale;
+            }
+            break;
+
+        case AUTOMATIC_FOUND:
+            set_text_10(display.F2_text, "Zn Najdeny");
+            // automatic_substate = AUTOMATIC_RETURN_TO_ZERO;
+            break;
+
+        case AUTOMATIC_RETURN_TO_ZERO:
+            if (machine.servo_1->positioning == IDLE) {
+                servo_goto_delayed(machine.servo_1, 0.0, 15.0, 500);
+                automatic_substate = AUTOMATIC_FINISHED;
+            }
+            break;
+
+        case AUTOMATIC_FINISHED:
+            automatic_substate = AUTOMATIC_IDLE;
             break;
     }
-
-    
-            // Handle paper edge and mark detection
-            // if (machine.paper_edge_position == 0.0) {
-            //     set_text_10(display.F2_text, "Paper");
-            //     if (machine.F2->state_raised) {
-            //         machine.paper_edge_position = machine.servo_0->servo_position;
-            //     }
-            // }
-            // else if (machine.mark_position == 0.0) {
-            //     set_text_10(display.F2_text, "Mark");
-            //     if (machine.F2->state_raised) {
-            //         machine.mark_position = machine.servo_0->servo_position;
-            //     }
-            // }
-            // else {
-            //     set_text_10(display.F2_text, "Start");
-            //     if (machine.F2->state_raised) {
-            //         stop_positioning(machine.servo_0);
-            //         stop_positioning(machine.servo_1);
-            //         knife_up();
-            //         machine.state = AUTOMAT;
-            //     }
-            // }
 
     handle_cutter_state();
 
@@ -112,12 +129,12 @@ void handle_cutter_state(void) {
 
         case AT_HOME:
             // Check if knife is above the mark
-            if (get_next_stop(detector, machine.servo_1->enc_position) != machine.servo_1->enc_position) {
-                raise_error("Znacka nenajdena");
-            }
-            else {
-                machine.cutter_state = TO_PRECUT;
-            }
+            // if (get_next_stop(detector, machine.servo_1->enc_position) != machine.servo_1->enc_position) {
+            //     raise_error("Znacka nenajdena");
+            // }
+            // else {
+            //     machine.cutter_state = TO_PRECUT;
+            // }
             break;
 
         case TO_PRECUT:
