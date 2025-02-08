@@ -24,12 +24,21 @@
 /**
  * @brief Minimum difference from average to detect mark
  */
-#define BELLOW_AVG_MIN 100
+#define BELLOW_AVG_MIN 40
 
 /**
  * @brief Threshold value to detect void/gap in material
  */
 #define VOID_REFLECTIVITY_THRESHOLD 120
+
+#define WINDOW_SIZE 10
+
+typedef struct {
+    uint16_t buffer[WINDOW_SIZE];
+    uint8_t index;
+    uint32_t sum;
+    bool buffer_full;
+} moving_average_filter_t;
 
 /**
  * @brief Main detector structure containing all operational data and state information
@@ -57,6 +66,7 @@ typedef struct {
 
     bool *error;                         // Pointer to global error bool
 	char (*error_message)[21];           // Error message
+    moving_average_filter_t reflectivity_filter;
 } detector_t;
 
 extern detector_t detector;
@@ -69,13 +79,14 @@ extern "C" {
      * @brief Creates and initializes a detector instance
      * @param sensor_pin ADC pin number (26-28) for the reflectivity sensor
      * @param feeder_position Pointer to the current feeder position value
+     * @param detector_error Pointer to error flag
+     * @param error_message Pointer to error message array
      */
     void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_error, char (*error_message)[21]);
 
     /**
      * @brief Main processing function for the detector
-     * Handles state machine logic, sensor reading, and detection algorithms
-     * @param detector The detector instance to process
+     * Handles sensor reading and data processing
      */
     void detector_compute();
 
@@ -89,35 +100,7 @@ extern "C" {
      * @brief Processes current readings to detect registration marks
      * @return true if mark is detected, false otherwise
      */
-    bool mark_detection();
-
-    /**
-     * @brief Handles the idle state of the detector
-     * @param detector The detector instance
-     * Resets all detector states and prepares for new detection cycle
-     */
-    void detector_idle_state(detector_t detector);
-
-    /**
-     * @brief Processes sensor readings for mark detection
-     * @param detector The detector instance
-     * Analyzes sensor data to identify registration marks and updates position data
-     */
-    void detector_line_detection(detector_t detector);
-
-    /**
-     * @brief Processes sensor readings for edge detection
-     * @param detector The detector instance
-     * Analyzes sensor data to identify material edges and updates position data
-     */
-    void detector_edge_detection(detector_t detector);
-
-    /**
-     * @brief Handles error conditions in the detector
-     * @param detector The detector instance
-     * Implements error recovery procedures and state management
-     */
-    void detector_failure_state(detector_t detector);
+    bool detect_mark();
 
     /**
      * @brief Calculates the average value from sensor readings
@@ -153,10 +136,13 @@ extern "C" {
      * @return true if no void is detected, false otherwise
      */
     bool get_void_absence(detector_t detector);
+
+    void init_moving_average_filter(moving_average_filter_t* filter);
+
+    uint16_t moving_average_compute(moving_average_filter_t* filter, uint16_t new_value);
     
 #ifdef  __cplusplus
 }
 #endif
 
 #endif
-// End of Header file

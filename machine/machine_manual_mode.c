@@ -163,6 +163,14 @@ void handle_params_state() {
             break;
 
         case PARAMS_PAPER_BEGIN:
+            // Force value for debugging
+            machine.paper_begin_position = -50.0;
+            machine.paper_mark_position = -78.0;
+            machine.paper_end_position = -150.0;
+            machine.params_ready = true;
+            activate_manual_state();
+            // delete when finished
+
             set_text_20(display.state_text, "Nastav zaciatok pap.");
             set_text_10(display.F2_text, "Zaciatok");
             if (machine.F2->state_raised) {

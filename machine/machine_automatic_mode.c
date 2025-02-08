@@ -74,7 +74,7 @@ void handle_automatic_state(void) {
             break;
 
         case AUTOMATIC_SCANNING:
-            if (mark_detection()) {
+            if (detect_mark()) {
                 automatic_substate = AUTOMATIC_FOUND;
                 machine.servo_1->next_stop = (detector.mark_position + 14.0) / machine.servo_1->scale;
             }
