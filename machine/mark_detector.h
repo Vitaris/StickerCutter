@@ -114,7 +114,7 @@ extern "C" {
      * @param base_value Base value for comparison
      * @return true if valid range found, false otherwise
      */
-    bool find_range(uint16_t base_value);
+    bool find_range();
 
     /**
      * @brief Finds the minimum value within a specified range

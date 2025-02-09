@@ -32,8 +32,7 @@ void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_er
     init_moving_average_filter(&detector.reflectivity_filter);
 }
 
-void detector_compute()
-{
+void detector_compute() {
     // Get new value of reflectivity
     // detector.current_reflectivity = adc_read();
     detector.current_reflectivity = moving_average_compute(&detector.reflectivity_filter, adc_read());
@@ -60,19 +59,10 @@ void detector_compute()
 
 uint16_t calculate_average(uint16_t initial_average) {
     uint32_t sum = 0;
-    uint16_t no_of_elements = 0;
     for (int i = 0; i < MEM_SIZE; i++) {
-
-        // If inital average is 0 means that take any value to the average (useful for the first computation)
-        if (initial_average > 0) {
-            if (detector.memory[i] < initial_average - BELLOW_AVG_MIN) {
-                continue;
-            }
-        }
         sum += detector.memory[i];
-        no_of_elements++; // It's needed to know how many elements were used for the average calculation
     }
-    return sum / no_of_elements;
+    return sum / MEM_SIZE;
 }
 
 void detector_restart() {
@@ -98,10 +88,15 @@ bool detect_mark() {
     int16_t index_of_minimum = 0;
     find_minimum(&index_of_minimum);
     // Took valid only if minimum is in the middle of the range
-    if (index_of_minimum <= 95 && index_of_minimum > 105) {
+    if (index_of_minimum != MEM_SIZE/2) {
         return false;
     }
-    bool range_found = find_range(detector.average);
+
+    if (detector.memory[index_of_minimum] > detector.initial_average - BELLOW_AVG_MIN) {
+        return false;
+    }
+
+    bool range_found = find_range();
     if (range_found) {
         bool minimum_found = find_minimum_at_range(&index_of_minimum);
         if (minimum_found) {
@@ -185,10 +180,10 @@ static bool validate_spike_points(void) {
 }
 
 // Main find_range function
-bool find_range(uint16_t base_value) {
+bool find_range() {
     detector.start_of_spike = 0;
     detector.end_of_spike = 0;
-    uint16_t tolerance_line = base_value - BELLOW_AVG_MIN;
+    uint16_t tolerance_line = detector.average - BELLOW_AVG_MIN;
 
     // Early return if spike is at boundaries
     if (is_spike_at_boundaries(tolerance_line)) {

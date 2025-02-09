@@ -40,7 +40,7 @@ void handle_automatic_state(void) {
 
         case AUTOMATIC_MARK_GOTO:
             if (machine.servo_0->positioning == IDLE) {
-                servo_goto_delayed(machine.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_MID, 500);
+                servo_goto_delayed(machine.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_FAST, 500);
                 automatic_substate = AUTOMATIC_MARK_GOTO_IN_PROGRESS;
             }
             break;
