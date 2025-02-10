@@ -81,9 +81,6 @@ void machine_compute(void) {
     
 }
 
-
-
-
 void handle_failure_state(void) {
     set_text_20(display.state_text, "Porucha!");
     set_text_10(display.F1_text, "Potvrdit");
@@ -95,7 +92,6 @@ void handle_failure_state(void) {
         machine.machine_error = false;
     }
 }
-
 
 void feeder_compute(void) {
     

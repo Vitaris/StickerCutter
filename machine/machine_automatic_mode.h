@@ -7,6 +7,14 @@
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 
+typedef struct {
+    float sticker_height;
+    float mark_distance;
+
+    float first_mark_position;
+    float second_mark_position;
+    float third_mark_position;
+} marks_monitor_t;
 
 typedef enum {
     AUTOMATIC_IDLE,      
@@ -16,7 +24,12 @@ typedef enum {
     AUTOMATIC_REACH_CONSTANT_SPEED,
     AUTOMATIC_WAITING_FOR_SAMPLES,     
     AUTOMATIC_SCANNING,     
-    AUTOMATIC_FOUND,     
+    AUTOMATIC_FOUND,
+    AUTOMATIC_SAVE_FIRST_MARK,
+    AUTOMATIC_SAVE_SECOND_MARK,
+    AUTOMATIC_SAVE_THIRD_MARK,
+    AUTOMATIC_GOTO_CUT_POSITION,
+    AUTOMATIC_CUT_POSITION_REACHED,
     AUTOMATIC_RETURN_TO_ZERO,     
     AUTOMATIC_FINISHED
 } automatic_substate_t;

@@ -14,10 +14,20 @@
 // Define and initialize the global variable
 
 automatic_substate_t automatic_substate;
+marks_monitor_t monitor_data;
+
+static void marks_monitor(void);
 
 void activate_automatic_state() {
     machine.state = AUTOMAT;
     automatic_substate = AUTOMATIC_IDLE;
+
+    // Mark monitor
+    monitor_data.first_mark_position = 0.0;
+    monitor_data.second_mark_position = 0.0;
+    monitor_data.third_mark_position = 0.0;
+    monitor_data.sticker_height = 0.0;
+    monitor_data.mark_distance = 0.0;
 }
 
 void handle_automatic_state(void) {
@@ -37,7 +47,7 @@ void handle_automatic_state(void) {
                 automatic_substate = AUTOMATIC_MARK_GOTO;
             }
             break;
-
+        // Navigate to the mark
         case AUTOMATIC_MARK_GOTO:
             if (machine.servo_0->positioning == IDLE) {
                 servo_goto_delayed(machine.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_FAST, 500);
@@ -76,21 +86,71 @@ void handle_automatic_state(void) {
         case AUTOMATIC_SCANNING:
             if (detect_mark()) {
                 automatic_substate = AUTOMATIC_FOUND;
-                machine.servo_1->next_stop = (detector.mark_position + 14.0) / machine.servo_1->scale;
+                machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET) / machine.servo_1->scale;
             }
             break;
 
         case AUTOMATIC_FOUND:
             set_text_10(display.F2_text, "Zn Najdeny");
             if (machine.servo_1->positioning == IDLE) {
-                set_text_10(display.F2_text, "Zn Najdeny");
+                if (monitor_data.first_mark_position == 0) {
+                    automatic_substate = AUTOMATIC_SAVE_FIRST_MARK;
+                } else if (monitor_data.second_mark_position == 0) {
+                    automatic_substate = AUTOMATIC_SAVE_SECOND_MARK;
+                } else if (monitor_data.third_mark_position == 0) {
+                    automatic_substate = AUTOMATIC_SAVE_THIRD_MARK;
+                } else {
+                    automatic_substate = AUTOMATIC_RETURN_TO_ZERO;
+                }
             }
-
-            if (machine.F2->state_raised) {
-                automatic_substate = AUTOMATIC_MARK_POS_REACHED;
-            }
-            // automatic_substate = AUTOMATIC_RETURN_TO_ZERO;
             break;
+
+        case AUTOMATIC_SAVE_FIRST_MARK:
+            monitor_data.first_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET;
+            automatic_substate = AUTOMATIC_MARK_GOTO;
+            break;
+
+        case AUTOMATIC_SAVE_SECOND_MARK:
+            monitor_data.second_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET;
+            monitor_data.sticker_height = monitor_data.second_mark_position - monitor_data.first_mark_position;
+            set_text_20(display.state_text, "Potvrd vysku nalepky");
+            set_text_10(display.F2_text, "    Potvrd");
+            if (machine.F2->state_raised) {
+                set_text_20(display.state_text, "Automat");
+                automatic_substate = AUTOMATIC_MARK_GOTO;
+            }
+            break;
+
+        case AUTOMATIC_SAVE_THIRD_MARK:
+            monitor_data.third_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET;
+            monitor_data.mark_distance = monitor_data.third_mark_position - monitor_data.second_mark_position;
+            set_text_20(display.state_text, "Potvrd vzdial. znac.");
+            set_text_10(display.F2_text, "    Potvrd");
+            if (machine.F2->state_raised) {
+                set_text_20(display.state_text, "Automat");
+                automatic_substate = AUTOMATIC_GOTO_CUT_POSITION;
+            }
+            break;
+
+        case AUTOMATIC_GOTO_CUT_POSITION:
+            if (machine.servo_1->positioning == IDLE) {
+                servo_goto_delayed(machine.servo_1, monitor_data.third_mark_position - monitor_data.mark_distance / 2.0, AUTOMAT_SPEED_MID, 500);
+                automatic_substate = AUTOMATIC_CUT_POSITION_REACHED;
+            }
+            break;
+
+        case AUTOMATIC_CUT_POSITION_REACHED:
+            if (machine.servo_1->positioning == IDLE) {
+                set_text_10(display.F2_text, " Rezat! :)");
+            }
+            break;
+
+
+
+
+
+
+
 
         case AUTOMATIC_RETURN_TO_ZERO:
             if (machine.servo_1->positioning == IDLE) {
@@ -105,9 +165,60 @@ void handle_automatic_state(void) {
     }
 
     handle_cutter_state();
+    marks_monitor();
 
 }
 
+// This function should monitor distances between marks
+static void marks_monitor(void) {
+    static float last_mark_position = 0.0;
+    static bool first_mark = true;
+    static bool measuring = false;
+    
+    // Start measuring when first mark is detected
+    if (automatic_substate == AUTOMATIC_FOUND && !measuring) {
+        if (first_mark) {
+            last_mark_position = detector.mark_position;
+            first_mark = false;
+            measuring = true;
+        } else {
+            float current_distance = abs(detector.mark_position - last_mark_position);
+            
+            // If we don't have sticker height yet, store it
+            if (monitor_data.sticker_height == 0) {
+                monitor_data.sticker_height = current_distance;
+            }
+            // If we don't have mark distance yet and current distance is smaller than sticker height
+            else if (monitor_data.mark_distance == 0 && current_distance < monitor_data.sticker_height) {
+                monitor_data.mark_distance = current_distance;
+            }
+            // Validate distances
+            else {
+                float height_tolerance = monitor_data.sticker_height * 0.1; // 10% tolerance
+                float distance_tolerance = monitor_data.mark_distance * 0.1;
+                
+                // Check if current distance matches either expected distance within tolerance
+                if (abs(current_distance - monitor_data.sticker_height) <= height_tolerance) {
+                    // Valid sticker height detected
+                } else if (abs(current_distance - monitor_data.mark_distance) <= distance_tolerance) {
+                    // Valid mark distance detected
+                } else {
+                    // Invalid distance detected - could trigger an error or warning here
+                    *detector.error = true;
+                    strcpy(*detector.error_message, "Invalid mark dist");
+                }
+            }
+            
+            last_mark_position = detector.mark_position;
+        }
+    }
+    
+    // Reset measurements when returning to idle
+    if (automatic_substate == AUTOMATIC_IDLE) {
+        first_mark = true;
+        measuring = false;
+    }
+}
 
 void handle_cutter_state(void) {
     // Existing sticker_cut_compute function renamed and content moved here
