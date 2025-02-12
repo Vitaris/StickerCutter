@@ -8,6 +8,8 @@
 #include "../servo_motor/servo_motor.h"
 
 typedef struct {
+    bool bottom_mark_detected;
+
     float sticker_height;
     float mark_distance;
 
@@ -21,7 +23,7 @@ typedef enum {
     AUTOMATIC_MARK_GOTO,
     AUTOMATIC_MARK_GOTO_IN_PROGRESS,
     AUTOMATIC_MARK_POS_REACHED,
-    AUTOMATIC_REACH_CONSTANT_SPEED,
+    AUTOMATIC_WAIT_FOR_CONSTANT_SPEED,
     AUTOMATIC_WAITING_FOR_SAMPLES,     
     AUTOMATIC_SCANNING,     
     AUTOMATIC_FOUND,
@@ -29,7 +31,7 @@ typedef enum {
     AUTOMATIC_SAVE_SECOND_MARK,
     AUTOMATIC_SAVE_THIRD_MARK,
     AUTOMATIC_GOTO_CUT_POSITION,
-    AUTOMATIC_CUT_POSITION_REACHED,
+    AUTOMATIC_WAIT_FOR_CUT_POSITION,
     AUTOMATIC_RETURN_TO_ZERO,     
     AUTOMATIC_FINISHED
 } automatic_substate_t;
