@@ -19,6 +19,7 @@
 #define MAN_SPEED 5.0
 #define FOLLOWING_ERROR 1.0 // Maximum permisible position deviation
 #define CYCLE_TIME 0.001
+#define HALF_SECOND_DELAY 500
 #define MANUAL_SPEED 100.0
 #define AUTOMAT_SPEED_SLOW 15.0
 #define AUTOMAT_SPEED_MID 70.0
