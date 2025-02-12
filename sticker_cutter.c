@@ -29,7 +29,7 @@ void core1_entry() {
     {
         if (lcd_refresh == true)
         { 
-            string2LCD(display.lcd, 0, 0, display.state_text);
+            string2LCD(display.lcd, 0, 0, display.state_text_1);
             string2LCD(display.lcd, 0, 1, machine.error_message);
             // int2LCD(display.lcd, 10, 0, 10, detector.average); 
             // int2LCD(display.lcd, 10, 1, 10, detector.current_reflectivity); 

@@ -82,7 +82,7 @@ void machine_compute(void) {
 }
 
 void handle_failure_state(void) {
-    set_text_20(display.state_text, "Porucha!");
+    set_text_20(display.state_text_1, "Porucha!");
     set_text_10(display.F1_text, "Potvrdit");
     set_text_10(display.F2_text, "");
 

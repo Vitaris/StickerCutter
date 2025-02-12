@@ -31,7 +31,7 @@ typedef struct {
     lcd_t lcd;          // LCD controller handle
 	
 	// LCD Texts
-	char state_text[21];
+	char state_text_1[21];
 	char condition_text[10];
 	char position_cutter[8];
 	char position_feeder[8];

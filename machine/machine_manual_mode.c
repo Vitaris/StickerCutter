@@ -34,7 +34,7 @@ void activate_params_state() {
 
 void handle_manual_state() {
     // Update display
-    set_text_20(display.state_text, machine.homed ? "Manual" : "Manual - NO Home");
+    set_text_20(display.state_text_1, machine.homed ? "Manual" : "Manual - NO Home");
     set_text_10(display.F1_text, machine.enable ? "Mot->OFF" : "Mot->ON");
 
     // Handle state transitions
@@ -89,7 +89,7 @@ void handle_manual_state() {
 
 void handle_homing_state() {
     // Update display
-    set_text_20(display.state_text, "HOMING");
+    set_text_20(display.state_text_1, "HOMING");
 
     set_text_10(display.F1_text, "Stop");
     if (machine.F1->state_raised) {
@@ -107,7 +107,7 @@ void handle_homing_state() {
 
         case HOMING_START:
             if (machine.servo_0->positioning == IDLE) {
-                servo_goto_delayed(machine.servo_0, 2000.0, 100.0, 500);
+                servo_goto_delayed(machine.servo_0, 2000.0, 100.0, HALF_SECOND_DELAY);
                 homing_substate = HOMING_SCANNING;
             }
             break;
@@ -131,7 +131,7 @@ void handle_homing_state() {
         case HOMING_RETURN_TO_ZERO:
             if (machine.servo_0->positioning == IDLE) {
                 machine.servo_0->set_zero = true;
-                servo_goto_delayed(machine.servo_0, -50.0, 100.0, 500);
+                servo_goto_delayed(machine.servo_0, -50.0, 100.0, HALF_SECOND_DELAY);
             }
             else if (machine.servo_0->positioning == POSITION_REACHED) {
                 homing_substate = HOMING_FINISHED;
@@ -155,7 +155,7 @@ void handle_params_state() {
 
     switch(params_substate) {
         case PARAMS_IDLE:
-            set_text_20(display.state_text, "Nastavenie papiera");
+            set_text_20(display.state_text_1, "Nastavenie papiera");
             set_text_10(display.F2_text, "Start");
             if (machine.F2->state_raised) {
                 params_substate = PARAMS_PAPER_BEGIN;
@@ -171,7 +171,7 @@ void handle_params_state() {
             activate_manual_state();
             // delete when finished
 
-            set_text_20(display.state_text, "Nastav zaciatok pap.");
+            set_text_20(display.state_text_1, "Nastav zaciatok pap.");
             set_text_10(display.F2_text, "Zaciatok");
             if (machine.F2->state_raised) {
                 machine.paper_begin_position = machine.servo_0->servo_position;
@@ -180,7 +180,7 @@ void handle_params_state() {
             break;
 
         case PARAMS_PAPER_MARK:
-            set_text_20(display.state_text, "Nastav znacku");
+            set_text_20(display.state_text_1, "Nastav znacku");
             set_text_10(display.F2_text, "Znacka");
             if (machine.F2->state_raised) {
                 machine.paper_mark_position = machine.servo_0->servo_position;
@@ -189,7 +189,7 @@ void handle_params_state() {
             break;
 
         case PARAMS_PAPER_END:
-            set_text_20(display.state_text, "Nastav koniec pap.");
+            set_text_20(display.state_text_1, "Nastav koniec pap.");
             set_text_10(display.F2_text, "Koniec");
 
             if (machine.F2->state_raised) {

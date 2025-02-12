@@ -15,7 +15,7 @@
 #define SCALE_CUTTER 20.0
 #define SCALE_FEEDER 6.4
 #define SENSOR_KNIFE_OFFSET 14.0
-
+#define FAR_AWAY_DISTANCE 1000.0
 
 
 enum cutter_state{
