@@ -91,7 +91,7 @@ void handle_automatic_state(void) {
         case AUTOMATIC_SCANNING:
             if (detect_mark()) {
                 automatic_substate = AUTOMATIC_FOUND;
-                machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET) / machine.servo_1->scale;
+                // machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET) / machine.servo_1->scale;
             }
             break;
 
@@ -99,7 +99,7 @@ void handle_automatic_state(void) {
 // Mark found, save positions and move to next step
         case AUTOMATIC_FOUND:
             set_text_10(display.F2_text, "Zn Najdeny");
-            if (machine.servo_1->positioning == IDLE) {
+            if (machine.servo_1->positioning == IDLE || true) {
                 if (monitor_data.first_mark_position == 0) {
                     automatic_substate = AUTOMATIC_SAVE_FIRST_MARK;
                 } else if (monitor_data.second_mark_position == 0) {
