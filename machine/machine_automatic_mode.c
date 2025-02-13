@@ -112,11 +112,13 @@ void handle_automatic_state(void) {
             }
             break;
 
+        // Will save a first mark position and withouth stopping will continue to search the next mark
         case AUTOMATIC_SAVE_FIRST_MARK:
             monitor_data.first_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET;
             automatic_substate = AUTOMATIC_WAIT_FOR_CONSTANT_SPEED;
             break;
-
+        
+        // Will save a second mark position, stops and waits for user to confirm the sticker height
         case AUTOMATIC_SAVE_SECOND_MARK:
             monitor_data.second_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET;
             stop_knife_on_mark();
@@ -129,6 +131,7 @@ void handle_automatic_state(void) {
             }
             break;
 
+        // Will save a third mark position, stops and waits for user to confirm the mark distance
         case AUTOMATIC_SAVE_THIRD_MARK:
             monitor_data.third_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET;
             stop_knife_on_mark();
@@ -144,7 +147,7 @@ void handle_automatic_state(void) {
             break;
 
 // ----------------------------------------------------------------------------------------------------------
-// Navigate cutting head to the cut position
+// Navigate cutting head to the cut position and perform the cut
         case AUTOMATIC_GOTO_CUT_POSITION:
             
             break;
@@ -152,8 +155,46 @@ void handle_automatic_state(void) {
         case AUTOMATIC_WAIT_FOR_CUT_POSITION:
             if (machine.servo_1->positioning == IDLE) {
                 set_text_10(display.F2_text, " Rezat! :)");
+                if (machine.F2->state_raised) {
+                    automatic_substate = AUTOMATIC_CUT_OPENING_SECTION;
+                }
             }
             break;
+
+        case AUTOMATIC_CUT_OPENING_SECTION:
+            if (machine.servo_0->positioning == IDLE) {
+                // knife_down();
+                servo_goto_delayed(machine.servo_0, machine.paper_begin_position + CUTTING_OVERLAP, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
+                automatic_substate = AUTOMATIC_CUT_RETURN_TO_MARK;
+            }
+            break;
+
+        case AUTOMATIC_CUT_RETURN_TO_MARK:
+            if (machine.servo_0->positioning == IDLE) {
+                knife_up();
+                servo_goto_delayed(machine.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
+                automatic_substate = AUTOMATIC_CUT_REST_SECTION;
+            }
+            break;
+
+        case AUTOMATIC_CUT_REST_SECTION:
+            if (machine.servo_0->positioning == IDLE) {
+                // knife_down();
+                servo_goto_delayed(machine.servo_0, machine.paper_end_position + CUTTING_OVERLAP, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
+                automatic_substate = AUTOMATIC_CUT_RETURN_TO_MARK_2;
+            }
+            break;
+
+        case AUTOMATIC_CUT_RETURN_TO_MARK_2:
+            if (machine.servo_0->positioning == IDLE) {
+                knife_up();
+                servo_goto_delayed(machine.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
+                // automatic_substate = AUTOMATIC_RETURN_TO_ZERO;
+            }
+            break;
+
+
+
 
 
 
@@ -270,7 +311,7 @@ void handle_cutter_state(void) {
         case TO_PRECUT:
             if (machine.servo_0->positioning == IDLE) {
                 knife_up();
-                servo_goto_delayed(machine.servo_0, PRECUT_POSITION, 4.0, HALF_SECOND_DELAY);
+                servo_goto_delayed(machine.servo_0, PRECUT_POSITION, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
             } else {
                 if (machine.servo_0->positioning == POSITION_REACHED) {
                     machine.cutter_state = BACK_HOME;
@@ -291,7 +332,7 @@ void handle_cutter_state(void) {
 
         case CUT_TO_END:
             if (machine.servo_0->positioning == IDLE) {
-                servo_goto_delayed(machine.servo_0, CUT_LENGTH, 4.0, HALF_SECOND_DELAY);
+                servo_goto_delayed(machine.servo_0, CUT_LENGTH, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
             } else {
                 if (machine.servo_0->positioning == POSITION_REACHED) {
                     machine.cutter_state = FINAL_RETURN;
@@ -301,7 +342,7 @@ void handle_cutter_state(void) {
 
         case FINAL_RETURN:
             if (machine.servo_0->positioning == IDLE) {
-                servo_goto_delayed(machine.servo_0, 0.0, 4.0, HALF_SECOND_DELAY);
+                servo_goto_delayed(machine.servo_0, 0.0, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
                 knife_up();
             } else {
                 if (machine.servo_0->positioning == POSITION_REACHED) {
