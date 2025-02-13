@@ -78,6 +78,11 @@ void machine_compute(void) {
     if (machine.machine_error) {
         machine.state = FAILURE;
     }
+
+    // This should be last in the machine_compute function for safety reasons
+    if (machine.state != AUTOMAT) {
+        knife_up();
+    }
     
 }
 
