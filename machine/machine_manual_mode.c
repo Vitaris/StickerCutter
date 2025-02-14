@@ -164,9 +164,9 @@ void handle_params_state() {
 
         case PARAMS_PAPER_BEGIN:
             // Force value for debugging
-            machine.paper_begin_position = -50.0;
-            machine.paper_mark_position = -78.0;
-            machine.paper_end_position = -150.0;
+            machine.paper_begin_position = -40.0;
+            machine.paper_mark_position = -71.0;
+            machine.paper_end_position = -1370.0 + machine.paper_begin_position; // Paper width 1370
             machine.params_ready = true;
             activate_manual_state();
             // delete when finished
