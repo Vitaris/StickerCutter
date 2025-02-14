@@ -91,7 +91,7 @@ void handle_automatic_state(void) {
         case AUTOMATIC_SCANNING:
             if (detect_mark()) {
                 automatic_substate = AUTOMATIC_FOUND;
-                // machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET) / machine.servo_1->scale;
+                // machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET_Y) / machine.servo_1->scale;
             }
             break;
 
@@ -114,13 +114,13 @@ void handle_automatic_state(void) {
 
         // Will save a first mark position and withouth stopping will continue to search the next mark
         case AUTOMATIC_SAVE_FIRST_MARK:
-            monitor_data.first_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET;
+            monitor_data.first_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET_Y;
             automatic_substate = AUTOMATIC_WAIT_FOR_CONSTANT_SPEED;
             break;
         
         // Will save a second mark position, stops and waits for user to confirm the sticker height
         case AUTOMATIC_SAVE_SECOND_MARK:
-            monitor_data.second_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET;
+            monitor_data.second_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET_Y;
             stop_knife_on_mark();
             monitor_data.sticker_height = monitor_data.second_mark_position - monitor_data.first_mark_position;
             set_text_20(display.state_text_1, "Potvrd vysku nalepky");
@@ -133,23 +133,23 @@ void handle_automatic_state(void) {
 
         // Will save a third mark position, stops and waits for user to confirm the mark distance
         case AUTOMATIC_SAVE_THIRD_MARK:
-            monitor_data.third_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET;
+            monitor_data.third_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET_Y;
             stop_knife_on_mark();
             monitor_data.mark_distance = monitor_data.third_mark_position - monitor_data.second_mark_position;
             set_text_20(display.state_text_1, "Potvrd vzdial. znac.");
             // set_text_20(display.state_text_2, "Potvrd vzdial. znac.");
             set_text_10(display.F2_text, "    Potvrd");
             if (machine.servo_1->positioning == IDLE && machine.F2->state_raised) {
-                servo_goto_delayed(machine.servo_1, monitor_data.third_mark_position - monitor_data.mark_distance / 2.0, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
-                set_text_20(display.state_text_1, "Automat");
-                automatic_substate = AUTOMATIC_WAIT_FOR_CUT_POSITION;
+                automatic_substate = AUTOMATIC_GOTO_CUT_POSITION;
             }
             break;
 
 // ----------------------------------------------------------------------------------------------------------
 // Navigate cutting head to the cut position and perform the cut
         case AUTOMATIC_GOTO_CUT_POSITION:
-            
+            set_text_20(display.state_text_1, "Automat");
+            servo_goto_delayed(machine.servo_1, monitor_data.third_mark_position - monitor_data.mark_distance / 2.0, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
+            automatic_substate = AUTOMATIC_WAIT_FOR_CUT_POSITION;
             break;
 
         case AUTOMATIC_WAIT_FOR_CUT_POSITION:
@@ -160,11 +160,19 @@ void handle_automatic_state(void) {
                 }
             }
             break;
-
+            
         case AUTOMATIC_CUT_OPENING_SECTION:
             if (machine.servo_0->positioning == IDLE) {
-                // knife_down();
-                servo_goto_delayed(machine.servo_0, machine.paper_begin_position + CUTTING_OVERLAP, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
+                servo_goto_delayed(machine.servo_0, machine.paper_mark_position - 50.0, AUTOMAT_SPEED_NORMAL, HALF_SECOND_DELAY);
+                automatic_substate = AUTOMATIC_CUT_OPENING_SECTION2;
+
+            }
+            break;
+
+        case AUTOMATIC_CUT_OPENING_SECTION2:
+            if (machine.servo_0->positioning == IDLE) {
+                knife_down();
+                servo_goto_delayed(machine.servo_0, machine.paper_begin_position - SENSOR_KNIFE_OFFSET_X + CUTTING_OVERLAP, AUTOMAT_SPEED_NORMAL, HALF_SECOND_DELAY);
                 automatic_substate = AUTOMATIC_CUT_RETURN_TO_MARK;
             }
             break;
@@ -172,15 +180,15 @@ void handle_automatic_state(void) {
         case AUTOMATIC_CUT_RETURN_TO_MARK:
             if (machine.servo_0->positioning == IDLE) {
                 knife_up();
-                servo_goto_delayed(machine.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
+                servo_goto_delayed(machine.servo_0, machine.paper_mark_position - 50 , AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
                 automatic_substate = AUTOMATIC_CUT_REST_SECTION;
             }
             break;
 
         case AUTOMATIC_CUT_REST_SECTION:
             if (machine.servo_0->positioning == IDLE) {
-                // knife_down();
-                servo_goto_delayed(machine.servo_0, machine.paper_end_position + CUTTING_OVERLAP, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
+                knife_down();
+                servo_goto_delayed(machine.servo_0, machine.paper_end_position - SENSOR_KNIFE_OFFSET_X - CUTTING_OVERLAP, AUTOMAT_SPEED_NORMAL, HALF_SECOND_DELAY);
                 automatic_substate = AUTOMATIC_CUT_RETURN_TO_MARK_2;
             }
             break;
@@ -188,8 +196,8 @@ void handle_automatic_state(void) {
         case AUTOMATIC_CUT_RETURN_TO_MARK_2:
             if (machine.servo_0->positioning == IDLE) {
                 knife_up();
-                servo_goto_delayed(machine.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_MID, HALF_SECOND_DELAY);
-                // automatic_substate = AUTOMATIC_RETURN_TO_ZERO;
+                servo_goto_delayed(machine.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                automatic_substate = AUTOMATIC_CUT_OPENING_SECTION;
             }
             break;
 
@@ -213,7 +221,7 @@ void handle_automatic_state(void) {
             break;
     }
 
-    handle_cutter_state();
+    // handle_cutter_state();
     marks_monitor();
 
 }
@@ -270,7 +278,7 @@ static void marks_monitor(void) {
 }
 
 static void stop_knife_on_mark(void) {
-    machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET) / machine.servo_1->scale;
+    machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET_Y) / machine.servo_1->scale;
 }
 
 void handle_cutter_state(void) {
