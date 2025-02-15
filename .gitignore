@@ -2,5 +2,5 @@
 .vscode/
 build/
 .idea/
-pcb/StickerCutter-backups
+pcb/StickerCutter-backups/
 Mark_detection

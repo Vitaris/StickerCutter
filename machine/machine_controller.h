@@ -14,26 +14,12 @@
 #define KNIFE_OUTPUT_PIN 17
 #define SCALE_CUTTER 20.0
 #define SCALE_FEEDER 6.4
+#define SENSOR_KNIFE_OFFSET_X 25.0
+#define SENSOR_KNIFE_OFFSET_Y 14.0
+#define FAR_AWAY_DISTANCE 1000.0
+#define CUTTING_OVERLAP 10.0
+#define CUTTING_OVERLAP 10.0
 
-typedef enum {
-    STATE_MANUAL,
-    STATE_AUTOMATIC,
-    STATE_ERROR
-} machine_state_t;
-
-typedef enum {
-    MANUAL_IDLE,
-    MANUAL_HOMING,
-    MANUAL_READY,
-    MANUAL_JOG
-} manual_substate_t;
-
-typedef enum {
-    AUTO_IDLE,
-    AUTO_PAPER_DETECT,
-    AUTO_MARK_DETECT,
-    AUTO_CUTTING
-} auto_substate_t;
 
 enum cutter_state{
 	CUTTER_IDLE,
@@ -48,18 +34,19 @@ enum cutter_state{
 	ROLL_OUT_PAPER,
 	STOP_CUTTING};
 
-enum machine_state{
-	MANUAL, 
+typedef enum {
+	MANUAL,
+	HOMING,
+	PARAMS,
 	AUTOMAT, 
 	FAILURE
-	};
+} machine_state_t;
 
 enum machine_condition{
 	OK,
 	ERROR};
 
-typedef struct machine {
-
+typedef struct {
 	// Servo motors
 	servo_t servo_0;
 	servo_t servo_1;
@@ -73,82 +60,93 @@ typedef struct machine {
 	button_t Out;
 
 	// Machine status
-	machine_state_t machine_state;
-	manual_substate_t manual_substate;
-	auto_substate_t auto_substate;
+	machine_state_t state;
+
 	bool enable;
-	bool machine_error;
 	bool homed;
-	enum machine_state state;
+	bool machine_error;
 	enum machine_condition machine_condition;
 	char error_message[21];
-	float paper_edge_position;
-	float mark_position;
 
-	// LCD Texts
-	char state_text[21];
-	char condition_text[10];
-	char position_cutter[8];
-	char position_feeder[8];
-	char F1_text[11];
-	char F2_text[11];
-
-	// Mark probe
-	detector_t detector;
+	// Cutter
+	bool params_ready;
+	float paper_begin_position;
+	float paper_mark_position;
+	float paper_end_position;
 
 	enum cutter_state cutter_state;
-} * machine_t; 
+} machine_t; 
 
+/**
+ * @brief Global machine controller instance
+ * Accessible from other modules that include this header
+ */
+extern machine_t machine;
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
 	/**
-	 * @brief      Creates a machine controller.
-	 * 
-	 * @param      machine         Machine controller data structure
-	 * @param      F1              F1 button state
-	 * @param      F2              F2 button state
-	 * @param      servo_state_01  Servo 01 state
-	 * @param      servo_state_02  Servo 02 state
-	 * 
-	 * @return     Machine controller data structure
-	 */
-	machine_t create_machine();
+     * @brief Initializes the machine controller
+     */
+	void machine_init(void);
 
 	/**
-	 * @brief      Cyclically computes the machine controller.
-	 * 
-	 * @param      machine  Machine controller data structure
-	 */
-	void machine_compute(machine_t machine);
+     * @brief Main state machine computation function
+     */
+	void machine_compute(void);
 
-	void sticker_cut_compute(machine_t machine);
+	/**
+     * @brief Handles automatic operation state
+     */
+	void handle_automatic_state(void);
 
-	void feeder_compute(machine_t machine);
+	/**
+     * @brief Handles failure state
+     */
+	void handle_failure_state(void);
 
-	void set_text(char LCD_text[], char text[], uint8_t len);
+	/**
+     * @brief Handles the cutter state transitions
+     */
+	void handle_cutter_state(void);
 
-	void set_text_10(char LCD_text[], char text[]);
+	/**
+     * @brief Computes sticker cutting sequence
+     */
+	void sticker_cut_compute(void);
 
-	void set_text_20(char LCD_text[], char text[]);
+	/**
+     * @brief Computes paper feeding sequence
+     */
+	void feeder_compute(void);
 
-	void set_pause();
+	/**
+     * @brief Executes complete sticker cutting sequence
+     */
+	void perform_sticker_cut(void);
 
-	bool is_time(float cycle_time);
+	/**
+     * @brief Raises cutting knife
+     */
+	void knife_up(void);
 
-	void perform_sticker_cut(machine_t machine);
+	/**
+     * @brief Lowers cutting knife
+     */
+	void knife_down(void);
 
-	void knife_up();
+	/**
+     * @brief Sets error state with message
+     * @param text Error message text
+     */
+	void raise_error(char text[]);
 
-	void knife_down();
-
-	void raise_error(machine_t machine, char text[]);
-
-	void reset_params(machine_t machine);
-
-	
+	/**
+     * @brief Resets machine parameters to default values
+     */
+	void reset_params(void);
 
 #ifdef	__cplusplus
 }
