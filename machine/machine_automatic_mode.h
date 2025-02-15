@@ -40,6 +40,7 @@ typedef enum {
     AUTOMATIC_SAVE_FIRST_MARK,          // Recording position of first mark
     AUTOMATIC_SAVE_SECOND_MARK,         // Recording position of second mark
     AUTOMATIC_SAVE_THIRD_MARK,          // Recording position of third mark
+    AUTOMATIC_REGULAR_CUT_STOP,         // Stop centered between two marks
     AUTOMATIC_GOTO_CUT_POSITION,        // Moving to cutting position
     AUTOMATIC_WAIT_FOR_CUT_POSITION,    // Waiting to reach cutting position
     AUTOMATIC_CUT_OPENING_SECTION,      // Starting the cut sequence

@@ -18,6 +18,7 @@ marks_monitor_t monitor_data;
 
 static void marks_monitor(void);
 static void stop_knife_on_mark(void);
+static void stop_knife_between_marks(void);
 
 void activate_automatic_state() {
     machine.state = AUTOMAT;
@@ -104,7 +105,7 @@ void handle_automatic_state(void) {
         case AUTOMATIC_MARK_FOUND:
             set_text_10(display.F2_text, "Zn Najdeny");
             if (monitor_data.sticker_dimensions_set) {
-                // Todo
+                automatic_substate = AUTOMATIC_REGULAR_CUT_STOP;
             } else {
                 if (monitor_data.first_mark_position == 0) {
                     automatic_substate = AUTOMATIC_SAVE_FIRST_MARK;
@@ -145,6 +146,13 @@ void handle_automatic_state(void) {
             if (machine.servo_1->positioning == IDLE && machine.F2->state_raised) {
                 monitor_data.sticker_dimensions_set = true;
                 automatic_substate = AUTOMATIC_GOTO_CUT_POSITION;
+            }
+            break;
+
+        case AUTOMATIC_REGULAR_CUT_STOP:
+            stop_knife_between_marks();
+            if (machine.servo_1->positioning == IDLE) {
+                automatic_substate = AUTOMATIC_CUT_OPENING_SECTION;
             }
             break;
 
@@ -276,4 +284,8 @@ static void marks_monitor(void) {
 
 static void stop_knife_on_mark(void) {
     machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET_Y) / machine.servo_1->scale;
+}
+
+static void stop_knife_between_marks(void) {
+    machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET_Y + (monitor_data.mark_distance / 2.0)) / machine.servo_1->scale;
 }
