@@ -7,6 +7,8 @@
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 
+#define STICKER_HEIGHT_TOLERNACE 10.0 // 10mm tolerance for sticker height
+
 /**
  * @brief Structure for monitoring and storing mark positions and sticker dimensions
  * Used during the initialization phase to learn sticker dimensions and later
@@ -21,6 +23,8 @@ typedef struct {
     float first_mark_position;            // Position of first detected mark
     float second_mark_position;           // Position of second detected mark
     float third_mark_position;            // Position of third detected mark
+
+    float last_stop_position;             // Last known position of the cutting head
 } marks_monitor_t;
 
 /**
