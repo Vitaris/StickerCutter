@@ -1,23 +1,93 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "pico/stdlib.h"
-#include <string.h>
-
 #include "machine_controller.h"
 #include "machine_automatic_mode.h"
 #include "machine_manual_mode.h"
-#include "../servo_motor/servo_motor.h"
-#include "../servo_motor/button.h"
 #include "mark_detector.h"
 #include "../lcd/display_20x4.h"
 
-// Define and initialize the global variable
+#define STICKER_HEIGHT_TOLERNACE 10.0 // 10mm tolerance for sticker height
 
-automatic_substate_t automatic_substate;
-marks_monitor_t monitor_data;
+/**
+ * @brief Structure for monitoring and storing mark positions and sticker dimensions
+ * Used during the initialization phase to learn sticker dimensions and later
+ * for validating proper mark detection during operation
+ */
+typedef struct {
+    bool sticker_dimensions_set;          // Indicates if sticker dimensions are learned
+    
+    float sticker_height;                 // Height of a single sticker
+    float mark_distance;                  // Distance between stickers in a row
+    
+    float first_mark_position;            // Position of first detected mark
+    float second_mark_position;           // Position of second detected mark
+    float third_mark_position;            // Position of third detected mark
 
-static void marks_monitor(void);
+    float last_stop_position;             // Last known position of the cutting head
+} marks_monitor_t;
+
+/**
+ * @brief States for the automatic cutting mode state machine
+ * Controls the sequence of operations from mark detection to cutting
+ */
+typedef enum {
+    AUTOMATIC_IDLE,                       // Waiting for start command
+    AUTOMATIC_MARK_GOTO,                 // Moving knife to initial mark position
+    AUTOMATIC_MARK_GOTO_IN_PROGRESS,     // Waiting for knife to reach mark position
+    AUTOMATIC_MARK_POS_REACHED,          // Knife has reached mark position
+    AUTOMATIC_START_ROLLING_OUT_PAPER,   // Begin feeding paper
+    AUTOMATIC_WAIT_FOR_CONSTANT_SPEED_OF_PAPER, // Waiting for stable paper feed
+    AUTOMATIC_WAITING_FOR_SAMPLES,       // Collecting sensor readings
+    AUTOMATIC_SCANNING_FOR_MARK,         // Actively looking for marks
+    AUTOMATIC_MARK_FOUND,               // Mark detected
+    AUTOMATIC_SAVE_FIRST_MARK,          // Recording position of first mark
+    AUTOMATIC_SAVE_SECOND_MARK,         // Recording position of second mark
+    AUTOMATIC_SAVE_THIRD_MARK,          // Recording position of third mark
+    AUTOMATIC_REGULAR_CUT_STOP,         // Stop centered between two marks
+    AUTOMATIC_GOTO_CUT_POSITION,        // Moving to cutting position
+    AUTOMATIC_WAIT_FOR_CUT_POSITION,    // Waiting to reach cutting position
+    AUTOMATIC_CUT_OPENING_SECTION,      // Starting the cut sequence
+    AUTOMATIC_CUT_OPENING_SECTION2,     // Continuing cut sequence
+    AUTOMATIC_CUT_RETURN_TO_MARK,       // Moving back to mark after first cut
+    AUTOMATIC_CUT_REST_SECTION,         // Cutting remaining section
+    AUTOMATIC_CUT_RETURN_TO_MARK_2,     // Final return to mark position
+    AUTOMATIC_RETURN_NEW_DETECTION,     // Preparing for next mark detection
+    AUTOMATIC_RETURN_TO_ZERO,           // Returning to home position
+    AUTOMATIC_FINISHED                  // Cycle complete
+} automatic_substate_t;
+
+
+/**
+ * @brief Current substate of the automatic operation mode
+ * 
+ * Keeps track of the current substate when machine is operating in automatic mode.
+ * Variable is static to maintain state between function calls while limiting scope
+ * to this file only.
+ */
+static automatic_substate_t automatic_substate;
+
+/**
+ * @brief Stores monitoring data for cut marks detection and tracking.
+ * 
+ * This static variable holds the state and information needed for monitoring
+ * and processing fiducial marks in the automatic machine operation mode.
+ */
+static marks_monitor_t monitor_data;
+
+/**
+ * @brief Stops the knife operation when a cut mark is detected
+ * 
+ * This function handles the automatic stopping of the knife mechanism when
+ * a cut mark is encountered during the scanning process.
+ */
 static void stop_knife_on_mark(void);
+
+/**
+ * @brief Stops the knife between marks during automatic operation
+ * 
+ * This function handles the stopping of the knife between marking points
+ * in the automatic cutting mode. It ensures the knife stops at the correct
+ * position between material marks.
+ */
 static void stop_knife_between_marks(void);
 
 void activate_automatic_state() {

@@ -5,6 +5,7 @@
 
 #include "machine_controller.h"
 #include "machine_manual_mode.h"
+#include "machine_automatic_mode.h"
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
 #include "mark_detector.h"
