@@ -1,59 +1,17 @@
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
+#ifndef MACHINE_MANUAL_MODE_H
+#define MACHINE_MANUAL_MODE_H
 
+#include <stdbool.h>
 #include "mark_detector.h"
 #include "machine_controller.h"
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 
 /**
- * @brief Defines the substates for manual operation mode
- */
-typedef enum {
-    MANUAL_IDLE,      // Motors disabled, waiting for enable command
-    MANUAL_READY,     // Motors enabled, ready for operations
-} manual_substate_t;
-
-/**
- * @brief Defines the substates for homing operation sequence
- */
-typedef enum {
-    HOMING_IDLE,              // Initial state, waiting for start command
-    HOMING_START,             // Preparing to start homing sequence
-    HOMING_SCANNING,          // Moving servo while scanning for home position
-    HOMING_FOUND,            // Home position detected, stopping motion
-    HOMING_RETURN_TO_ZERO,   // Moving back to define zero position
-    HOMING_FINISHED          // Homing sequence completed
-} homing_substate_t;
-
-/**
- * @brief Defines the substates for parameter setting sequence
- */
-typedef enum {
-    PARAMS_IDLE,          // Initial state, waiting for parameter setting to begin
-    PARAMS_PAPER_BEGIN,   // Setting the starting position of the paper
-    PARAMS_PAPER_MARK,    // Setting the position of the registration mark
-    PARAMS_PAPER_END,     // Setting the end position of the paper
-} params_substate_t;
-
-/**
  * @brief Activates manual operation mode
  * @details Sets the machine state to MANUAL, enables motors and initializes manual substate
  */
 void activate_manual_state();
-
-/**
- * @brief Activates homing operation mode
- * @details Sets the machine state to HOMING and initializes homing substate
- */
-void activate_homing_state();
-
-/**
- * @brief Activates parameter setting mode
- * @details Sets the machine state to PARAMS and initializes the parameter setting substate
- */
-void activate_params_state();
 
 /**
  * @brief Handles manual operation state of the machine
@@ -71,7 +29,7 @@ void handle_manual_state();
  * 4. Sets zero position
  * 5. Returns to manual mode when complete
  */
-void handle_homing_state();
+void handle_homing_state(void);
 
 /**
  * @brief Handles the parameter setting sequence
@@ -81,4 +39,6 @@ void handle_homing_state();
  * 3. Paper end position
  * Updates display and handles user inputs during the process
  */
-void handle_params_state();
+void handle_params_state(void);
+
+#endif // MACHINE_MANUAL_MODE_H
