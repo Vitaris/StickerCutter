@@ -43,39 +43,36 @@ typedef enum {
  * @brief Current substate in manual operation mode.
  * 
  * Stores the current substate of the machine when operating in manual mode.
- * Static variable to maintain state within the file scope.
  */
-static manual_substate_t manual_substate;
-
+manual_substate_t manual_substate;
 
 /**
- * @brief Current substate of the homing procedure in manual mode
+ * @brief Enumeration variable tracking the sub-state during the homing operation.
  * 
- * This static variable keeps track of the current substate during
- * the machine's homing sequence when operating in manual mode.
- * The substates are defined by the homing_substate_t enumeration.
+ * This variable maintains the current sub-state of the homing sequence, allowing
+ * the machine to track its progress through the various stages of the homing procedure.
  */
-static homing_substate_t homing_substate;
-
+homing_substate_t homing_substate;
+ 
 /**
- * @brief Current substate of the parameters handling in manual mode
+ * @brief Enumeration for parameter substates in manual mode.
  * 
- * Static variable tracking the current state within parameters processing
- * for manual machine operation mode.
+ * This variable maintains the current substate of parameter settings
+ * during manual operation mode of the machine.
  */
-static params_substate_t params_substate;
+params_substate_t params_substate;
 
 /**
  * @brief Activates homing operation mode
  * @details Sets the machine state to HOMING and initializes homing substate
  */
-static void activate_homing_state(void);
+void activate_homing_state(void);
 
 /**
  * @brief Activates parameter setting mode
  * @details Sets the machine state to PARAMS and initializes the parameter setting substate
  */
-static void activate_params_state(void);
+void activate_params_state(void);
 
 
 
@@ -257,12 +254,26 @@ void handle_params_state(void) {
     servo_manual_handling(machine.servo_0, -1500, 20, machine.homed);
 }
 
-static void activate_homing_state(void) {
+/**
+ * @brief Activates the homing sequence state for the machine.
+ * 
+ * This function initiates the homing state, which is responsible for
+ * moving all axes to their respective home positions (reference points).
+ * The homing sequence is a crucial operation that establishes the 
+ * machine's coordinate system.
+ */
+void activate_homing_state(void) {
     manual_substate = HOMING_IDLE;
     machine.state = HOMING;
 }
 
-static void activate_params_state(void) {
+/**
+ * @brief Activates the parameter state in manual mode.
+ * 
+ * This function transitions the machine into the parameter configuration state
+ * where manual adjustments to machine parameters can be made.
+ */
+void activate_params_state(void) {
     params_substate = PARAMS_IDLE;
     machine.state = PARAMS;
 }
