@@ -3,42 +3,23 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include "../servo_motor/servo_motor.h"
 
-/**
- * @brief Buffer size for sensor readings and position history
- */
 #define MEM_SIZE 200
-
-/**
- * @brief Size of the moving average window
- */
-#define AVG_SIZE 10
-
-/**
- * @brief Length of memory used for stop condition detection
- */
-#define STOP_MEMORY_LENGHT 10
-
-/**
- * @brief Minimum difference from average to detect mark
- */
-#define BELLOW_AVG_MIN 40
-
-/**
- * @brief Threshold value to detect void/gap in material
- */
-#define VOID_REFLECTIVITY_THRESHOLD 120
-
 #define WINDOW_SIZE 10
 
+/**
+ * @brief Represents a detector configuration structure
+ * 
+ * This structure holds configuration parameters and state information
+ * for mark detection functionality.
+ */
 typedef struct {
     uint16_t buffer[WINDOW_SIZE];
     uint8_t index;
     uint32_t sum;
     bool buffer_full;
 } moving_average_filter_t;
+
 
 /**
  * @brief Main detector structure containing all operational data and state information
@@ -71,78 +52,46 @@ typedef struct {
 
 extern detector_t detector;
 
-#ifdef  __cplusplus
-extern "C" {
-#endif
+/**
+ * @brief Creates and initializes a detector instance
+ * @param sensor_pin ADC pin number (26-28) for the reflectivity sensor
+ * @param feeder_position Pointer to the current feeder position value
+ * @param detector_error Pointer to error flag
+ * @param error_message Pointer to error message array
+ */
+void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_error, char (*error_message)[21]);
 
-    /**
-     * @brief Creates and initializes a detector instance
-     * @param sensor_pin ADC pin number (26-28) for the reflectivity sensor
-     * @param feeder_position Pointer to the current feeder position value
-     * @param detector_error Pointer to error flag
-     * @param error_message Pointer to error message array
-     */
-    void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_error, char (*error_message)[21]);
+/**
+ * @brief Main processing function for the detector
+ * Handles sensor reading and data processing
+ */
+void detector_compute();
 
-    /**
-     * @brief Main processing function for the detector
-     * Handles sensor reading and data processing
-     */
-    void detector_compute();
+/**
+ * @brief Restarts the detector sampling process
+ * Resets sample counter and sampling completion flag to begin fresh sampling
+ */
+void detector_restart();
 
-    /**
-     * @brief Restarts the detector sampling process
-     * Resets sample counter and sampling completion flag to begin fresh sampling
-     */
-    void detector_restart();
+/**
+ * @brief Processes current readings to detect registration marks
+ * @return true if mark is detected, false otherwise
+ */
+bool detect_mark();
 
-    /**
-     * @brief Processes current readings to detect registration marks
-     * @return true if mark is detected, false otherwise
-     */
-    bool detect_mark();
+/**
+ * @brief Checks if void is present under the sensor
+ * @param detector The detector instance
+ * @return true if void is detected, false otherwise
+ */
+bool get_void_presence(detector_t detector);
 
-    /**
-     * @brief Calculates the average value from sensor readings
-     * @param initial_average Reference average for filtering outliers (0 for no filtering)
-     * @return Calculated average value of valid readings
-     */
-    uint16_t calculate_average(uint16_t initial_average);
+/**
+ * @brief Checks if void is absent under the sensor
+ * @param detector The detector instance
+ * @return true if no void is detected, false otherwise
+ */
+bool get_void_absence(detector_t detector);
 
-    /**
-     * @brief Finds the range where sensor values drop below average
-     * @param base_value Base value for comparison
-     * @return true if valid range found, false otherwise
-     */
-    bool find_range();
-
-    /**
-     * @brief Finds the minimum value within a specified range
-     * @param index_of_minimum Output parameter for index of minimum value
-     * @return true if minimum found, false if error occurred
-     */
-    bool find_minimum_at_range(uint16_t *index_of_minimum);
-
-    /**
-     * @brief Checks if void is present under the sensor
-     * @param detector The detector instance
-     * @return true if void is detected, false otherwise
-     */
-    bool get_void_presence(detector_t detector);
-
-    /**
-     * @brief Checks if void is absent under the sensor
-     * @param detector The detector instance
-     * @return true if no void is detected, false otherwise
-     */
-    bool get_void_absence(detector_t detector);
-
-    void init_moving_average_filter(moving_average_filter_t* filter);
-
-    uint16_t moving_average_compute(moving_average_filter_t* filter, uint16_t new_value);
-    
-#ifdef  __cplusplus
-}
-#endif
 
 #endif

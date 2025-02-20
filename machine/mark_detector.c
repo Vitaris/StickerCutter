@@ -1,13 +1,57 @@
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
-
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
-
 #include "mark_detector.h"
 
+#define AVG_SIZE 10
+#define STOP_MEMORY_LENGHT 10
+#define BELLOW_AVG_MIN 40
+#define VOID_REFLECTIVITY_THRESHOLD 120
+
 detector_t detector;
+
+/**
+ * @brief Calculates the average value from sensor readings
+ * @param initial_average Reference average for filtering outliers (0 for no filtering)
+ * @return Calculated average value of valid readings
+ */
+uint16_t calculate_average(uint16_t initial_average);
+
+/**
+ * @brief Finds the range where sensor values drop below average
+ * @param base_value Base value for comparison
+ * @return true if valid range found, false otherwise
+ */
+bool find_range();
+
+/**
+ * @brief Finds the minimum value within a specified range
+ * @param index_of_minimum Output parameter for index of minimum value
+ * @return true if minimum found, false if error occurred
+ */
+bool find_minimum_at_range(uint16_t *index_of_minimum);
+
+/**
+ * @brief Initializes a moving average filter.
+ * 
+ * @param filter Pointer to the moving average filter structure to be initialized.
+ * 
+ * This function initializes all the necessary components of a moving average filter,
+ * preparing it for use in signal processing. It should be called before the filter
+ * is used for the first time.
+ */
+void init_moving_average_filter(moving_average_filter_t* filter);
+
+/**
+ * @brief Computes a moving average by adding a new value to the filter
+ * 
+ * @param filter Pointer to the moving average filter structure
+ * @param new_value New value to be added to the moving average calculation
+ * @return uint16_t The computed moving average value
+ */
+uint16_t moving_average_compute(moving_average_filter_t* filter, uint16_t new_value);
+
 
 void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_error, char (*error_message)[21]) {
     // Set gpio pin as ADC
@@ -71,7 +115,7 @@ void detector_restart() {
 }
 
 
-static bool find_minimum(uint16_t *index_of_minimum) {
+bool find_minimum(uint16_t *index_of_minimum) {
     int16_t minimum = 10000;    // init minimum far above the possible value 
 
     // Find the minimum value in a given range of data
@@ -116,13 +160,13 @@ bool get_void_absence(detector_t detector) {
 }
 
 // Check if spike is at array boundaries
-static bool is_spike_at_boundaries(uint16_t tolerance_line) {
+bool is_spike_at_boundaries(uint16_t tolerance_line) {
     return (detector.memory[0] < tolerance_line) || 
            (detector.memory[MEM_SIZE - 1] < tolerance_line);
 }
 
 // Find starting point of spike
-static bool find_spike_start(uint16_t tolerance_line) {
+bool find_spike_start(uint16_t tolerance_line) {
     for (int i = 1; i < MEM_SIZE; i++) {
         if ((detector.memory[i - 1] > tolerance_line) &&
             (detector.memory[i] <= tolerance_line)) {
@@ -139,7 +183,7 @@ static bool find_spike_start(uint16_t tolerance_line) {
 }
 
 // Find ending point of spike
-static bool find_spike_end(uint16_t tolerance_line) {
+bool find_spike_end(uint16_t tolerance_line) {
     for (int i = 1; i < MEM_SIZE; i++) {
         if ((detector.memory[i - 1] < tolerance_line) && 
             (detector.memory[i] >= tolerance_line)) {
@@ -156,7 +200,7 @@ static bool find_spike_end(uint16_t tolerance_line) {
 }
 
 // Validate found spike points
-static bool validate_spike_points(void) {
+bool validate_spike_points(void) {
     if (detector.start_of_spike == 0 || detector.end_of_spike == 0) {
         return false;
     }
