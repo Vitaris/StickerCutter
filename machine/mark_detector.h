@@ -20,7 +20,6 @@ typedef struct {
     bool buffer_full;
 } moving_average_filter_t;
 
-
 /**
  * @brief Main detector structure containing all operational data and state information
  * Manages the complete state of the mark detection system including hardware config,
@@ -92,6 +91,5 @@ bool get_void_presence(detector_t detector);
  * @return true if no void is detected, false otherwise
  */
 bool get_void_absence(detector_t detector);
-
 
 #endif
