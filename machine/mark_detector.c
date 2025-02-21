@@ -78,12 +78,11 @@ void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_er
 
 void detector_compute() {
     // Get new value of reflectivity
-    // detector.current_reflectivity = adc_read();
-    detector.current_reflectivity = moving_average_compute(&detector.reflectivity_filter, adc_read());
+    uint16_t current_reflectivity = moving_average_compute(&detector.reflectivity_filter, adc_read());
 
     // Shift sensor readings using memmove
     memmove(&detector.memory[1], &detector.memory[0], (MEM_SIZE - 1) * sizeof(uint16_t));
-    detector.memory[0] = detector.current_reflectivity;
+    detector.memory[0] = current_reflectivity;
 
     // Shift position readings using memmove
     memmove(&detector.positions[1], &detector.positions[0], (MEM_SIZE - 1) * sizeof(float));
@@ -151,12 +150,12 @@ bool detect_mark() {
     return false;
 }
 
-bool get_void_presence(detector_t detector) {
-    return detector.current_reflectivity < VOID_REFLECTIVITY_THRESHOLD;
+bool get_void_presence() {
+    return detector.memory[0] < VOID_REFLECTIVITY_THRESHOLD;
 }
 
-bool get_void_absence(detector_t detector) {
-    return detector.current_reflectivity > VOID_REFLECTIVITY_THRESHOLD;
+bool get_void_absence() {
+    return detector.memory[0] > VOID_REFLECTIVITY_THRESHOLD;
 }
 
 // Check if spike is at array boundaries

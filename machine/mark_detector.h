@@ -7,6 +7,7 @@
 #define MEM_SIZE 200
 #define WINDOW_SIZE 10
 
+
 /**
  * @brief Represents a detector configuration structure
  * 
@@ -31,7 +32,6 @@ typedef struct {
     
     // Sensor readings and processing
     uint16_t memory[MEM_SIZE];           // Raw sensor reading history
-    uint16_t current_reflectivity;       // Latest sensor reading
     uint16_t average;                    // Moving average of readings
     uint16_t initial_average;            // Initial baseline average for calibration
     uint16_t samples;                    // Number of samples collected during initialization
@@ -83,13 +83,13 @@ bool detect_mark();
  * @param detector The detector instance
  * @return true if void is detected, false otherwise
  */
-bool get_void_presence(detector_t detector);
+bool get_void_presence();
 
 /**
  * @brief Checks if void is absent under the sensor
  * @param detector The detector instance
  * @return true if no void is detected, false otherwise
  */
-bool get_void_absence(detector_t detector);
+bool get_void_absence();
 
 #endif
