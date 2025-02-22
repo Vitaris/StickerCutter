@@ -24,24 +24,25 @@ typedef struct {
     bool buffer_full;
 } moving_average_filter_t;
 
-// Sensor readings and processing
-uint16_t reflectivity_history[MEM_SIZE];  // Reflectivity reading history (filtered)
-uint16_t average;                    // Moving average of readings
-uint16_t initial_average;            // Initial baseline average for calibration
-uint16_t samples;                    // Number of samples collected during initialization
-int16_t start_of_spike, end_of_spike; // Range of spike in sensor readings
-bool sampling_done;                  // Flag indicating if initial sampling is complete
+// 1. Use a detector structure to encapsulate state
+typedef struct {
+    uint16_t reflectivity_history[MEM_SIZE];
+    uint16_t average;
+    uint16_t initial_average;
+    uint16_t samples;
+    int16_t start_of_spike, end_of_spike;
+    bool sampling_done;
+    float position_history[MEM_SIZE];
+    float mark_position;
+    float edge_position;
+    float *feeder_position;
+    bool *error;
+    char (*error_message)[21];
+    moving_average_filter_t reflectivity_filter;
+} detector_t;
 
-// Position tracking
-float position_history[MEM_SIZE];    // History of feeder position_history
-float mark_position;                 // Position where mark was detected
-float edge_position;                 // Position where edge was detected
-float *feeder_position;              // Pointer to current feeder position
-
-bool *error;                         // Pointer to global error bool
-char (*error_message)[21];           // Error message
-
-moving_average_filter_t reflectivity_filter;
+// 2. Create a single static instance if needed
+static detector_t detector;
 
 /**
  * @brief Calculates the average value from sensor readings
@@ -97,36 +98,36 @@ void init_detector(const uint8_t sensor_pin,
     adc_select_input(sensor_pin);
 
     // Initialize array
-    samples = 0;
-    sampling_done = false;
+    detector.samples = 0;
+    detector.sampling_done = false;
 
-    feeder_position = feeder_pos;
+    detector.feeder_position = feeder_pos;
 
     // Error handling
-    error = detector_error;
-	error_message = error_mes;
+    detector.error = detector_error;
+	detector.error_message = error_mes;
 
     // Initialize moving average filter
-    init_moving_average_filter(&reflectivity_filter);
+    init_moving_average_filter(&detector.reflectivity_filter);
 }
 
 void detector_compute() {
     // Shift sensor readings using memmove
-    memmove(&reflectivity_history[1], &reflectivity_history[0], (MEM_SIZE - 1) * sizeof(uint16_t));
-    reflectivity_history[0] = moving_average_compute(&reflectivity_filter, adc_read());
+    memmove(&detector.reflectivity_history[1], &detector.reflectivity_history[0], (MEM_SIZE - 1) * sizeof(uint16_t));
+    detector.reflectivity_history[0] = moving_average_compute(&detector.reflectivity_filter, adc_read());
 
     // Shift position readings using memmove
-    memmove(&position_history[1], &position_history[0], (MEM_SIZE - 1) * sizeof(float));
-    position_history[0] = *feeder_position;
+    memmove(&detector.position_history[1], &detector.position_history[0], (MEM_SIZE - 1) * sizeof(float));
+    detector.position_history[0] = *detector.feeder_position;
 
-    if (sampling_done) {
-        average = calculate_average(initial_average);
+    if (detector.sampling_done) {
+        detector.average = calculate_average(detector.initial_average);
     } 
     else {
-        samples++;
-        if (samples >= MEM_SIZE) {
-            initial_average = calculate_average(0);
-            sampling_done = true;
+        detector.samples++;
+        if (detector.samples >= MEM_SIZE) {
+            detector.initial_average = calculate_average(0);
+            detector.sampling_done = true;
         }
     }
 }
@@ -134,18 +135,18 @@ void detector_compute() {
 uint16_t calculate_average(uint16_t initial_average) {
     uint32_t sum = 0;
     for (int i = 0; i < MEM_SIZE; i++) {
-        sum += reflectivity_history[i];
+        sum += detector.reflectivity_history[i];
     }
     return sum / MEM_SIZE;
 }
 
 void detector_restart() {
-    samples = 0;
-    sampling_done = false;
+    detector.samples = 0;
+    detector.sampling_done = false;
 }
 
 bool is_sampling_done(void) {
-    return sampling_done;
+    return detector.sampling_done;
 }
 
 bool find_minimum(uint16_t *index_of_minimum) {
@@ -153,8 +154,8 @@ bool find_minimum(uint16_t *index_of_minimum) {
 
     // Find the minimum value in a given range of data
     for (int16_t i = 0; i < MEM_SIZE; i++) {
-        if (reflectivity_history[i] < minimum) {
-            minimum = reflectivity_history[i];
+        if (detector.reflectivity_history[i] < minimum) {
+            minimum = detector.reflectivity_history[i];
             *index_of_minimum = i;
         }
     }
@@ -169,7 +170,7 @@ bool detect_mark() {
         return false;
     }
 
-    if (reflectivity_history[index_of_minimum] > initial_average - BELLOW_AVG_MIN) {
+    if (detector.reflectivity_history[index_of_minimum] > detector.initial_average - BELLOW_AVG_MIN) {
         return false;
     }
 
@@ -177,7 +178,7 @@ bool detect_mark() {
     if (range_found) {
         bool minimum_found = find_minimum_at_range(&index_of_minimum);
         if (minimum_found) {
-            mark_position = position_history[index_of_minimum];
+            detector.mark_position = detector.position_history[index_of_minimum];
             return true;
         }
     }
@@ -185,30 +186,30 @@ bool detect_mark() {
 }
 
 bool get_void_presence() {
-    return reflectivity_history[0] < VOID_REFLECTIVITY_THRESHOLD;
+    return detector.reflectivity_history[0] < VOID_REFLECTIVITY_THRESHOLD;
 }
 
 bool get_void_absence() {
-    return reflectivity_history[0] > VOID_REFLECTIVITY_THRESHOLD;
+    return detector.reflectivity_history[0] > VOID_REFLECTIVITY_THRESHOLD;
 }
 
 // Check if spike is at array boundaries
 bool is_spike_at_boundaries(uint16_t tolerance_line) {
-    return (reflectivity_history[0] < tolerance_line) || 
-           (reflectivity_history[MEM_SIZE - 1] < tolerance_line);
+    return (detector.reflectivity_history[0] < tolerance_line) || 
+           (detector.reflectivity_history[MEM_SIZE - 1] < tolerance_line);
 }
 
 // Find starting point of spike
 bool find_spike_start(uint16_t tolerance_line) {
     for (int i = 1; i < MEM_SIZE; i++) {
-        if ((reflectivity_history[i - 1] > tolerance_line) &&
-            (reflectivity_history[i] <= tolerance_line)) {
-            if (start_of_spike == 0) {
-                start_of_spike = i;
+        if ((detector.reflectivity_history[i - 1] > tolerance_line) &&
+            (detector.reflectivity_history[i] <= tolerance_line)) {
+            if (detector.start_of_spike == 0) {
+                detector.start_of_spike = i;
                 return true;
             }
-            *error = true;
-            strcpy(*error_message, "DC1");
+            *detector.error = true;
+            strcpy(*detector.error_message, "DC1");
             return false;
         }
     }
@@ -218,14 +219,14 @@ bool find_spike_start(uint16_t tolerance_line) {
 // Find ending point of spike
 bool find_spike_end(uint16_t tolerance_line) {
     for (int i = 1; i < MEM_SIZE; i++) {
-        if ((reflectivity_history[i - 1] < tolerance_line) && 
-            (reflectivity_history[i] >= tolerance_line)) {
-            if (end_of_spike == 0) {
-                end_of_spike = i;
+        if ((detector.reflectivity_history[i - 1] < tolerance_line) && 
+            (detector.reflectivity_history[i] >= tolerance_line)) {
+            if (detector.end_of_spike == 0) {
+                detector.end_of_spike = i;
                 return true;
             }
-            *error = true;
-            strcpy(*error_message, "DC2");
+            *detector.error = true;
+            strcpy(*detector.error_message, "DC2");
             return false;
         }
     }
@@ -234,23 +235,23 @@ bool find_spike_end(uint16_t tolerance_line) {
 
 // Validate found spike points
 bool validate_spike_points(void) {
-    if (start_of_spike == 0 || end_of_spike == 0) {
+    if (detector.start_of_spike == 0 || detector.end_of_spike == 0) {
         return false;
     }
 
     // Check that point A and B are within the data range.
-    if (start_of_spike < 0) {
-        // strcpy(*error_message, "DC5");
+    if (detector.start_of_spike < 0) {
+        // strcpy(*detector.error_message, "DC5");
         return false;
     }
 
-    if (end_of_spike > MEM_SIZE) {
-        // strcpy(*error_message, "DC6");
+    if (detector.end_of_spike > MEM_SIZE) {
+        // strcpy(*detector.error_message, "DC6");
         return false;
     }
 
-    if (start_of_spike > end_of_spike) {
-        // strcpy(*error_message, "DC7");
+    if (detector.start_of_spike > detector.end_of_spike) {
+        // strcpy(*detector.error_message, "DC7");
         return false;
     }
     return true;
@@ -258,9 +259,9 @@ bool validate_spike_points(void) {
 
 // Main find_range function
 bool find_range() {
-    start_of_spike = 0;
-    end_of_spike = 0;
-    uint16_t tolerance_line = average - BELLOW_AVG_MIN;
+    detector.start_of_spike = 0;
+    detector.end_of_spike = 0;
+    uint16_t tolerance_line = detector.average - BELLOW_AVG_MIN;
 
     // Early return if spike is at boundaries
     if (is_spike_at_boundaries(tolerance_line)) {
@@ -284,9 +285,9 @@ bool find_minimum_at_range(uint16_t *index_of_minimum) {
     *index_of_minimum = 0;
 
     // Find the minimum value in a given range of data
-    for (int16_t i = start_of_spike; i < end_of_spike; i++) {
-        if (reflectivity_history[i] < minimum) {
-            minimum = reflectivity_history[i];
+    for (int16_t i = detector.start_of_spike; i < detector.end_of_spike; i++) {
+        if (detector.reflectivity_history[i] < minimum) {
+            minimum = detector.reflectivity_history[i];
             *index_of_minimum = i;
         }
     }
@@ -328,5 +329,5 @@ uint16_t moving_average_compute(moving_average_filter_t* filter, uint16_t new_va
 }
 
 float get_mark_position(void) {
-    return mark_position;
+    return detector.mark_position;
 }
