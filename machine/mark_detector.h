@@ -11,39 +11,42 @@
  * @param detector_error Pointer to error flag
  * @param error_message Pointer to error message array
  */
-void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_error, char (*error_message)[21]);
+void init_detector(const uint8_t sensor_pin, 
+                  float* const feeder_position,
+                  bool* const detector_error, 
+                  char (* const error_message)[21]);
 
 /**
  * @brief Main processing function for the detector
  * Handles sensor reading and data processing
  */
-void detector_compute();
+void detector_compute(void);
 
 /**
  * @brief Restarts the detector sampling process
  * Resets sample counter and sampling completion flag to begin fresh sampling
  */
-void detector_restart();
+void detector_restart(void);
 
 /**
  * @brief Processes current readings to detect registration marks
  * @return true if mark is detected, false otherwise
  */
-bool detect_mark();
+bool detect_mark(void);
 
 /**
  * @brief Checks if void is present under the sensor
  * @param detector The detector instance
  * @return true if void is detected, false otherwise
  */
-bool get_void_presence();
+bool get_void_presence(void);
 
 /**
  * @brief Checks if void is absent under the sensor
  * @param detector The detector instance
  * @return true if no void is detected, false otherwise
  */
-bool get_void_absence();
+bool get_void_absence(void);
 
 /**
  * @brief Checks if initial sampling is complete

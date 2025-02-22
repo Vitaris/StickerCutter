@@ -85,7 +85,10 @@ void init_moving_average_filter(moving_average_filter_t* filter);
 uint16_t moving_average_compute(moving_average_filter_t* filter, uint16_t new_value);
 
 
-void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_error, char (*error_message)[21]) {
+void init_detector(const uint8_t sensor_pin, 
+                  float* const feeder_pos,
+                  bool* const detector_error, 
+                  char (* const error_mes)[21]) {
     // Set gpio pin as ADC
     // Available pins:    26, 27, 28, 29 (29 is cpu temperature)
     // Inputs:           0,  1,  2,  3
@@ -97,11 +100,11 @@ void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_er
     samples = 0;
     sampling_done = false;
 
-    feeder_position = feeder_position;
+    feeder_position = feeder_pos;
 
     // Error handling
     error = detector_error;
-	error_message = error_message;
+	error_message = error_mes;
 
     // Initialize moving average filter
     init_moving_average_filter(&reflectivity_filter);
