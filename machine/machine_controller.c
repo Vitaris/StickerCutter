@@ -16,8 +16,6 @@ machine_t machine;
 void machine_init(void) {
     // Initialize machine state
     machine.state = MANUAL;
-    machine.machine_condition = OK;
-    // machine.auto_substate = AUTO_IDLE;
 
     // Init buttons
     machine.F1 = create_button(5);
@@ -44,7 +42,6 @@ void machine_init(void) {
     gpio_set_dir(KNIFE_OUTPUT_PIN, GPIO_OUT);
 
     // Cutter
-    machine.cutter_state = CUTTER_IDLE;
     machine.params_ready = false;
 
     // Mark probe
@@ -65,6 +62,11 @@ void machine_compute(void) {
     button_compute(machine.In);
     button_compute(machine.Out);
     detector_compute();
+    
+    // Handle error conditions and cutter state machine
+    if (machine.machine_error) {
+        machine.state = FAILURE;
+    }
 
     // Handle main state machine
     switch(machine.state) {
@@ -74,17 +76,12 @@ void machine_compute(void) {
         case AUTOMAT:   handle_automatic_state(); break;
         case FAILURE:   handle_failure_state(); break;
     }
+}
 
-    // Handle error conditions and cutter state machine
-    if (machine.machine_error) {
-        machine.state = FAILURE;
-    }
-
-    // This should be last in the machine_compute function for safety reasons
-    if (machine.state != AUTOMAT) {
-        // knife_up();
-    }
-    
+void activate_failure_state(void) {
+    machine.state = FAILURE;
+    machine.enable = false;
+    knife_up();
 }
 
 void handle_failure_state(void) {
@@ -93,17 +90,10 @@ void handle_failure_state(void) {
     set_text_10(display.F2_text, "");
 
     if (machine.F1->state_raised) {
-        machine.state = MANUAL;
+        activate_manual_state();
         set_text_20(machine.error_message, "OK");
         machine.machine_error = false;
     }
-}
-
-void feeder_compute(void) {
-    
-}
-
-void perform_sticker_cut(void) {
 }
 
 void knife_up(void) {

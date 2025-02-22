@@ -20,20 +20,6 @@
 #define CUTTING_OVERLAP 10.0
 #define CUTTING_OVERLAP 10.0
 
-
-enum cutter_state{
-	CUTTER_IDLE,
-	CUTTER_REQUESTED,
-	TO_HOME,
-	AT_HOME,
-	TO_PRECUT,
-	BACK_HOME,
-	CUT_TO_END,
-	FINAL_RETURN,
-	CUT_DONE,
-	ROLL_OUT_PAPER,
-	STOP_CUTTING};
-
 typedef enum {
 	MANUAL,
 	HOMING,
@@ -41,10 +27,6 @@ typedef enum {
 	AUTOMAT, 
 	FAILURE
 } machine_state_t;
-
-enum machine_condition{
-	OK,
-	ERROR};
 
 typedef struct {
 	// Servo motors
@@ -65,7 +47,6 @@ typedef struct {
 	bool enable;
 	bool homed;
 	bool machine_error;
-	enum machine_condition machine_condition;
 	char error_message[21];
 
 	// Cutter
@@ -73,8 +54,6 @@ typedef struct {
 	float paper_begin_position;
 	float paper_mark_position;
 	float paper_end_position;
-
-	enum cutter_state cutter_state;
 } machine_t; 
 
 /**
@@ -83,74 +62,47 @@ typedef struct {
  */
 extern machine_t machine;
 
-#ifdef	__cplusplus
-extern "C" {
-#endif
+/**
+ * @brief Initializes the machine controller
+ */
+void machine_init(void);
 
-	/**
-     * @brief Initializes the machine controller
-     */
-	void machine_init(void);
+/**
+ * @brief Main state machine computation function
+ */
+void machine_compute(void);
 
-	/**
-     * @brief Main state machine computation function
-     */
-	void machine_compute(void);
+/**
+ * @brief Activates the failure state of the machine
+ * 
+ * Transitions the machine into a failure state, which indicates
+ * that an error or malfunction has occurred. This state typically
+ * requires operator intervention to resolve.
+ * 
+ * @note Once activated, the machine will remain in failure state
+ *       until explicitly reset by authorized personnel.
+ */
+void activate_failure_state(void);
 
-	/**
-     * @brief Handles automatic operation state
-     */
-	void handle_automatic_state(void);
+/**
+ * @brief Handles failure state
+ */
+void handle_failure_state(void);
 
-	/**
-     * @brief Handles failure state
-     */
-	void handle_failure_state(void);
+/**
+ * @brief Raises cutting knife
+ */
+void knife_up(void);
 
-	/**
-     * @brief Handles the cutter state transitions
-     */
-	void handle_cutter_state(void);
+/**
+ * @brief Lowers cutting knife
+ */
+void knife_down(void);
 
-	/**
-     * @brief Computes sticker cutting sequence
-     */
-	void sticker_cut_compute(void);
-
-	/**
-     * @brief Computes paper feeding sequence
-     */
-	void feeder_compute(void);
-
-	/**
-     * @brief Executes complete sticker cutting sequence
-     */
-	void perform_sticker_cut(void);
-
-	/**
-     * @brief Raises cutting knife
-     */
-	void knife_up(void);
-
-	/**
-     * @brief Lowers cutting knife
-     */
-	void knife_down(void);
-
-	/**
-     * @brief Sets error state with message
-     * @param text Error message text
-     */
-	void raise_error(char text[]);
-
-	/**
-     * @brief Resets machine parameters to default values
-     */
-	void reset_params(void);
-
-#ifdef	__cplusplus
-}
-#endif
+/**
+ * @brief Sets error state with message
+ * @param text Error message text
+ */
+void raise_error(char text[]);
 
 #endif
-// End of Header file
