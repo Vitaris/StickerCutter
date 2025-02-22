@@ -6,10 +6,14 @@
 
 /**
  * @brief Creates and initializes a detector instance
+ * 
  * @param sensor_pin ADC pin number (26-28) for the reflectivity sensor
  * @param feeder_position Pointer to the current feeder position value
- * @param detector_error Pointer to error flag
- * @param error_message Pointer to error message array
+ * @param detector_error Pointer to error flag for error state indication
+ * @param error_message Pointer to error message array for detailed error reporting
+ * 
+ * Initializes ADC for the sensor pin and sets up internal state for mark detection.
+ * Must be called before any other detector functions.
  */
 void init_detector(const uint8_t sensor_pin, 
                   float* const feeder_position,
@@ -18,7 +22,9 @@ void init_detector(const uint8_t sensor_pin,
 
 /**
  * @brief Main processing function for the detector
- * Handles sensor reading and data processing
+ * 
+ * Reads sensor data, updates moving averages and history buffers.
+ * Should be called periodically at a consistent rate for optimal detection.
  */
 void detector_compute(void);
 

@@ -67,6 +67,14 @@ uint16_t moving_average_compute(moving_average_filter_t* filter, uint16_t new_va
 
 bool is_spike_at_boundaries(uint16_t tolerance_line);
 
+/**
+ * @brief Updates the long-term average reflectivity value
+ * 
+ * @param new_value New reflectivity value to incorporate
+ * 
+ * Uses exponential moving average with alpha factor to smooth out readings
+ * and maintain a baseline reference for mark detection.
+ */
 static void update_long_term_average(uint16_t new_value) {
     if (detector.long_term_average == 0) {
         detector.long_term_average = new_value;
@@ -78,6 +86,14 @@ static void update_long_term_average(uint16_t new_value) {
     }
 }
 
+/**
+ * @brief Calculates the area of a reflectivity spike
+ * 
+ * @param tolerance_line The threshold value for spike detection
+ * @return uint32_t The calculated area below the tolerance line
+ * 
+ * Area calculation helps validate if detected mark has expected characteristics
+ */
 static uint32_t calculate_spike_area(uint16_t tolerance_line) {
     uint32_t area = 0;
 
