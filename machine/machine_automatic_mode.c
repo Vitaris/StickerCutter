@@ -175,7 +175,7 @@ void handle_automatic_state(void) {
             break;
 
         case DETECT_AWAIT_SAMPLES:
-            if (detector.sampling_done) {
+            if (is_sampling_done()) {
                 automatic_substate = DETECT_SCANNING;
             }
             break;
@@ -209,13 +209,13 @@ void handle_automatic_state(void) {
 
         // Will save a first mark position and withouth stopping will continue to search the next mark
         case LEARN_FIRST_MARK:
-            monitor_data.first_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET_Y;
+            monitor_data.first_mark_position = get_mark_position() + SENSOR_KNIFE_OFFSET_Y;
             automatic_substate = PAPER_AWAIT_SPEED;
             break;
         
         // Will save a second mark position, stops and waits for user to confirm the sticker height
         case LEARN_SECOND_MARK:
-            monitor_data.second_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET_Y;
+            monitor_data.second_mark_position = get_mark_position() + SENSOR_KNIFE_OFFSET_Y;
             stop_knife_on_mark();
             monitor_data.sticker_height = monitor_data.second_mark_position - monitor_data.first_mark_position;
             set_text_20(display.state_text_1, "Potvrd vysku nalepky");
@@ -228,7 +228,7 @@ void handle_automatic_state(void) {
 
         // Will save a third mark position, stops and waits for user to confirm the mark distance
         case LEARN_THIRD_MARK:
-            monitor_data.third_mark_position = detector.mark_position + SENSOR_KNIFE_OFFSET_Y;
+            monitor_data.third_mark_position = get_mark_position() + SENSOR_KNIFE_OFFSET_Y;
             stop_knife_on_mark();
             monitor_data.mark_distance = monitor_data.third_mark_position - monitor_data.second_mark_position;
             set_text_20(display.state_text_1, "Potvrd vzdial. znac.");
@@ -323,9 +323,9 @@ void handle_automatic_state(void) {
 }
 
 void stop_knife_on_mark(void) {
-    machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET_Y) / machine.servo_1->scale;
+    machine.servo_1->next_stop = (get_mark_position() + SENSOR_KNIFE_OFFSET_Y) / machine.servo_1->scale;
 }
 
 void stop_knife_between_marks(void) {
-    machine.servo_1->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET_Y + (monitor_data.mark_distance / 2.0)) / machine.servo_1->scale;
+    machine.servo_1->next_stop = (get_mark_position() + SENSOR_KNIFE_OFFSET_Y + (monitor_data.mark_distance / 2.0)) / machine.servo_1->scale;
 }
