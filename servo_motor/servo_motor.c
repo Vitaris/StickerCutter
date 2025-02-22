@@ -1,9 +1,35 @@
-#include "servo_motor.h"
 #include <stdlib.h>
 #include <string.h>
+#include "servo_motor.h"
 
-servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_pin, uint pwm_pin, float scale, 
-							button_t *man_plus, button_t *man_minus, bool *enable, bool *error, char (*message)[21]) {
+#define CYCLE_TIME 0.001
+#define FOLLOWING_ERROR 1.0 // Maximum permisible position deviation
+
+/**
+ * @brief Internal goto implementation
+ * @param servo Servo controller handle
+ * @param position Target position
+ * @param speed Movement speed
+ */
+void _servo_goto(servo_t const servo, const float position, const float speed);
+
+/**
+ * @brief Converts encoder ticks to speed
+ * @param enc_diff Encoder tick difference
+ * @return Speed in revolutions per second
+ */
+float enc2speed(const int32_t enc);
+
+/**
+ * @brief Computes next position in motion profile
+ * @param servo Servo controller handle
+ */
+void next_positon_compute(servo_t servo);
+
+servo_t servo_create(const char servo_name[10], const uint pio_ofset, const uint sm, 
+                    const uint encoder_pin, const uint pwm_pin, const float scale,
+                    button_t *const man_plus, button_t *const man_minus, 
+                    bool *const enable, bool *const error, char (*const message)[21]) {
 	// Create servo data structure
 	servo_t servo = (servo_t)malloc(sizeof(struct servo_motor));
 	strcpy(servo->servo_name, servo_name);
@@ -36,9 +62,6 @@ servo_t servo_create(char servo_name[10], uint pio_ofset, uint sm, uint encoder_
 	servo->servo_speed = 0.0;
 
 	// Limits
-	servo->pos_limit_enabled = true;
-	servo->max_pos = 100.0;
-	servo->min_pos = -10.0;
 	servo->error = error;
 	servo->error_message = message;
 	strcpy(*servo->error_message, "OK");
@@ -123,7 +146,7 @@ void servo_compute(servo_t servo) {
 	servo->servo_speed = servo->enc_speed * servo->scale;
 }  
 
-float enc2speed(int32_t enc_diff) {
+float enc2speed(const int32_t enc_diff) {
 	// Time difference of measured encoder tics
 	// is ~1 milisecond but we want to get it in seconds,
 	// so we have to multiply by 1000
@@ -137,17 +160,17 @@ float enc2speed(int32_t enc_diff) {
 	return (float)enc_diff * (1.0 / CYCLE_TIME) / 4000.0;
 }
 
-void servo_goto_delayed(servo_t servo, float position, float speed, uint32_t delay) {
+void servo_goto_delayed(servo_t const servo, const float position, const float speed, const uint32_t delay) {
 	servo->delay_start = delay;
 	_servo_goto(servo, position, speed);
 }
 
-void servo_goto(servo_t servo, float position, float speed) {
+void servo_goto(servo_t const servo, const float position, const float speed) {
 	servo->delay_start = UINT32_MAX;
 	_servo_goto(servo, position, speed);
 }
 
-void _servo_goto(servo_t servo, float position, float speed) {
+void _servo_goto(servo_t const servo, const float position, const float speed) {
 	servo->next_stop = position / servo->scale;
 	servo->nominal_speed = speed / servo->scale;
 	if (servo->delay_start == 0) {
@@ -162,7 +185,6 @@ void _servo_goto(servo_t servo, float position, float speed) {
 void next_positon_compute(servo_t servo) {
 	switch(servo->positioning) {
         case IDLE:
-			servo->movement_done = false;
 			servo->nominal_speed_reached = false;
 			break;
 		
@@ -230,13 +252,12 @@ void next_positon_compute(servo_t servo) {
 
 		case POSITION_REACHED:
 			servo->set_pos = servo->next_stop;
-			servo->movement_done = true;
 			servo->positioning = IDLE;
 			break;
 	}
 }
 
-void servo_manual_handling(servo_t servo, float min, float max, bool homed) {
+void servo_manual_handling(servo_t const servo, const float min, const float max, const bool homed) {
 	float limit_min;
 	float limit_max;
 
@@ -276,15 +297,15 @@ void remove_stop(servo_t servo) {
     servo->no_of_stops--;
 }
 
-bool stop_ahead(servo_t servo) {
+bool stop_ahead(servo_t const servo) {
 	return get_breaking_distance(servo) >= get_dist_to_stop(servo) ? true : false;
 }
 
-float get_breaking_distance(servo_t servo) {
+float get_breaking_distance(servo_t const servo) {
 	return 0.5 * (pow(servo->computed_speed, 2) / servo->current_acc);
 }
 
-float get_dist_to_stop(servo_t servo) {
+float get_dist_to_stop(servo_t const servo) {
 	if (servo->no_of_stops > 0) {
 		return servo->stops[0] - servo->enc_position;
 	} else {
@@ -292,13 +313,13 @@ float get_dist_to_stop(servo_t servo) {
 	}
 }
 
-void stop_positioning(servo_t servo) {
+void stop_positioning(servo_t const servo) {
 	servo->next_stop = servo->set_pos + get_breaking_distance(servo);
 }
 
 void set_zero(servo_t servo) {}
 
-void set_position(servo_t servo, float position) {
+void set_position(servo_t const servo, const float position) {
 	servo->enc_offset += servo->enc_position - (position / servo->scale);
 	servo->enc_position = position / servo->scale;
 	pid_reset_all(servo->pid_pos);
