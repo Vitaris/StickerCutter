@@ -21,7 +21,6 @@ typedef enum {
  * @brief Defines the substates for homing operation sequence
  */
 typedef enum {
-    HOMING_IDLE,              // Initial state, waiting for start command
     HOMING_START,             // Preparing to start homing sequence
     HOMING_SCANNING,          // Moving servo while scanning for home position
     HOMING_FOUND,            // Home position detected, stopping motion
@@ -148,13 +147,6 @@ void handle_homing_state(void) {
 
     // Handle state transitions
     switch(homing_substate) {
-        case HOMING_IDLE:
-            set_text_10(display.F2_text, "Start");
-            if (machine.F2->state_raised) {
-                homing_substate = HOMING_START;
-            }
-            break;
-
         case HOMING_START:
             if (machine.servo_0->positioning == IDLE) {
                 servo_goto_delayed(machine.servo_0, 2000.0, 100.0, HALF_SECOND_DELAY);
@@ -263,7 +255,7 @@ void handle_params_state(void) {
  * machine's coordinate system.
  */
 void activate_homing_state(void) {
-    manual_substate = HOMING_IDLE;
+    manual_substate = HOMING_START;
     machine.state = HOMING;
 }
 
