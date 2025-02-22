@@ -26,7 +26,6 @@ typedef struct {
 
 // Sensor readings and processing
 uint16_t reflectivity_history[MEM_SIZE];  // Reflectivity reading history (filtered)
-uint16_t current_reflectivity;       // Latest sensor reading
 uint16_t average;                    // Moving average of readings
 uint16_t initial_average;            // Initial baseline average for calibration
 uint16_t samples;                    // Number of samples collected during initialization
@@ -109,13 +108,9 @@ void init_detector(uint8_t sensor_pin, float *feeder_position, bool *detector_er
 }
 
 void detector_compute() {
-    // Get new value of reflectivity
-    // current_reflectivity = adc_read();
-    current_reflectivity = moving_average_compute(&reflectivity_filter, adc_read());
-
     // Shift sensor readings using memmove
     memmove(&reflectivity_history[1], &reflectivity_history[0], (MEM_SIZE - 1) * sizeof(uint16_t));
-    reflectivity_history[0] = current_reflectivity;
+    reflectivity_history[0] = moving_average_compute(&reflectivity_filter, adc_read());
 
     // Shift position readings using memmove
     memmove(&position_history[1], &position_history[0], (MEM_SIZE - 1) * sizeof(float));
@@ -187,11 +182,11 @@ bool detect_mark() {
 }
 
 bool get_void_presence() {
-    return current_reflectivity < VOID_REFLECTIVITY_THRESHOLD;
+    return reflectivity_history[0] < VOID_REFLECTIVITY_THRESHOLD;
 }
 
 bool get_void_absence() {
-    return current_reflectivity > VOID_REFLECTIVITY_THRESHOLD;
+    return reflectivity_history[0] > VOID_REFLECTIVITY_THRESHOLD;
 }
 
 // Check if spike is at array boundaries
