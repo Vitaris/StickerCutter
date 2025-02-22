@@ -65,7 +65,7 @@ void machine_compute(void) {
     
     // Handle error conditions and cutter state machine
     if (machine.machine_error) {
-        machine.state = FAILURE;
+        activate_failure_state();
     }
 
     // Handle main state machine
