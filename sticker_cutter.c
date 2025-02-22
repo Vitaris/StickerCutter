@@ -12,7 +12,6 @@
 #include "servo_motor/button.h"
 
 // Timers
-uint64_t old_cycle_time = 0;
 struct repeating_timer servo_timer;
 struct repeating_timer LCD_refresh_timer;
 
