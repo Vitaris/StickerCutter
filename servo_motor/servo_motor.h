@@ -63,7 +63,7 @@ typedef struct servo_motor {
 		BRAKING,
 		POSITION_REACHED
 	} positioning;
-	
+
 	float servo_position;
 	float servo_speed;
 	uint32_t delay_start;
@@ -141,58 +141,6 @@ void servo_goto_delayed(servo_t const servo, const float position, const float s
  * @param speed Movement speed
  */
 void servo_goto(servo_t const servo, const float position, const float speed);
-
-/**
- * @brief Adds a stop position to queue
- * @param servo Servo controller handle
- */
-void add_stop(servo_t servo);
-
-/**
- * @brief Removes first stop from queue
- * @param servo Servo controller handle
- */
-void remove_stop(servo_t servo);
-
-/**
- * @brief Checks if stop point is within braking distance
- * @param servo Servo controller handle
- * @return true if stop is ahead within braking distance
- */
-bool stop_ahead(servo_t const servo);
-
-/**
- * @brief Calculates braking distance at current speed
- * @param servo Servo controller handle
- * @return Distance needed to stop
- */
-float get_breaking_distance(servo_t const servo);
-
-/**
- * @brief Gets distance to next stop point
- * @param servo Servo controller handle
- * @return Distance to next stop or large number if none
- */
-float get_dist_to_stop(servo_t const servo);
-
-/**
- * @brief Sets current position as zero reference
- * @param servo Servo controller handle
- */
-void set_zero(servo_t servo);
-
-/**
- * @brief Sets absolute position value
- * @param servo Servo controller handle
- * @param position New absolute position
- */
-void set_position(servo_t const servo, const float position);
-
-/**
- * @brief Resets all servo controller states
- * @param servo Servo controller handle
- */
-void servo_reset_all(servo_t servo);
 
 /**
  * @brief Handles manual jog control

@@ -26,6 +26,19 @@ float enc2speed(const int32_t enc);
  */
 void next_positon_compute(servo_t servo);
 
+/**
+ * @brief Resets all servo controller states
+ * @param servo Servo controller handle
+ */
+void servo_reset_all(servo_t servo);
+
+/**
+ * @brief Calculates braking distance at current speed
+ * @param servo Servo controller handle
+ * @return Distance needed to stop
+ */
+float get_breaking_distance(servo_t const servo);
+
 servo_t servo_create(const char servo_name[10], const uint pio_ofset, const uint sm, 
                     const uint encoder_pin, const uint pwm_pin, const float scale,
                     button_t *const man_plus, button_t *const man_minus, 
@@ -282,49 +295,12 @@ void servo_manual_handling(servo_t const servo, const float min, const float max
 	}
 }
 
-void add_stop(servo_t servo) {
-	// add stop
-    // servo->stops[servo->no_of_stops] = servo->set_pos + CUT_OFFSET;
-	servo->stops[servo->no_of_stops] = 60.0;
-    servo->no_of_stops++;
-}
-
-void remove_stop(servo_t servo) {
-	for (int i = 0; i < servo->no_of_stops; i++)
-    {   
-        servo->stops[i] = servo->stops[i+1];
-    }
-    servo->no_of_stops--;
-}
-
-bool stop_ahead(servo_t const servo) {
-	return get_breaking_distance(servo) >= get_dist_to_stop(servo) ? true : false;
-}
-
 float get_breaking_distance(servo_t const servo) {
 	return 0.5 * (pow(servo->computed_speed, 2) / servo->current_acc);
 }
 
-float get_dist_to_stop(servo_t const servo) {
-	if (servo->no_of_stops > 0) {
-		return servo->stops[0] - servo->enc_position;
-	} else {
-		return 10000.0; // return big number, far away (~inf)
-	}
-}
-
 void stop_positioning(servo_t const servo) {
 	servo->next_stop = servo->set_pos + get_breaking_distance(servo);
-}
-
-void set_zero(servo_t servo) {}
-
-void set_position(servo_t const servo, const float position) {
-	servo->enc_offset += servo->enc_position - (position / servo->scale);
-	servo->enc_position = position / servo->scale;
-	pid_reset_all(servo->pid_pos);
-	pid_reset_all(servo->pid_vel);
-	servo->set_pos = position;
 }
 
 void servo_reset_all(servo_t servo) {
