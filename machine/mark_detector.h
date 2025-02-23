@@ -66,4 +66,6 @@ bool is_sampling_done(void);
  */
 float get_mark_position(void);
 
+int get_area(void);
+
 #endif

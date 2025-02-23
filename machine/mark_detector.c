@@ -4,15 +4,15 @@
 #include "hardware/adc.h"
 #include "mark_detector.h"
 
-#define MEM_SIZE 200
+#define MEM_SIZE 250
 #define WINDOW_SIZE 10
 #define AVG_SIZE 10
 #define STOP_MEMORY_LENGHT 10
-#define BELLOW_AVG_MIN 40
+#define BELLOW_AVG_MIN 80
 #define VOID_REFLECTIVITY_THRESHOLD 120
 #define INITIAL_MINIMUM_VALUE 0x1000  // 4096 in hex
-#define MIN_SPIKE_AREA 1000    // Minimum valid area
-#define MAX_SPIKE_AREA 5000    // Maximum valid area
+#define MIN_SPIKE_AREA 4000    // Minimum valid area
+#define MAX_SPIKE_AREA 20000    // Maximum valid area
 
 /**
  * @brief Represents a detector configuration structure
@@ -166,7 +166,6 @@ bool is_sampling_done(void) {
     return detector.sampling_done;
 }
 
-
 bool detect_mark() {
     // Evaluate only the samples which have the spike in the middle of the range
     uint16_t index_of_minimum = 0;
@@ -181,7 +180,7 @@ bool detect_mark() {
     if (detector.reflectivity_history[index_of_minimum] > detector.long_term_average - BELLOW_AVG_MIN) {
         return false;
     }
-
+    
     uint16_t tolerance_line = detector.long_term_average - BELLOW_AVG_MIN;
     // Early return if spike is at boundaries
     if (is_spike_at_boundaries(tolerance_line)) {
@@ -221,7 +220,6 @@ bool get_void_absence() {
 
 // Check if spike is at array boundaries
 bool is_spike_at_boundaries(uint16_t tolerance_line) {
-    
     return (detector.reflectivity_history[0] < tolerance_line) || 
            (detector.reflectivity_history[MEM_SIZE - 1] < tolerance_line);
 }
