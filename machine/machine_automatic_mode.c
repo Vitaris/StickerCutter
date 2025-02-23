@@ -163,7 +163,7 @@ void handle_automatic_state(void) {
 // Rolling paper at constant speed
         case PAPER_START_FEED:
             monitor_data.last_stop_position = machine.servo_1->servo_position;
-            servo_goto_delayed(machine.servo_1, FAR_AWAY_DISTANCE, AUTOMAT_SPEED_SLOW, HALF_SECOND_DELAY);
+            servo_goto_delayed(machine.servo_1, FAR_AWAY_DISTANCE, AUTOMAT_SPEED_SCAN, HALF_SECOND_DELAY);
             automatic_substate = PAPER_AWAIT_SPEED;
             break;
 
@@ -194,15 +194,17 @@ void handle_automatic_state(void) {
 // ----------------------------------------------------------------------------------------------------------
 // Mark found, save positions and move to next step
         case DETECT_MARK_FOUND:
-            set_text_10(display.F2_text, "Zn Najdeny");
-            if (monitor_data.sticker_dimensions_set) {
-                automatic_substate = CUT_STOP_AT_MARK;
-            } else {
-                if (monitor_data.first_mark_position == 0) {
+        if (monitor_data.sticker_dimensions_set) {
+            automatic_substate = CUT_STOP_AT_MARK;
+        } else {
+            if (monitor_data.first_mark_position == 0) {
+                    set_text_10(display.F2_text, "  Zn 1 OK");
                     automatic_substate = LEARN_FIRST_MARK;
                 } else if (monitor_data.second_mark_position == 0) {
+                    set_text_10(display.F2_text, "  Zn 2 OK");
                     automatic_substate = LEARN_SECOND_MARK;
                 } else if (monitor_data.third_mark_position == 0) {
+                    set_text_10(display.F2_text, "  Zn 3 OK");
                     automatic_substate = LEARN_THIRD_MARK; }
             }
             break;
@@ -269,7 +271,7 @@ void handle_automatic_state(void) {
             
         case CUT_BEGIN_SEQUENCE:
             if (machine.servo_0->positioning == IDLE) {
-                servo_goto_delayed(machine.servo_0, machine.paper_mark_position - 50.0, AUTOMAT_SPEED_NORMAL, HALF_SECOND_DELAY);
+                servo_goto_delayed(machine.servo_0, machine.paper_mark_position - 50.0, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
                 automatic_substate = CUT_REACH_EDGE;
 
             }
@@ -277,8 +279,8 @@ void handle_automatic_state(void) {
 
         case CUT_REACH_EDGE:
             if (machine.servo_0->positioning == IDLE) {
-                // knife_down();
-                servo_goto_delayed(machine.servo_0, machine.paper_begin_position - SENSOR_KNIFE_OFFSET_X + CUTTING_OVERLAP, AUTOMAT_SPEED_NORMAL, HALF_SECOND_DELAY);
+                knife_down();
+                servo_goto_delayed(machine.servo_0, machine.paper_begin_position - SENSOR_KNIFE_OFFSET_X + CUTTING_OVERLAP, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
                 automatic_substate = CUT_RETURN_CENTER;
             }
             break;
@@ -293,8 +295,8 @@ void handle_automatic_state(void) {
 
         case CUT_FINISH_SEQUENCE:
             if (machine.servo_0->positioning == IDLE) {
-                // knife_down();
-                servo_goto_delayed(machine.servo_0, machine.paper_end_position - SENSOR_KNIFE_OFFSET_X - CUTTING_OVERLAP, AUTOMAT_SPEED_NORMAL, HALF_SECOND_DELAY);
+                knife_down();
+                servo_goto_delayed(machine.servo_0, machine.paper_end_position - SENSOR_KNIFE_OFFSET_X - CUTTING_OVERLAP, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
                 automatic_substate = PREP_NEXT_CYCLE;
             }
             break;
