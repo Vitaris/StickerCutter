@@ -31,14 +31,4 @@ void handle_manual_state();
  */
 void handle_homing_state(void);
 
-/**
- * @brief Handles the parameter setting sequence
- * @details Guides the user through setting up paper parameters:
- * 1. Paper beginning position
- * 2. Registration mark position
- * 3. Paper end position
- * Updates display and handles user inputs during the process
- */
-void handle_params_state(void);
-
 #endif // MACHINE_MANUAL_MODE_H

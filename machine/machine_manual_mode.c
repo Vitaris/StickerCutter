@@ -29,16 +29,6 @@ typedef enum {
 } homing_substate_t;
 
 /**
- * @brief Defines the substates for parameter setting sequence
- */
-typedef enum {
-    PARAMS_IDLE,          // Initial state, waiting for parameter setting to begin
-    PARAMS_PAPER_BEGIN,   // Setting the starting position of the paper
-    PARAMS_PAPER_MARK,    // Setting the position of the registration mark
-    PARAMS_PAPER_END,     // Setting the end position of the paper
-} params_substate_t;
-
-/**
  * @brief Current substate in manual operation mode.
  * 
  * Stores the current substate of the machine when operating in manual mode.
@@ -54,26 +44,10 @@ manual_substate_t manual_substate;
 homing_substate_t homing_substate;
  
 /**
- * @brief Enumeration for parameter substates in manual mode.
- * 
- * This variable maintains the current substate of parameter settings
- * during manual operation mode of the machine.
- */
-params_substate_t params_substate;
-
-/**
  * @brief Activates homing operation mode
  * @details Sets the machine state to HOMING and initializes homing substate
  */
 void activate_homing_state(void);
-
-/**
- * @brief Activates parameter setting mode
- * @details Sets the machine state to PARAMS and initializes the parameter setting substate
- */
-void activate_params_state(void);
-
-
 
 void activate_manual_state(void) {
     manual_substate = MANUAL_READY;
@@ -109,13 +83,7 @@ void handle_manual_state(void) {
                     set_text_10(display.F2_text, "");
                 }
             }
-            else if (!machine.params_ready) {
-                set_text_10(display.F2_text, " Parametre");
-                if (machine.F2->state_raised) {
-                    activate_params_state();
-                }
-            }
-            else if (machine.homed && machine.params_ready) {
+            else {
                 set_text_10(display.F2_text, "   Automat");
                 if (machine.F2->state_raised) {
                     activate_automatic_state();
@@ -187,65 +155,6 @@ void handle_homing_state(void) {
     }
 }
 
-void handle_params_state(void) {
-    set_text_10(display.F1_text, "Stop");
-
-    if (machine.F1->state_raised) {
-        machine.state = MANUAL;
-        return;
-    }
-
-    switch(params_substate) {
-        case PARAMS_IDLE:
-            set_text_20(display.state_text_1, "Nastavenie papiera");
-            set_text_10(display.F2_text, "Start");
-            if (machine.F2->state_raised) {
-                params_substate = PARAMS_PAPER_BEGIN;
-            }
-            break;
-
-        case PARAMS_PAPER_BEGIN:
-            // Force value for debugging
-            machine.paper_begin_position = -40.0;
-            machine.paper_mark_position = -71.0;
-            machine.paper_end_position = -1370.0 + machine.paper_begin_position; // Paper width 1370
-            machine.params_ready = true;
-            activate_manual_state();
-            // delete when finished
-
-            set_text_20(display.state_text_1, "Nastav zaciatok pap.");
-            set_text_10(display.F2_text, "Zaciatok");
-            if (machine.F2->state_raised) {
-                machine.paper_begin_position = machine.servo_0->servo_position;
-                params_substate = PARAMS_PAPER_MARK;
-            }
-            break;
-
-        case PARAMS_PAPER_MARK:
-            set_text_20(display.state_text_1, "Nastav znacku");
-            set_text_10(display.F2_text, "Znacka");
-            if (machine.F2->state_raised) {
-                machine.paper_mark_position = machine.servo_0->servo_position;
-                params_substate = PARAMS_PAPER_END;
-            }
-            break;
-
-        case PARAMS_PAPER_END:
-            set_text_20(display.state_text_1, "Nastav koniec pap.");
-            set_text_10(display.F2_text, "Koniec");
-
-            if (machine.F2->state_raised) {
-                machine.paper_end_position = machine.servo_0->servo_position;
-                machine.params_ready = true;
-                activate_manual_state();
-            }
-            break;
-    }
-
-    // Handle servo control to set paper parameters
-    servo_manual_handling(machine.servo_0, -1500, 20, machine.homed);
-}
-
 /**
  * @brief Activates the homing sequence state for the machine.
  * 
@@ -257,15 +166,4 @@ void handle_params_state(void) {
 void activate_homing_state(void) {
     manual_substate = HOMING_START;
     machine.state = HOMING;
-}
-
-/**
- * @brief Activates the parameter state in manual mode.
- * 
- * This function transitions the machine into the parameter configuration state
- * where manual adjustments to machine parameters can be made.
- */
-void activate_params_state(void) {
-    params_substate = PARAMS_IDLE;
-    machine.state = PARAMS;
 }
