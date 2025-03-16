@@ -81,7 +81,6 @@ void machine_compute(void) {
     switch(machine.state) {
         case MANUAL:    handle_manual_state(); break;
         case HOMING:    handle_homing_state(); break;
-        case PARAMS:    handle_params_state(); break;
         case AUTOMAT:   handle_automatic_state(); break;
         case FAILURE:   handle_failure_state(); break;
     }

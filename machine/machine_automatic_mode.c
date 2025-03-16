@@ -132,7 +132,7 @@ void handle_automatic_state(void) {
     // Handle automatic state transitions
     switch(automatic_substate) {
         case IDLE_A:
-            set_text_10(display.F2_text, "Start");
+            set_text_10(display.F2_text, "    Start ");
             if (machine.F2->state_raised) {
                 automatic_substate = MARK_SEEK_START;
             }
@@ -280,7 +280,7 @@ void handle_automatic_state(void) {
         case CUT_REACH_EDGE:
             if (machine.servo_0->positioning == IDLE) {
                 knife_down();
-                servo_goto_delayed(machine.servo_0, machine.paper_begin_position - SENSOR_KNIFE_OFFSET_X + CUTTING_OVERLAP, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
+                servo_goto_delayed(machine.servo_0, POSITION_EDGE_RIGHT, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
                 automatic_substate = CUT_RETURN_CENTER;
             }
             break;
@@ -296,7 +296,7 @@ void handle_automatic_state(void) {
         case CUT_FINISH_SEQUENCE:
             if (machine.servo_0->positioning == IDLE) {
                 knife_down();
-                servo_goto_delayed(machine.servo_0, machine.paper_end_position - SENSOR_KNIFE_OFFSET_X - CUTTING_OVERLAP, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
+                servo_goto_delayed(machine.servo_0, POSITION_EDGE_LEFT, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
                 automatic_substate = PREP_NEXT_CYCLE;
             }
             break;

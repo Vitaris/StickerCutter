@@ -19,6 +19,8 @@
 #define FAR_AWAY_DISTANCE 1000.0
 #define CUTTING_OVERLAP 10.0
 #define CUTTING_OVERLAP 10.0
+#define POSITION_EDGE_RIGHT -45.0
+#define POSITION_EDGE_LEFT -1480.0
 
 typedef enum {
 	MANUAL,
@@ -51,9 +53,7 @@ typedef struct {
 
 	// Cutter
 	bool params_ready;
-	float paper_begin_position;
 	float paper_mark_position;
-	float paper_end_position;
 } machine_t; 
 
 /**
