@@ -25,10 +25,6 @@ typedef struct {
     float last_stop_position;             // Last known position of the cutting head
 } marks_monitor_t;
 
-/**
- * @brief States for the automatic cutting mode state machine
- * Controls the sequence of operations from mark detection to cutting
- */
 typedef enum {
     IDLE_A,                           // Waiting for start command
     
@@ -71,40 +67,17 @@ typedef enum {
     COMPLETE                     // Cycle complete
 } automatic_substate_t;
 
-/**
- * @brief Represents the current substate in automatic operation mode
- * 
- * This variable holds the state within the automatic operation mode,
- * tracking different phases of the automated process.
- * The possible values are defined in the automatic_substate_t enum.
- */
-automatic_substate_t automatic_substate;
 
-/**
- * @brief Data structure for monitoring marking device activities and status
- * 
- * This structure stores real-time monitoring information related to the
- * marking operations, including status flags, counters, and sensor data
- * for the automatic mode of the machine.
- */
+automatic_substate_t automatic_substate;
 marks_monitor_t monitor_data;
 
-/**
- * @brief Stops the knife operation when a cut mark is detected
- * 
- * This function handles the automatic stopping of the knife mechanism when
- * a cut mark is encountered during the scanning process.
- */
-void stop_knife_on_mark(void);
+void stop_knife_on_mark(void) {
+    machine.servo_1->next_stop = (get_mark_position() + SENSOR_KNIFE_OFFSET_Y) / machine.servo_1->scale;
+}
 
-/**
- * @brief Stops the knife between marks during automatic operation
- * 
- * This function handles the stopping of the knife between marking points
- * in the automatic cutting mode. It ensures the knife stops at the correct
- * position between material marks.
- */
-void stop_knife_between_marks(void);
+void stop_knife_between_marks(void) {
+    machine.servo_1->next_stop = (get_mark_position() + SENSOR_KNIFE_OFFSET_Y + (monitor_data.mark_distance / 2.0)) / machine.servo_1->scale;
+}
 
 void activate_automatic_state() {
     machine.state = AUTOMAT;
@@ -322,12 +295,4 @@ void handle_automatic_state(void) {
             automatic_substate = IDLE_A;
             break;
     }
-}
-
-void stop_knife_on_mark(void) {
-    machine.servo_1->next_stop = (get_mark_position() + SENSOR_KNIFE_OFFSET_Y) / machine.servo_1->scale;
-}
-
-void stop_knife_between_marks(void) {
-    machine.servo_1->next_stop = (get_mark_position() + SENSOR_KNIFE_OFFSET_Y + (monitor_data.mark_distance / 2.0)) / machine.servo_1->scale;
 }
