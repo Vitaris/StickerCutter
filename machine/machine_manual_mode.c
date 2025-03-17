@@ -9,17 +9,11 @@
 #include "mark_detector.h"
 #include "../lcd/display_20x4.h"
 
-/**
- * @brief Defines the substates for manual operation mode
- */
 typedef enum {
     MANUAL_IDLE,      // Motors disabled, waiting for enable command
     MANUAL_READY,     // Motors enabled, ready for operations
 } manual_substate_t;
 
-/**
- * @brief Defines the substates for homing operation sequence
- */
 typedef enum {
     HOMING_START,             // Preparing to start homing sequence
     HOMING_SCANNING,          // Moving servo while scanning for home position
@@ -28,26 +22,13 @@ typedef enum {
     HOMING_FINISHED          // Homing sequence completed
 } homing_substate_t;
 
-/**
- * @brief Current substate in manual operation mode.
- * 
- * Stores the current substate of the machine when operating in manual mode.
- */
 manual_substate_t manual_substate;
-
-/**
- * @brief Enumeration variable tracking the sub-state during the homing operation.
- * 
- * This variable maintains the current sub-state of the homing sequence, allowing
- * the machine to track its progress through the various stages of the homing procedure.
- */
 homing_substate_t homing_substate;
- 
-/**
- * @brief Activates homing operation mode
- * @details Sets the machine state to HOMING and initializes homing substate
- */
-void activate_homing_state(void);
+
+void activate_homing_state(void) {
+    manual_substate = HOMING_START;
+    machine.state = HOMING;
+}
 
 void activate_manual_state(void) {
     manual_substate = MANUAL_READY;
@@ -153,17 +134,4 @@ void handle_homing_state(void) {
             activate_manual_state();
             break;
     }
-}
-
-/**
- * @brief Activates the homing sequence state for the machine.
- * 
- * This function initiates the homing state, which is responsible for
- * moving all axes to their respective home positions (reference points).
- * The homing sequence is a crucial operation that establishes the 
- * machine's coordinate system.
- */
-void activate_homing_state(void) {
-    manual_substate = HOMING_START;
-    machine.state = HOMING;
 }
