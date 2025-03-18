@@ -14,12 +14,6 @@
 #define MIN_SPIKE_AREA 4000    // Minimum valid area
 #define MAX_SPIKE_AREA 20000    // Maximum valid area
 
-/**
- * @brief Represents a detector configuration structure
- * 
- * This structure holds configuration parameters and state information
- * for mark detection functionality.
- */
 typedef struct {
     uint16_t buffer[WINDOW_SIZE];
     uint8_t index;
@@ -45,66 +39,74 @@ typedef struct {
 
  detector_t detector;
 
-/**
- * @brief Initializes a moving average filter.
- * 
- * @param filter Pointer to the moving average filter structure to be initialized.
- * 
- * This function initializes all the necessary components of a moving average filter,
- * preparing it for use in signal processing. It should be called before the filter
- * is used for the first time.
- */
-void init_moving_average_filter(moving_average_filter_t* filter);
+ void init_moving_average_filter(moving_average_filter_t* filter) {
+    memset(filter->buffer, 0, sizeof(filter->buffer));
+    filter->index = 0;
+    filter->sum = 0;
+    filter->buffer_full = false;
+}
 
-/**
- * @brief Computes a moving average by adding a new value to the filter
- * 
- * @param filter Pointer to the moving average filter structure
- * @param new_value New value to be added to the moving average calculation
- * @return uint16_t The computed moving average value
- */
-uint16_t moving_average_compute(moving_average_filter_t* filter, uint16_t new_value);
+uint16_t moving_average_compute(moving_average_filter_t* filter, uint16_t new_value) {
+    // Subtract oldest value from sum
+    filter->sum -= filter->buffer[filter->index];
+    
+    // Add new value
+    filter->buffer[filter->index] = new_value;
+    filter->sum += new_value;
+    
+    // Update index
+    filter->index = (filter->index + 1) % WINDOW_SIZE;
+    if (filter->index == 0) {
+        filter->buffer_full = true;
+    }
+    
+    // Calculate and return average
+    uint8_t divisor = filter->buffer_full ? WINDOW_SIZE : filter->index;
+    if (divisor == 0) divisor = 1;  // Prevent division by zero
+    
+    return (uint16_t)(filter->sum / divisor);
+}
 
-/**
- * @brief Checks if there is a spike signal at the sensor boundaries
- * 
- * @param tolerance_line The tolerance level threshold for spike detection
- * @return true If a spike is detected at the boundaries
- * @return false If no spike is detected at the boundaries
- */
-bool is_spike_at_boundaries(uint16_t tolerance_line);
+bool is_spike_at_boundaries(uint16_t tolerance_line) {
+    return (detector.reflectivity_history[0] < tolerance_line) || 
+           (detector.reflectivity_history[MEM_SIZE - 1] < tolerance_line);
+}
 
-/**
- * @brief Finds the index of the minimum value in a data array
- * 
- * @param[out] index_of_minimum Pointer to store the index of the minimum value
- * 
- * @note The data array and its size are expected to be handled internally
- *       within the function implementation
- */
-void find_min(uint16_t *index_of_minimum);
+void find_min(uint16_t *index_of_minimum) {
+    uint16_t minimum = INITIAL_MINIMUM_VALUE;    // init minimum far above the possible value 
 
-/**
- * @brief Updates the long-term average reflectivity value
- * 
- * @param new_value New reflectivity value to incorporate
- * 
- * Uses exponential moving average with alpha factor to smooth out readings
- * and maintain a baseline reference for mark detection.
- */
-static void update_long_term_average(uint16_t new_value);
+    // Find the minimum and maximum value in a given range of data
+    for (uint16_t i = 0; i < MEM_SIZE; i++) {
+        if (detector.reflectivity_history[i] < minimum) {
+            minimum = detector.reflectivity_history[i];
+            *index_of_minimum = i;
+        }
+    }
+}
 
+static void update_long_term_average(uint16_t new_value) {
+    if (detector.long_term_average == 0) {
+        detector.long_term_average = new_value;
+    } else {
+        detector.long_term_average = (uint16_t)(
+            detector.long_term_alpha * new_value + 
+            (1.0f - detector.long_term_alpha) * detector.long_term_average
+        );
+    }
+}
 
-/**
- * @brief Calculates the area of a reflectivity spike
- * 
- * @param tolerance_line The threshold value for spike detection
- * @return uint32_t The calculated area below the tolerance line
- * 
- * Area calculation helps validate if detected mark has expected characteristics
- */
-static uint32_t calculate_spike_area(uint16_t tolerance_line);
+static uint32_t calculate_spike_area(uint16_t tolerance_line) {
+    uint32_t area = 0;
 
+    // Sum the differences from tolerance line
+    for (int i = 0; i < MEM_SIZE; i++) {
+        if (detector.reflectivity_history[i] < tolerance_line) {
+            area += (tolerance_line - detector.reflectivity_history[i]);
+        }
+    }
+
+    return area;
+}
 
 void init_detector(const uint8_t sensor_pin, 
                   float* const feeder_pos,
@@ -198,18 +200,6 @@ bool detect_mark() {
     return true;
 }
 
-void find_min(uint16_t *index_of_minimum) {
-    uint16_t minimum = INITIAL_MINIMUM_VALUE;    // init minimum far above the possible value 
-
-    // Find the minimum and maximum value in a given range of data
-    for (uint16_t i = 0; i < MEM_SIZE; i++) {
-        if (detector.reflectivity_history[i] < minimum) {
-            minimum = detector.reflectivity_history[i];
-            *index_of_minimum = i;
-        }
-    }
-}
-
 bool get_void_presence() {
     return detector.reflectivity_history[0] < VOID_REFLECTIVITY_THRESHOLD;
 }
@@ -218,64 +208,6 @@ bool get_void_absence() {
     return detector.reflectivity_history[0] > VOID_REFLECTIVITY_THRESHOLD;
 }
 
-// Check if spike is at array boundaries
-bool is_spike_at_boundaries(uint16_t tolerance_line) {
-    return (detector.reflectivity_history[0] < tolerance_line) || 
-           (detector.reflectivity_history[MEM_SIZE - 1] < tolerance_line);
-}
-
-void init_moving_average_filter(moving_average_filter_t* filter) {
-    memset(filter->buffer, 0, sizeof(filter->buffer));
-    filter->index = 0;
-    filter->sum = 0;
-    filter->buffer_full = false;
-}
-
-uint16_t moving_average_compute(moving_average_filter_t* filter, uint16_t new_value) {
-    // Subtract oldest value from sum
-    filter->sum -= filter->buffer[filter->index];
-    
-    // Add new value
-    filter->buffer[filter->index] = new_value;
-    filter->sum += new_value;
-    
-    // Update index
-    filter->index = (filter->index + 1) % WINDOW_SIZE;
-    if (filter->index == 0) {
-        filter->buffer_full = true;
-    }
-    
-    // Calculate and return average
-    uint8_t divisor = filter->buffer_full ? WINDOW_SIZE : filter->index;
-    if (divisor == 0) divisor = 1;  // Prevent division by zero
-    
-    return (uint16_t)(filter->sum / divisor);
-}
-
 float get_mark_position(void) {
     return detector.mark_position;
-}
-
-static uint32_t calculate_spike_area(uint16_t tolerance_line) {
-    uint32_t area = 0;
-
-    // Sum the differences from tolerance line
-    for (int i = 0; i < MEM_SIZE; i++) {
-        if (detector.reflectivity_history[i] < tolerance_line) {
-            area += (tolerance_line - detector.reflectivity_history[i]);
-        }
-    }
-
-    return area;
-}
-
-static void update_long_term_average(uint16_t new_value) {
-    if (detector.long_term_average == 0) {
-        detector.long_term_average = new_value;
-    } else {
-        detector.long_term_average = (uint16_t)(
-            detector.long_term_alpha * new_value + 
-            (1.0f - detector.long_term_alpha) * detector.long_term_average
-        );
-    }
 }
