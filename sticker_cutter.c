@@ -33,10 +33,10 @@ void core1_entry() {
             // int2LCD(display.lcd, 10, 0, 10, detector.average); 
             // int2LCD(display.lcd, 10, 1, 10, detector.current_reflectivity); 
 
-            float2LCD(display.lcd, 0, 2, 8, machine.servo_0->servo_position);
+            float2LCD(display.lcd, 0, 2, 8, servo_get_position(machine.servo_0));
             string2LCD(display.lcd, 8, 2, "mm");
             
-            float2LCD(display.lcd, 10, 2, 8, machine.servo_1->servo_position);
+            float2LCD(display.lcd, 10, 2, 8, servo_get_position(machine.servo_1));
             string2LCD(display.lcd, 18, 2, "mm");
 
             string2LCD(display.lcd, 0, 3, display.F1_text);
