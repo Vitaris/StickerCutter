@@ -32,8 +32,8 @@ typedef enum {
 
 typedef struct {
 	// Servo motors
-	servo_t servo_0;
-	servo_t servo_1;
+	servo_t* servo_0;
+	servo_t* servo_1;
 
 	// Buttons
 	button_t F1;
