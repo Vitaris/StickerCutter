@@ -22,83 +22,7 @@
 #define MANUAL_NORMAL 150.0
 #define MANUAL_FAST 200.0
 
-typedef struct servo_motor {
-	// Encoder
-	uint sm;
-	int32_t enc_old;
-
-	// PWM
-	uint pwm_slice;
-	
-	// PID
-	// Position
-	pidc_t pid_pos;
-	float enc_position;
-	float out_pos;
-	float set_pos;
-
-	// PID
-	// Velocity
-	pidc_t pid_vel;
-	float enc_speed;
-	float out_vel;
-	float set_vel;
-
-	// Error handling
-	bool *error; // Pointer to bool
-	char (*error_message)[21]; // Error message
-	bool pos_error_internal;
-
-	// Feeder controller
-	float stops[10];
-	float next_stop;
-	uint8_t no_of_stops;
-
-	// Controller state
-	char servo_name[10];
-
-	// Servo controler
-	enum positioning{
-		IDLE,
-		REQUESTED,
-		ACCELERATING,
-		BRAKING,
-		POSITION_REACHED
-	} positioning;
-
-	float servo_position;
-	float servo_speed;
-	uint32_t delay_start;
-	uint32_t delay_finish;
-	bool *enable;
-	bool enable_previous;
-	float computed_speed;
-	bool positive_direction;
-	bool set_zero;
-	bool nominal_speed_reached;
-	float enc_offset;
-
-	// Default movement
-	float nominal_speed; 	// Desired motor speed
-	float nominal_acc;		// Motor acceleration
-	float current_speed; 	// Desired motor speed
-	float current_acc;		// Motor acceleration
-	float scale;			// Scale factor of the servo motor
-
-	/**
-	 * @brief Error code variable
-	 * 
-	 * @note 01 - following error
-	 * @note 02 - max position overrun
-	 * @note 03 - min position overrun
-	 */
-	uint8_t error_code;
-
-	// Manual control
-	button_t *man_plus;
-	button_t *man_minus;
-
-} * servo_t;
+typedef struct servo_motor servo_t;
 
 /**
  * @brief Creates and initializes a new servo motor controller
@@ -116,7 +40,7 @@ typedef struct servo_motor {
  * @param message Error message buffer
  * @return Initialized servo controller handle
  */
-servo_t servo_create(const char servo_name[10], const uint pio_ofset, const uint sm, 
+servo_t* servo_create(const char servo_name[10], const uint pio_ofset, const uint sm, 
 					const uint encoder_pin, const uint pwm_pin, const float scale,
 					button_t *const man_plus, button_t *const man_minus, 
 					bool *const enable, bool *const error, char (*const message)[21]);
@@ -125,7 +49,7 @@ servo_t servo_create(const char servo_name[10], const uint pio_ofset, const uint
  * @brief Main servo computation function, called in 1ms loop
  * @param servo Servo controller handle
  */
-void servo_compute(servo_t servo);
+void servo_compute(servo_t* const servo);
 
 /**
  * @brief Commands servo movement with start delay
@@ -134,7 +58,7 @@ void servo_compute(servo_t servo);
  * @param speed Movement speed
  * @param delay Start delay in milliseconds
  */
-void servo_goto_delayed(servo_t const servo, const float position, const float speed, const uint32_t delay);
+void servo_goto_delayed(servo_t* const servo, const float position, const float speed, const uint32_t delay);
 
 /**
  * @brief Commands immediate servo movement
@@ -142,7 +66,7 @@ void servo_goto_delayed(servo_t const servo, const float position, const float s
  * @param position Target position
  * @param speed Movement speed
  */
-void servo_goto(servo_t const servo, const float position, const float speed);
+void servo_goto(servo_t* const servo, const float position, const float speed);
 
 /**
  * @brief Handles manual jog control
@@ -151,12 +75,62 @@ void servo_goto(servo_t const servo, const float position, const float speed);
  * @param max Maximum position limit
  * @param homed True if home position is set
  */
-void servo_manual_handling(servo_t const servo, const float min, const float max, const bool homed);
+void servo_manual_handling(servo_t* const servo, const float min, const float max, const bool homed);
 
 /**
  * @brief Commands servo to stop with controlled deceleration
  * @param servo Servo controller handle
  */
-void stop_positioning(servo_t const servo);
+void servo_stop_positioning(servo_t* const servo);
+
+/**
+ * @brief Gets the current position of the servo
+ * @param servo Servo controller handle
+ * @return Current position in user units
+ */
+float servo_get_position(const servo_t* const servo);
+
+/**
+ * @brief Gets a pointer to the servo's position variable
+ * @param servo Servo controller handle
+ * @return Pointer to position value in user units
+ */
+float* servo_get_position_pointer(servo_t* const servo);
+
+/**
+ * @brief Checks if servo is in idle state
+ * @param servo Servo controller handle
+ * @return true if servo is idle, false otherwise
+ */
+bool servo_is_idle(const servo_t* const servo);
+
+/**
+ * @brief Checks if servo is in acceleration phase
+ * @param servo Servo controller handle
+ * @return true if servo is accelerating, false otherwise
+ */
+bool servo_is_accelerating(const servo_t* const servo);
+
+/**
+ * @brief Checks if target position has been reached
+ * @param servo Servo controller handle
+ * @return true if position reached, false otherwise
+ */
+bool servo_is_position_reached(const servo_t* const servo);
+
+/**
+ * @brief Sets the target stop position without starting movement
+ * @param servo Servo controller handle
+ * @param position Target position in user units
+ */
+void servo_set_stop_position(servo_t* const servo, const float position);
+
+/**
+ * @brief Sets current position as zero reference
+ * @param servo Servo controller handle
+ * 
+ * Resets internal position counters and sets current position as new zero point
+ */
+void servo_set_zero_position(servo_t* const servo);
 
 #endif
