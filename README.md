@@ -16,27 +16,4 @@ This project aims to repurpose a non-functional large format printer into a stic
   
 - **Open Source:** This project will be open source and hosted on GitHub, allowing for collaboration, contributions, and improvements from the community.
 
-## PID Setting
-* Speed controler: 
-P = 5.0 
-I = 4.0 
-D = 3.0
-
-* Position controler:
-P = 50.0
-
-## Velky motor - L404
-
-* Red    +5V
-* Black  GND
-* BLue   A - OpenCollector
-* white  B - OpenCollector
-
-
-Maly motor - 
-------------------
-
-* Red    +5V
-* Black  GND
-* Green  A - OpenCollector
-* white  B - OpenCollector
+[![Cutter in Action](https://github.com/Vitaris/StickerCutter/blob/main/yt_video.png)](https://www.youtube.com/watch?v=yO32YbOaKHE)
