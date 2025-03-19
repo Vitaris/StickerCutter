@@ -33,7 +33,6 @@ struct servo_motor {
 	bool pos_error_internal;
 
 	// Feeder controller
-	float stops[10];
 	float next_stop;
 
 	// Controller state
@@ -51,7 +50,6 @@ struct servo_motor {
 	float servo_position;
 	float servo_speed;
 	uint32_t delay_start;
-	uint32_t delay_finish;
 	bool *enable;
 	bool enable_previous;
 	float computed_speed;
@@ -67,19 +65,9 @@ struct servo_motor {
 	float current_acc;		// Motor acceleration
 	float scale;			// Scale factor of the servo motor
 
-	/**
-	 * @brief Error code variable
-	 * 
-	 * @note 01 - following error
-	 * @note 02 - max position overrun
-	 * @note 03 - min position overrun
-	 */
-	uint8_t error_code;
-
 	// Manual control
 	button_t *man_plus;
 	button_t *man_minus;
-
 };
 
 /**
@@ -95,19 +83,19 @@ void _servo_goto(servo_t* const servo, const float position, const float speed);
  * @param enc_diff Encoder tick difference
  * @return Speed in revolutions per second
  */
-float enc2speed(const int32_t enc);
+float enc2speed(const int32_t enc_diff);
 
 /**
  * @brief Computes next position in motion profile
  * @param servo Servo controller handle
  */
-void next_positon_compute(servo_t* servo);
+void next_positon_compute(servo_t* const servo);
 
 /**
  * @brief Resets all servo controller states
  * @param servo Servo controller handle
  */
-void servo_reset_all(servo_t* servo);
+void servo_reset_all(servo_t* const servo);
 
 /**
  * @brief Calculates braking distance at current speed
@@ -153,14 +141,6 @@ servo_t* servo_create(const char servo_name[10], const uint pio_ofset, const uin
 	servo->enc_offset = 0.0;
 	servo->set_zero = false;
 
-	/**
-	 * @brief Error code variable
-	 * 
-	 * @note 01 - following error
-	 * @note 02 - max position overrun
-	 * @note 03 - min position overrun
-	 */
-	
 	// Buttons 
 	servo->man_plus = man_plus;
 	servo->man_minus = man_minus;
@@ -260,7 +240,7 @@ void _servo_goto(servo_t* const servo, const float position, const float speed) 
 	servo->positioning = REQUESTED;
 }
 
-void next_positon_compute(servo_t* servo) {
+void next_positon_compute(servo_t* const servo) {
 	switch(servo->positioning) {
         case IDLE:
 			servo->nominal_speed_reached = false;
@@ -368,7 +348,7 @@ void servo_stop_positioning(servo_t* const servo) {
 	servo->next_stop = servo->set_pos + get_breaking_distance(servo);
 }
 
-void servo_reset_all(servo_t* servo) {
+void servo_reset_all(servo_t* const servo) {
 	pid_reset_all(servo->pid_pos);
 	pid_reset_all(servo->pid_vel);
 	*servo->pid_vel->output = 0.0;
