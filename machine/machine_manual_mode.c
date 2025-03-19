@@ -97,7 +97,7 @@ void handle_homing_state(void) {
     // Handle state transitions
     switch(homing_substate) {
         case HOMING_START:
-            if (machine.servo_0->positioning == IDLE) {
+            if (servo_is_idle(machine.servo_0)) {
                 servo_goto_delayed(machine.servo_0, 2000.0, 100.0, HALF_SECOND_DELAY);
                 homing_substate = HOMING_SCANNING;
             }
@@ -111,20 +111,20 @@ void handle_homing_state(void) {
             break;
 
         case HOMING_FOUND:
-            if (machine.servo_0->positioning == ACCELERATING) {
-                stop_positioning(machine.servo_0);
+            if (servo_is_accelerating(machine.servo_0)) {
+                servo_stop_positioning(machine.servo_0);
             }
-            else if (machine.servo_0->positioning == POSITION_REACHED) {
+            else if (servo_is_position_reached(machine.servo_0)) {
                 homing_substate = HOMING_RETURN_TO_ZERO;
             }
             break;
 
         case HOMING_RETURN_TO_ZERO:
-            if (machine.servo_0->positioning == IDLE) {
-                machine.servo_0->set_zero = true;
+            if (servo_is_idle(machine.servo_0)) {
+                servo_set_zero_position(machine.servo_0);
                 servo_goto_delayed(machine.servo_0, -50.0, 100.0, HALF_SECOND_DELAY);
             }
-            else if (machine.servo_0->positioning == POSITION_REACHED) {
+            else if (servo_is_position_reached(machine.servo_0)) {
                 homing_substate = HOMING_FINISHED;
             }
             break;
