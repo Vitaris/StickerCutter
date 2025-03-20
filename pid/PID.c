@@ -1,10 +1,31 @@
 #include "PID.h"
 #include <stdlib.h>
 
-pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float kd)
+static const float PID_OUT_MIN = -1024.0f;
+static const float PID_OUT_MAX = 1024.0f;
+static const float PID_ITERM_MIN = -1024.0f;
+static const float PID_ITERM_MAX = 1024.0f;
+
+struct pid_data {
+	// Input, output and setpoint
+	float * input; 		// Current Process Value
+	float * output; 	// Corrective Output from PID Controller
+	float * setpoint; 	// Controller Setpoint
+	
+	// Tuning parameters
+	float Kp; 			// Stores the gain for the Proportional term
+	float Ki; 			// Stores the gain for the Integral term
+	float Kd;			// Stores the gain for the Derivative term
+
+	float iterm; 		// Accumulator for integral term
+	float lastin; 		// Last input value for differential term
+	
+	bool error; 		// Error flag
+};
+
+pid_data_t* pid_create(float* in, float* out, float* set, float kp, float ki, float kd)
 {
-	// Create PID data structure
-	pidc_t pid = (pidc_t)malloc(sizeof(struct pid_controller));
+	pid_data_t* pid = calloc(1, sizeof(struct pid_data));
 
 	// Initialize PID data structure by given parameters
 	pid->input = in;
@@ -14,20 +35,11 @@ pidc_t pid_create(float* in, float* out, float* set, float kp, float ki, float k
 	pid->Kp = kp;
 	pid->Ki = ki;
 	pid->Kd = kd;
-
-	pid->iterm = 0;
-
-	// Set default limits
-	pid_limits(pid, -1024, 1024);
-
-	// Error
-	pid->error = false;
 		
 	return pid;
 }
 
-
-void pid_compute(pidc_t pid)
+void pid_compute(pid_data_t* const pid)
 {
 	float in = *(pid->input);
 	// Compute error
@@ -35,49 +47,43 @@ void pid_compute(pidc_t pid)
 
 	// Compute integral
 	pid->iterm += (pid->Ki * error);
-	if (pid->iterm > pid->omax) {
-		pid->iterm = pid->omax;
+
+	// Apply limit to integral value
+	if (pid->iterm > PID_ITERM_MAX) {
+		pid->iterm = PID_ITERM_MAX;
+		pid->error = true;
+	} else if (pid->iterm < PID_ITERM_MIN) {
+		pid->iterm = PID_ITERM_MIN;
 		pid->error = true;
 	}
-	else if (pid->iterm < pid->omin) {
-		pid->iterm = pid->omin;
-		pid->error = true;
-	}
+
 	// Compute differential on input
 	float dinput = in - pid->lastin;
+
 	// Compute PID output
 	float out = pid->Kp * error + pid->iterm - pid->Kd * dinput;
+
 	// Apply limit to output value
-	if (out > pid->omax)
-		out = pid->omax;
-	else if (out < pid->omin)
-		out = pid->omin;
+	if (out > PID_OUT_MAX) {
+		out = PID_OUT_MAX;
+	} else if (out < PID_OUT_MIN) {
+		out = PID_OUT_MIN;
+	}
+	
 	// Output to pointed variable
 	(*pid->output) = out;
+
 	// Keep track of some variables for next execution
 	pid->lastin = in;
 }
 
-void pid_limits(pidc_t pid, float min, float max)
-{
-	if (min >= max) return;
-	pid->omin = min;
-	pid->omax = max;
-
-	//Adjust output to new limits
-	if (*(pid->output) > pid->omax)
-		*(pid->output) = pid->omax;
-	else if (*(pid->output) < pid->omin)
-		*(pid->output) = pid->omin;
-
-	if (pid->iterm > pid->omax)
-		pid->iterm = pid->omax;
-	else if (pid->iterm < pid->omin)
-		pid->iterm = pid->omin;
-}
-
-void pid_reset_all(pidc_t pid) {
+void pid_reset_all(pid_data_t* const pid) {
 	pid->iterm = 0.0;
+	*pid->output = 0.0;
 	pid->lastin = *(pid->input);
 	pid->error = false;
+}
+
+bool pid_get_error(const pid_data_t* const pid) {
+	return pid->error;
 }

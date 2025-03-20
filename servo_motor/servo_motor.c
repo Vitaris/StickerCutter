@@ -15,14 +15,14 @@ struct servo_motor {
 	
 	// PID
 	// Position
-	pidc_t pid_pos;
+	pid_data_t* pid_pos;
 	float enc_position;
 	float out_pos;
 	float set_pos;
 
 	// PID
 	// Velocity
-	pidc_t pid_vel;
+	pid_data_t* pid_vel;
 	float enc_speed;
 	float out_vel;
 	float set_vel;
@@ -188,7 +188,7 @@ void servo_compute(servo_t* const servo) {
 			*servo->error = true;
 		}
 
-		if (!*servo->error && (servo->pid_pos->error || servo->pid_vel->error)) {
+		if (!*servo->error && (pid_get_error(servo->pid_pos) || pid_get_error(servo->pid_vel))) {
 			strcpy(*servo->error_message, servo->servo_name);
 			strcat(*servo->error_message, ": PID Error");
 			*servo->error = true;
@@ -351,7 +351,6 @@ void servo_stop_positioning(servo_t* const servo) {
 void servo_reset_all(servo_t* const servo) {
 	pid_reset_all(servo->pid_pos);
 	pid_reset_all(servo->pid_vel);
-	*servo->pid_vel->output = 0.0;
 	servo->positioning = IDLE;
 	servo->pos_error_internal = false;
 	servo->computed_speed = 0.0;
