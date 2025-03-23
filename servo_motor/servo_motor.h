@@ -11,17 +11,6 @@
 #include "../pid/PID.h"
 #include "button.h"
 
-#define HALF_SECOND_DELAY 500
-#define MANUAL_SPEED 100.0
-#define AUTOMAT_SPEED_SCAN 15.0
-#define AUTOMAT_SPEED_SLOW 50.0
-#define AUTOMAT_SPEED_MID 100.0
-#define AUTOMAT_SPEED_NORMAL 200.0
-#define AUTOMAT_SPEED_FAST 250.0
-#define AUTOMAT_SPEED_CUT 180.0
-#define MANUAL_NORMAL 150.0
-#define MANUAL_FAST 200.0
-
 typedef struct servo_motor servo_t;
 
 /**
@@ -75,7 +64,7 @@ void servo_goto(servo_t* const servo, const float position, const float speed);
  * @param max Maximum position limit
  * @param homed True if home position is set
  */
-void servo_manual_handling(servo_t* const servo, const float min, const float max, const bool homed);
+void servo_manual_handling(servo_t* const servo, const float min, const float max, const float speed, const bool homed);
 
 /**
  * @brief Commands servo to stop with controlled deceleration
