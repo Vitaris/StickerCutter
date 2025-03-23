@@ -5,40 +5,39 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define BUTTON_DEBOUNCE_TIME 1000
+/** 
+ * @brief Structure representing a physical button
+ * 
+ * Contains the button state and debouncing information
+ */
+typedef struct button button_t;
 
-typedef struct button {
-	uint8_t gpio_pin_num;
-	bool state;
-	bool state_raised;
-	bool state_dropped;
-	bool state_3s_pressed;
+/**
+ * @brief Creates a new button instance
+ * @param gpio_pin_num The GPIO pin number where the button is connected
+ * @return Pointer to the newly created button instance
+ */
+button_t* create_button(const uint8_t gpio_pin_num);
 
-	time_t time_last_changed;
-	time_t time_pressed;
-	time_t time_released;
-} * button_t;
+/**
+ * @brief Updates the button state and handles debouncing
+ * @param button Pointer to the button instance
+ */
+void button_compute(button_t* const button);
 
-#ifdef	__cplusplus
-extern "C" {
-#endif
+/**
+ * @brief Checks if the button was just pressed
+ * @param button Pointer to the button instance
+ * @return true if button was just pressed, false otherwise
+ */
+bool button_raised(button_t* const button);
 
-	/**
-		 * @brief 
-		 *
-		 * @param
-		 * 
-		 * @return Slice number of pwm module
-		 */
-	button_t create_button(uint8_t gpio_pin_num);
-
-	void button_compute(button_t button);
-
-	bool button_change_detection(button_t button, bool current_button_state, int current_time);
-
-#ifdef	__cplusplus
-}
-#endif
+/**
+ * @brief Checks if the button was just released
+ * @param button Pointer to the button instance
+ * @return true if button was just released, false otherwise
+ */
+bool button_dropped(button_t* const button);
 
 #endif
 // End of Header file

@@ -2,13 +2,23 @@
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include <stdlib.h>
-
 #include "button.h"
 
-button_t create_button(uint8_t gpio_pin_num)
+#define BUTTON_DEBOUNCE_TIME 1000
+
+struct button {
+	uint8_t gpio_pin_num;
+	bool state;
+	bool state_raised;
+	bool state_dropped;
+
+	time_t time_pressed;
+	time_t time_released;
+};
+
+button_t* create_button(const uint8_t gpio_pin_num)
 {
-    // Create button data structure
-    button_t button = (button_t)malloc(sizeof(struct button));
+    button_t* button = calloc(1, sizeof(struct button));
 
     // Set button GPIO to be an input
     gpio_init(gpio_pin_num);
@@ -19,7 +29,7 @@ button_t create_button(uint8_t gpio_pin_num)
     return button;
 }
 
-void button_compute(button_t button)
+void button_compute(button_t* const button)
 {
     // Read the button state
     bool current_state = gpio_get(button->gpio_pin_num);
@@ -58,20 +68,12 @@ void button_compute(button_t button)
     button->state = current_state;
 }
 
-// Change detection shold be somehow generalized
-bool button_change_detection(button_t button, bool current_button_state, int current_time)
+bool button_raised(button_t* const button)
 {
-    if (current_button_state != button->state && button->state == true)
-    {
-        // Debounce
-        if (current_time - button->time_released > BUTTON_DEBOUNCE_TIME)
-        {
-            button->state_dropped = true;
-            button->time_released = current_time;
-        }
-    }
-    else
-    {
-        return false;
-    }
+    return button->state_raised;
+}
+
+bool button_dropped(button_t* const button)
+{
+    return button->state_dropped;
 }
