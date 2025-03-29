@@ -6,13 +6,11 @@
 
 #define MEM_SIZE 250
 #define WINDOW_SIZE 10
-#define AVG_SIZE 10
-#define STOP_MEMORY_LENGHT 10
-#define BELLOW_AVG_MIN 80
-#define VOID_REFLECTIVITY_THRESHOLD 120
-#define INITIAL_MINIMUM_VALUE 0x1000  // 4096 in hex
-#define MIN_SPIKE_AREA 4000    // Minimum valid area
-#define MAX_SPIKE_AREA 20000    // Maximum valid area
+static const uint BELLOW_AVG_MIN = 80;
+static const uint VOID_REFLECTIVITY_THRESHOLD = 120;
+static const uint INITIAL_MINIMUM_VALUE = 0x1000;   // 4096 in hex
+static const uint MIN_SPIKE_AREA = 4000;           // Minimum valid area
+static const uint MAX_SPIKE_AREA = 20000;          // Maximum valid area
 
 typedef struct {
     uint16_t buffer[WINDOW_SIZE];
