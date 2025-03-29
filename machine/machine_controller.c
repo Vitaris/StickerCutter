@@ -9,30 +9,47 @@
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
 #include "mark_detector.h"
-#include "../lcd/display_20x4.h"
+
+// Physical constants
+static const uint KNIFE_OUTPUT_PIN = 17;
+static const float SCALE_CUTTER = 20.0;
+static const float SCALE_FEEDER = 6.4;
+
+// LCD display configuration
+#define DISPLAY_COLS 20
+#define DISPLAY_ROWS 4
+#define LCD_PIN_RS 10
+#define LCD_PIN_RW 11
+#define LCD_PIN_EN 12
+#define LCD_PIN_D4 13
+#define LCD_PIN_D5 14
+#define LCD_PIN_D6 15
+#define LCD_PIN_D7 16
+
+machine_state_t machine_state;
+devices_t devices;
+machine_t machine;
 
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
-#define ENC_0 6
-#define ENC_1 8
+static const uint ENC_0 = 6;
+static const uint ENC_1 = 8;
 
 // First pin of PWM couple.
-#define PWM_0 18
-#define PWM_1 20
-
-machine_t machine;
+static const uint PWM_0 = 18;
+static const uint PWM_1 = 20;
 
 void machine_init(void) {
     // Initialize machine state
-    machine.state = MANUAL;
+    machine_state = MANUAL;
 
-    // Init buttons
-    machine.F1 = create_button(5);
-    machine.F2 = create_button(2);
-    machine.Right = create_button(1);
-    machine.Left = create_button(3);
-    machine.In = create_button(4);
-    machine.Out = create_button(0);
+    // Create buttons
+    devices.F1 = create_button(5);
+    devices.F2 = create_button(2);
+    devices.Right = create_button(1);
+    devices.Left = create_button(3);
+    devices.In = create_button(4);
+    devices.Out = create_button(0);
 
     // Init servos
     machine.machine_error = false;
@@ -43,8 +60,22 @@ void machine_init(void) {
     // Init PIO
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
-    machine.servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, &machine.Right, &machine.Left, &machine.enable, &machine.machine_error, &machine.error_message);
-    machine.servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, SCALE_FEEDER, &machine.Out, &machine.In, &machine.enable, &machine.machine_error, &machine.error_message);
+    // Create servos
+    devices.servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, devices.Right, devices.Left, &machine.enable, &machine.machine_error, &machine.error_message);
+    devices.servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, SCALE_FEEDER, devices.Out, devices.In, &machine.enable, &machine.machine_error, &machine.error_message);
+
+    // Create lcd
+    devices.lcd = lcd_create(
+        LCD_PIN_RS,
+        LCD_PIN_RW,
+        LCD_PIN_EN,
+        LCD_PIN_D4,
+        LCD_PIN_D5,
+        LCD_PIN_D6,
+        LCD_PIN_D7,
+        DISPLAY_COLS,
+        DISPLAY_ROWS
+    );
 
     // Knife
     gpio_init(KNIFE_OUTPUT_PIN);
@@ -54,22 +85,22 @@ void machine_init(void) {
     machine.params_ready = false;
 
     // Mark probe
-    init_detector(0, servo_get_position_pointer(machine.servo_1), &machine.machine_error, &machine.error_message);
+    init_detector(0, servo_get_position_pointer(devices.servo_1), &machine.machine_error, &machine.error_message);
 
     // Machine states
     activate_manual_state();
 }
 
 void machine_compute(void) {
-    // Update I/O
-    servo_compute(machine.servo_0);
-    servo_compute(machine.servo_1);
-    button_compute(machine.F1);
-    button_compute(machine.F2);
-    button_compute(machine.Right);
-    button_compute(machine.Left);
-    button_compute(machine.In);
-    button_compute(machine.Out);
+    // Update I/devices
+    servo_compute(devices.servo_0);
+    servo_compute(devices.servo_1);
+    button_compute(devices.F1);
+    button_compute(devices.F2);
+    button_compute(devices.Right);
+    button_compute(devices.Left);
+    button_compute(devices.In);
+    button_compute(devices.Out);
     detector_compute();
     
     // Handle error conditions and cutter state machine
@@ -78,7 +109,7 @@ void machine_compute(void) {
     }
 
     // Handle main state machine
-    switch(machine.state) {
+    switch(machine_state) {
         case MANUAL:    handle_manual_state(); break;
         case HOMING:    handle_homing_state(); break;
         case AUTOMAT:   handle_automatic_state(); break;
@@ -87,17 +118,17 @@ void machine_compute(void) {
 }
 
 void activate_failure_state(void) {
-    machine.state = FAILURE;
+    machine_state = FAILURE;
     machine.enable = false;
     knife_up();
 }
 
 void handle_failure_state(void) {
-    set_text_20(display.state_text_1, "Porucha!");
-    set_text_10(display.F1_text, "Potvrdit");
-    set_text_10(display.F2_text, "");
+    set_text_20(machine.state_text_1, "Porucha!");
+    set_text_10(machine.F1_text, "Potvrdit");
+    set_text_10(machine.F2_text, "");
 
-    if (machine.F1->state_raised) {
+    if (button_raised(devices.F1)) {
         activate_manual_state();
         set_text_20(machine.error_message, "OK");
         machine.machine_error = false;
@@ -115,4 +146,29 @@ void knife_down(void) {
 void raise_error(char text[]) {
     set_text_20(machine.error_message, text);
     machine.machine_error = true;
+}
+
+char* get_error_message(void) {
+    return machine.error_message;
+}
+
+void set_text(char LCD_text[], char text[], uint8_t len) {
+    bool fill_spaces = false;
+    uint8_t i = 0;
+    while (i < len) {
+        if (text[i] == '\0') {
+            fill_spaces = true;
+        }
+        LCD_text[i] = fill_spaces ? ' ' : text[i];
+        i++;
+    }
+    LCD_text[len] = '\0';
+}
+
+void set_text_10(char LCD_text[], char text[]) {
+    set_text(LCD_text, text, 10);
+}
+
+void set_text_20(char LCD_text[], char text[]) {
+    set_text(LCD_text, text, 20);
 }

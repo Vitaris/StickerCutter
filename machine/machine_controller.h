@@ -8,19 +8,27 @@
 #include "mark_detector.h"
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
+#include "../lcd/ant_lcd.h"
 
-#define PRECUT_POSITION 10.0
-#define CUT_LENGTH 25.0
-#define KNIFE_OUTPUT_PIN 17
-#define SCALE_CUTTER 20.0
-#define SCALE_FEEDER 6.4
-#define SENSOR_KNIFE_OFFSET_X 25.0
-#define SENSOR_KNIFE_OFFSET_Y 14.0
-#define FAR_AWAY_DISTANCE 1000.0
-#define CUTTING_OVERLAP 10.0
-#define CUTTING_OVERLAP 10.0
-#define POSITION_EDGE_RIGHT -45.0
-#define POSITION_EDGE_LEFT -1480.0
+// Physical constants
+#define SENSOR_KNIFE_OFFSET_X 25.0f
+#define SENSOR_KNIFE_OFFSET_Y 14.0f
+#define FAR_AWAY_DISTANCE 1000.0f
+#define POSITION_EDGE_RIGHT -45.0f
+#define POSITION_EDGE_LEFT -1480.0f
+
+// Speed constants
+#define MANUAL_SPEED 100.0f
+#define AUTOMAT_SPEED_SCAN 15.0f
+#define AUTOMAT_SPEED_SLOW 50.0f
+#define AUTOMAT_SPEED_MID 100.0f
+#define AUTOMAT_SPEED_NORMAL 200.0f
+#define AUTOMAT_SPEED_FAST 250.0f
+
+#define HALF_SECOND_DELAY 500
+#define AUTOMAT_SPEED_CUT 180.0
+#define MANUAL_NORMAL 150.0
+#define MANUAL_FAST 200.0
 
 typedef enum {
 	MANUAL,
@@ -30,22 +38,24 @@ typedef enum {
 	FAILURE
 } machine_state_t;
 
+extern machine_state_t machine_state;
+
 typedef struct {
-	// Servo motors
 	servo_t* servo_0;
 	servo_t* servo_1;
 
-	// Buttons
-	button_t F1;
-	button_t F2;
-	button_t Right;
-	button_t Left;
-	button_t In;
-	button_t Out;
+	button_t* F1;
+	button_t* F2;
+	button_t* Right;
+	button_t* Left;
+	button_t* In;
+	button_t* Out;
+	lcd_t* lcd;
+} devices_t;
 
-	// Machine status
-	machine_state_t state;
+extern devices_t devices;
 
+typedef struct {
 	bool enable;
 	bool homed;
 	bool machine_error;
@@ -54,12 +64,16 @@ typedef struct {
 	// Cutter
 	bool params_ready;
 	float paper_mark_position;
-} machine_t; 
 
-/**
- * @brief Global machine controller instance
- * Accessible from other modules that include this header
- */
+	// LCD Texts
+	char state_text_1[21];
+	char condition_text[10];
+	char position_cutter[8];
+	char position_feeder[8];
+	char F1_text[11];
+	char F2_text[11];
+} machine_t;
+
 extern machine_t machine;
 
 /**
@@ -104,5 +118,28 @@ void knife_down(void);
  * @param text Error message text
  */
 void raise_error(char text[]);
+
+/**
+ * @brief Gets the current error message
+ * @return Pointer to the error message text
+ */
+char* get_error_message(void);
+
+/**
+ * @brief Sets the text at index 10 in the LCD text array
+ * 
+ * @param LCD_text Array of strings storing the LCD text content
+ * @param text The text to be set at index 10
+ */
+void set_text_10(char LCD_text[], char text[]);
+
+/**
+ * @brief Sets a text string in a 20-character LCD display position
+ * 
+ * @param LCD_text Array of character pointers representing LCD display text buffer
+ * @param text The text string to be set (up to 20 characters)
+ */
+void set_text_20(char LCD_text[], char text[]);
+
 
 #endif

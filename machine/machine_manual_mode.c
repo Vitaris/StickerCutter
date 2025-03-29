@@ -7,7 +7,6 @@
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
 #include "mark_detector.h"
-#include "../lcd/display_20x4.h"
 
 typedef enum {
     MANUAL_IDLE,      // Motors disabled, waiting for enable command
@@ -27,25 +26,25 @@ homing_substate_t homing_substate;
 
 void activate_homing_state(void) {
     manual_substate = HOMING_START;
-    machine.state = HOMING;
+    machine_state = HOMING;
 }
 
 void activate_manual_state(void) {
     manual_substate = MANUAL_READY;
-    machine.state = MANUAL;
+    machine_state = MANUAL;
     machine.enable = true;
 }
 
 void handle_manual_state(void) {
-    // Update display
-    set_text_20(display.state_text_1, machine.homed ? "Manual" : "Manual - NO Home");
-    set_text_10(display.F1_text, machine.enable ? "Mot->OFF" : "Mot->ON");
+    // Update machine
+    set_text_20(machine.state_text_1, machine.homed ? "Manual" : "Manual - NO Home");
+    set_text_10(machine.F1_text, machine.enable ? "Mot->OFF" : "Mot->ON");
 
     // Handle state transitions
     switch(manual_substate) {
         case MANUAL_IDLE:
-            set_text_10(display.F2_text, "");
-            if (machine.F1->state_raised) {
+            set_text_10(machine.F2_text, "");
+            if (button_raised(devices.F1)) {
                 machine.enable = true;
                 manual_substate = MANUAL_READY;
             }
@@ -54,77 +53,77 @@ void handle_manual_state(void) {
         case MANUAL_READY:
             if (!machine.homed) {
                 if (get_void_absence()) {
-                    set_text_10(display.F2_text, "    Home");
-                    if (machine.F2->state_raised) {
+                    set_text_10(machine.F2_text, "    Home");
+                    if (button_raised(devices.F2)) {
                         activate_homing_state();
                     }
                 } 
                 else {
                     // Do not allow homing if cutter head is out of cutting table
-                    set_text_10(display.F2_text, "");
+                    set_text_10(machine.F2_text, "");
                 }
             }
             else {
-                set_text_10(display.F2_text, "   Automat");
-                if (machine.F2->state_raised) {
+                set_text_10(machine.F2_text, "   Automat");
+                if (button_raised(devices.F2)) {
                     activate_automatic_state();
                 }
             }
 
             // Always able to switch to idle
-            if (machine.F1->state_raised) {
+            if (button_raised(devices.F1)) {
                 machine.enable = false;
                 manual_substate = MANUAL_IDLE;
                 break;
             }
            
-            servo_manual_handling(machine.servo_0, -1500, 20, machine.homed);
-            servo_manual_handling(machine.servo_1, 0, 0, false);
+            servo_manual_handling(devices.servo_0, -1500, 20, MANUAL_SPEED, machine.homed);
+            servo_manual_handling(devices.servo_1, 0, 0, MANUAL_SPEED, false);
 
             break;
     }
 }
 
 void handle_homing_state(void) {
-    // Update display
-    set_text_20(display.state_text_1, "HOMING");
+    // Update machine
+    set_text_20(machine.state_text_1, "HOMING");
 
-    set_text_10(display.F1_text, "Stop");
-    if (machine.F1->state_raised) {
+    set_text_10(machine.F1_text, "Stop");
+    if (button_raised(devices.F1)) {
         activate_manual_state();
     }
 
     // Handle state transitions
     switch(homing_substate) {
         case HOMING_START:
-            if (servo_is_idle(machine.servo_0)) {
-                servo_goto_delayed(machine.servo_0, 2000.0, 100.0, HALF_SECOND_DELAY);
+            if (servo_is_idle(devices.servo_0)) {
+                servo_goto_delayed(devices.servo_0, 2000.0, 100.0, HALF_SECOND_DELAY);
                 homing_substate = HOMING_SCANNING;
             }
             break;
         
         case HOMING_SCANNING:
-            set_text_10(display.F2_text, "Hlada sa->");
+            set_text_10(machine.F2_text, "Hlada sa->");
             if (get_void_presence()) {
                 homing_substate = HOMING_FOUND;
             }
             break;
 
         case HOMING_FOUND:
-            if (servo_is_accelerating(machine.servo_0)) {
-                servo_stop_positioning(machine.servo_0);
+            if (servo_is_accelerating(devices.servo_0)) {
+                servo_stop_positioning(devices.servo_0);
             }
-            else if (servo_is_position_reached(machine.servo_0)) {
+            else if (servo_is_position_reached(devices.servo_0)) {
                 homing_substate = HOMING_RETURN_TO_ZERO;
             }
             break;
 
         case HOMING_RETURN_TO_ZERO:
-            if (servo_is_idle(machine.servo_0)) {
-                servo_set_zero_position(machine.servo_0);
-                servo_goto_delayed(machine.servo_0, -50.0, 100.0, HALF_SECOND_DELAY);
+            if (servo_is_idle(devices.servo_0)) {
+                servo_set_zero_position(devices.servo_0);
+                servo_goto_delayed(devices.servo_0, -50.0, 100.0, HALF_SECOND_DELAY);
             }
-            else if (servo_is_position_reached(machine.servo_0)) {
+            else if (servo_is_position_reached(devices.servo_0)) {
                 homing_substate = HOMING_FINISHED;
             }
             break;
