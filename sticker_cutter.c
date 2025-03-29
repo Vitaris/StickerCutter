@@ -7,7 +7,6 @@
 #include "hardware/timer.h"
 #include "machine/machine_controller.h"
 
-#include "lcd/display_20x4.h"
 #include "servo_motor/servo_motor.h"
 #include "servo_motor/button.h"
 
@@ -15,32 +14,28 @@
 struct repeating_timer servo_timer;
 struct repeating_timer LCD_refresh_timer;
 
-// Display controller
-// display_20x4_t* display;
-
-bool blink_500ms;
 bool lcd_refresh;
 
-void core1_entry() {
-    display_create();
+// machine_t machine;
 
+void core1_entry() {
     while (1)
     {
         if (lcd_refresh == true)
         { 
-            string2LCD(display.lcd, 0, 0, display.state_text_1);
-            string2LCD(display.lcd, 0, 1, machine.error_message);
-            // int2LCD(display.lcd, 10, 0, 10, detector.average); 
-            // int2LCD(display.lcd, 10, 1, 10, detector.current_reflectivity); 
+            string2LCD(devices.lcd, 0, 0, machine.state_text_1);
+            string2LCD(devices.lcd, 0, 1, get_error_message());
+            // int2LCD(devices.lcd, 10, 0, 10, detector.average); 
+            // int2LCD(devices.lcd, 10, 1, 10, detector.current_reflectivity); 
 
-            float2LCD(display.lcd, 0, 2, 8, servo_get_position(machine.servo_0));
-            string2LCD(display.lcd, 8, 2, "mm");
+            float2LCD(devices.lcd, 0, 2, 8, servo_get_position(devices.servo_0));
+            string2LCD(devices.lcd, 8, 2, "mm");
             
-            float2LCD(display.lcd, 10, 2, 8, servo_get_position(machine.servo_1));
-            string2LCD(display.lcd, 18, 2, "mm");
+            float2LCD(devices.lcd, 10, 2, 8, servo_get_position(devices.servo_1));
+            string2LCD(devices.lcd, 18, 2, "mm");
 
-            string2LCD(display.lcd, 0, 3, display.F1_text);
-            string2LCD(display.lcd, 10, 3, display.F2_text);
+            string2LCD(devices.lcd, 0, 3, machine.F1_text);
+            string2LCD(devices.lcd, 10, 3, machine.F2_text);
 
             lcd_refresh = false;
         }
