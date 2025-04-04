@@ -8,9 +8,14 @@
 #include "../servo_motor/button.h"
 #include "mark_detector.h"
 
+#define DESK_AREA_RIGHT -200.0
+#define DESK_AREA_LEFT -1300.0
+
 typedef enum {
     MANUAL_IDLE,      // Motors disabled, waiting for enable command
     MANUAL_READY,     // Motors enabled, ready for operations
+    MANUAL_SET_RIGHT,
+    MANUAL_SET_LEFT,
 } manual_substate_t;
 
 typedef enum {
@@ -33,6 +38,11 @@ void activate_manual_state(void) {
     manual_substate = MANUAL_READY;
     machine_state = MANUAL;
     machine.enable = true;
+}
+
+void servo_manual_movement(void) {
+    servo_manual_handling(devices.servo_0, -1500, 20, MANUAL_SPEED, machine.homed);
+    servo_manual_handling(devices.servo_1, 0, 0, MANUAL_SPEED, false);
 }
 
 void handle_manual_state(void) {
@@ -64,9 +74,17 @@ void handle_manual_state(void) {
                 }
             }
             else {
-                set_text_10(machine.F2_text, "   Automat");
-                if (button_raised(devices.F2)) {
-                    activate_automatic_state();
+                if (is_paper_positions_set()) {
+                    set_text_10(machine.F2_text, "   Automat");
+                    if (button_raised(devices.F2)) {
+                        activate_automatic_state();
+                    }
+                }
+                else {
+                    set_text_10(machine.F2_text, "Set znaky");
+                    if (button_raised(devices.F2)) {
+                        manual_substate = MANUAL_SET_RIGHT;
+                    }   
                 }
             }
 
@@ -77,10 +95,43 @@ void handle_manual_state(void) {
                 break;
             }
            
-            servo_manual_handling(devices.servo_0, -1500, 20, MANUAL_SPEED, machine.homed);
-            servo_manual_handling(devices.servo_1, 0, 0, MANUAL_SPEED, false);
-
+            servo_manual_movement();
             break;
+        
+        case MANUAL_SET_RIGHT:
+            if (servo_get_position(devices.servo_0) > DESK_AREA_RIGHT) {
+                set_text_10(machine.F2_text, "Prava znck");
+                servo_manual_movement();
+                if (button_raised(devices.F2)) {
+                    machine.paper_right_mark_position = servo_get_position(devices.servo_0);
+                    manual_substate = MANUAL_SET_LEFT;
+                }
+            }
+            else {
+                set_text_10(machine.F2_text, "Pravy kraj");
+                if (button_raised(devices.F2)) {
+                    servo_goto(devices.servo_0, -50, MANUAL_FAST);
+                }
+
+            }
+            break;
+        case MANUAL_SET_LEFT:
+            if (servo_get_position(devices.servo_0) < DESK_AREA_LEFT) {
+                set_text_10(machine.F2_text, "Lava znack");
+                servo_manual_movement();
+                if (button_raised(devices.F2)) {
+                    machine.paper_left_mark_position = servo_get_position(devices.servo_0);
+                    manual_substate = MANUAL_READY;
+                }
+            }
+            else {
+                set_text_10(machine.F2_text, " Lavy kraj");
+                if (button_raised(devices.F2)) {
+                    servo_goto(devices.servo_0, -1400, MANUAL_FAST);
+                }
+            }
+            break;
+
     }
 }
 

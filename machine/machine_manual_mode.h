@@ -30,4 +30,13 @@ void handle_manual_state(void);
  */
 void handle_homing_state(void);
 
+/**
+ * @brief Enables manual control of the servo motor movement.
+ * 
+ * This function handles the manual operation mode for servo motor control,
+ * allowing direct user input to control servo position and movement.
+ * It should be called periodically in manual operation mode.
+ */
+void servo_manual_movement(void);
+
 #endif // MACHINE_MANUAL_MODE_H
