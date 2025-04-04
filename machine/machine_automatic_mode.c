@@ -78,6 +78,15 @@ void stop_knife_between_marks(void) {
     servo_set_stop_position(devices.servo_1, get_mark_position() + SENSOR_KNIFE_OFFSET_Y + (monitor_data.mark_distance / 2.0));
 }
 
+void reset_paper_mark_positions(void) {
+    machine.paper_right_mark_position = 0.0;
+    machine.paper_left_mark_position = 0.0;
+}
+
+bool is_paper_positions_set(void) {
+    return machine.paper_right_mark_position != 0.0 && machine.paper_left_mark_position != 0.0;
+}
+
 void activate_automatic_state() {
     machine_state = AUTOMAT;
     automatic_substate = IDLE_A;
@@ -114,7 +123,7 @@ void handle_automatic_state(void) {
 // Navigate cutting head to the mark position
         case MARK_SEEK_START:
             if (servo_is_idle(devices.servo_0)) {
-                servo_goto_delayed(devices.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                servo_goto_delayed(devices.servo_0, machine.paper_right_mark_position, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
                 automatic_substate = MARK_SEEK_MOVING;
             }
             break;
@@ -243,7 +252,7 @@ void handle_automatic_state(void) {
             
         case CUT_BEGIN_SEQUENCE:
             if (servo_is_idle(devices.servo_0)) {
-                servo_goto_delayed(devices.servo_0, machine.paper_mark_position - 50.0, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                servo_goto_delayed(devices.servo_0, machine.paper_right_mark_position - 50.0, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
                 automatic_substate = CUT_REACH_EDGE;
 
             }
@@ -260,7 +269,7 @@ void handle_automatic_state(void) {
         case CUT_RETURN_CENTER:
             if (servo_is_idle(devices.servo_0)) {
                 knife_up();
-                servo_goto_delayed(devices.servo_0, machine.paper_mark_position - 50 , AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                servo_goto_delayed(devices.servo_0, machine.paper_right_mark_position - 50 , AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
                 automatic_substate = CUT_FINISH_SEQUENCE;
             }
             break;
@@ -276,7 +285,7 @@ void handle_automatic_state(void) {
         case PREP_NEXT_CYCLE:
             if (servo_is_idle(devices.servo_0)) {
                 knife_up();
-                servo_goto_delayed(devices.servo_0, machine.paper_mark_position, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                servo_goto_delayed(devices.servo_0, machine.paper_right_mark_position, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
                 servo_goto_delayed(devices.servo_1, (servo_get_position(devices.servo_1) + (monitor_data.mark_distance / 2)), AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
                 automatic_substate = PREP_NEW_DETECTION;
             }
