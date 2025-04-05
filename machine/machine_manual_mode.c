@@ -41,8 +41,13 @@ void activate_manual_state(void) {
 }
 
 void servo_manual_movement(void) {
-    servo_manual_handling(devices.servo_0, -1500, 20, MANUAL_SPEED, machine.homed);
-    servo_manual_handling(devices.servo_1, 0, 0, MANUAL_SPEED, false);
+    servo_manual_handling(devices.servo_0, -1500, 20, MANUAL_SPEED_NORMAL, machine.homed);
+    servo_manual_handling(devices.servo_1, 0, 0, MANUAL_SPEED_NORMAL, false);
+}
+
+void servo_manual_movement_slow(void) {
+    servo_manual_handling(devices.servo_0, -1500, 20, MANUAL_SPEED_SLOW, machine.homed);
+    servo_manual_handling(devices.servo_1, 0, 0, MANUAL_SPEED_SLOW, false);
 }
 
 void handle_manual_state(void) {
@@ -50,14 +55,22 @@ void handle_manual_state(void) {
     set_text_20(machine.state_text_1, machine.homed ? "Manual" : "Manual - NO Home");
     set_text_10(machine.F1_text, machine.enable ? "Mot->OFF" : "Mot->ON");
 
+    // Always able to switch on/off servos
+    if (button_raised(devices.F1)) {
+        if (manual_substate == MANUAL_IDLE) {
+            manual_substate = MANUAL_READY;
+            machine.enable = true;
+        }
+        else {
+            manual_substate = MANUAL_IDLE;
+            machine.enable = false;
+        }
+    }
+
     // Handle state transitions
     switch(manual_substate) {
         case MANUAL_IDLE:
             set_text_10(machine.F2_text, "");
-            if (button_raised(devices.F1)) {
-                machine.enable = true;
-                manual_substate = MANUAL_READY;
-            }
             break;
 
         case MANUAL_READY:
@@ -87,21 +100,14 @@ void handle_manual_state(void) {
                     }   
                 }
             }
-
-            // Always able to switch to idle
-            if (button_raised(devices.F1)) {
-                machine.enable = false;
-                manual_substate = MANUAL_IDLE;
-                break;
-            }
-           
+          
             servo_manual_movement();
             break;
         
         case MANUAL_SET_RIGHT:
             if (servo_get_position(devices.servo_0) > DESK_AREA_RIGHT) {
                 set_text_10(machine.F2_text, "Prava znck");
-                servo_manual_movement();
+                servo_manual_movement_slow();
                 if (button_raised(devices.F2)) {
                     machine.paper_right_mark_position = servo_get_position(devices.servo_0);
                     manual_substate = MANUAL_SET_LEFT;
@@ -110,15 +116,15 @@ void handle_manual_state(void) {
             else {
                 set_text_10(machine.F2_text, "Pravy kraj");
                 if (button_raised(devices.F2)) {
-                    servo_goto(devices.servo_0, -50, MANUAL_FAST);
+                    servo_goto(devices.servo_0, -50, MANUAL_SPEED_FAST);
                 }
-
             }
             break;
+
         case MANUAL_SET_LEFT:
             if (servo_get_position(devices.servo_0) < DESK_AREA_LEFT) {
                 set_text_10(machine.F2_text, "Lava znack");
-                servo_manual_movement();
+                servo_manual_movement_slow();
                 if (button_raised(devices.F2)) {
                     machine.paper_left_mark_position = servo_get_position(devices.servo_0);
                     manual_substate = MANUAL_READY;
@@ -127,11 +133,10 @@ void handle_manual_state(void) {
             else {
                 set_text_10(machine.F2_text, " Lavy kraj");
                 if (button_raised(devices.F2)) {
-                    servo_goto(devices.servo_0, -1400, MANUAL_FAST);
+                    servo_goto(devices.servo_0, -1400, MANUAL_SPEED_FAST);
                 }
             }
             break;
-
     }
 }
 

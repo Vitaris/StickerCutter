@@ -39,4 +39,6 @@ void handle_homing_state(void);
  */
 void servo_manual_movement(void);
 
+void servo_manual_movement_slow(void);
+
 #endif // MACHINE_MANUAL_MODE_H
