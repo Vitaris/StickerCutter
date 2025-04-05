@@ -342,6 +342,10 @@ bool servo_is_position_reached(const servo_t* const servo) {
 	return servo->positioning == POSITION_REACHED;
 }
 
+bool servo_is_speed_reached(const servo_t* const servo) {
+	return servo->nominal_speed_reached;
+}
+
 void servo_set_stop_position(servo_t* const servo, const float position) {
 	servo->next_stop = position / servo->scale;
 }

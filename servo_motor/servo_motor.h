@@ -107,6 +107,8 @@ bool servo_is_accelerating(const servo_t* const servo);
  */
 bool servo_is_position_reached(const servo_t* const servo);
 
+bool servo_is_speed_reached(const servo_t* const servo);
+
 /**
  * @brief Sets the target stop position without starting movement
  * @param servo Servo controller handle
