@@ -25,7 +25,7 @@ typedef struct {
 } marks_monitor_t;
 
 typedef enum {
-    IDLE_A,                           // Waiting for start command
+    IDLE,                           // Waiting for start command
     
     // Mark detection positioning states
     MARK_SEEK_START,               // Moving knife to initial mark position
@@ -89,7 +89,7 @@ bool is_paper_positions_set(void) {
 
 void activate_automatic_state() {
     machine_state = AUTOMAT;
-    automatic_substate = IDLE_A;
+    automatic_substate = IDLE;
 
     // Mark monitor
     monitor_data.first_mark_position = 0.0;
@@ -112,7 +112,7 @@ void handle_automatic_state(void) {
 
     // Handle automatic state transitions
     switch(automatic_substate) {
-        case IDLE_A:
+        case IDLE:
             set_text_10(machine.F2_text, "    Start ");
             if (button_raised(devices.F2)) {
                 automatic_substate = MARK_SEEK_START;
@@ -149,7 +149,7 @@ void handle_automatic_state(void) {
             break;
 
         case PAPER_AWAIT_SPEED:
-            if (servo_is_position_reached(devices.servo_1)) {
+            if (servo_is_speed_reached(devices.servo_1)) {
                 detector_restart();
                 automatic_substate = DETECT_AWAIT_SAMPLES;
             }
@@ -175,19 +175,20 @@ void handle_automatic_state(void) {
 // ----------------------------------------------------------------------------------------------------------
 // Mark found, save positions and move to next step
         case DETECT_MARK_FOUND:
-        if (monitor_data.sticker_dimensions_set) {
-            automatic_substate = CUT_STOP_AT_MARK;
-        } else {
-            if (monitor_data.first_mark_position == 0) {
-                    set_text_10(machine.F2_text, "  Zn 1 OK");
-                    automatic_substate = LEARN_FIRST_MARK;
-                } else if (monitor_data.second_mark_position == 0) {
-                    set_text_10(machine.F2_text, "  Zn 2 OK");
-                    automatic_substate = LEARN_SECOND_MARK;
-                } else if (monitor_data.third_mark_position == 0) {
-                    set_text_10(machine.F2_text, "  Zn 3 OK");
-                    automatic_substate = LEARN_THIRD_MARK; }
+            if (monitor_data.sticker_dimensions_set) {
+                automatic_substate = CUT_STOP_AT_MARK;
             }
+            else {
+                if (monitor_data.first_mark_position == 0) {
+                        set_text_10(machine.F2_text, "  Zn 1 OK");
+                        automatic_substate = LEARN_FIRST_MARK;
+                    } else if (monitor_data.second_mark_position == 0) {
+                        set_text_10(machine.F2_text, "  Zn 2 OK");
+                        automatic_substate = LEARN_SECOND_MARK;
+                    } else if (monitor_data.third_mark_position == 0) {
+                        set_text_10(machine.F2_text, "  Zn 3 OK");
+                        automatic_substate = LEARN_THIRD_MARK; }
+                }
             break;
 
         // Will save a first mark position and withouth stopping will continue to search the next mark
@@ -260,7 +261,7 @@ void handle_automatic_state(void) {
 
         case CUT_REACH_EDGE:
             if (servo_is_idle(devices.servo_0)) {
-                knife_down();
+                // knife_down();
                 servo_goto_delayed(devices.servo_0, POSITION_EDGE_RIGHT, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
                 automatic_substate = CUT_RETURN_CENTER;
             }
@@ -276,7 +277,7 @@ void handle_automatic_state(void) {
 
         case CUT_FINISH_SEQUENCE:
             if (servo_is_idle(devices.servo_0)) {
-                knife_down();
+                // knife_down();
                 servo_goto_delayed(devices.servo_0, POSITION_EDGE_LEFT, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
                 automatic_substate = PREP_NEXT_CYCLE;
             }
@@ -300,7 +301,7 @@ void handle_automatic_state(void) {
 // ----------------------------------------------------------------------------------------------------------
 // Should be used as stop case of the automatic mode
         case COMPLETE:
-            automatic_substate = IDLE_A;
+            automatic_substate = IDLE;
             break;
     }
 }
