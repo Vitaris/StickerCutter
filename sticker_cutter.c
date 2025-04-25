@@ -24,7 +24,14 @@ void core1_entry() {
         if (lcd_refresh == true)
         { 
             string2LCD(devices.lcd, 0, 0, machine.state_text_1);
-            string2LCD(devices.lcd, 0, 1, get_error_message());
+            // set_text_20(machine.state_text_1, machine.homed ? "Manual" : "Manual - NO Home");
+            if (machine.machine_error) {
+                string2LCD(devices.lcd, 0, 1, get_error_message());
+            }
+            else {
+                string2LCD(devices.lcd, 0, 1, machine.state_text_2);
+            }
+
             // int2LCD(devices.lcd, 10, 0, 10, detector.average); 
             // int2LCD(devices.lcd, 10, 1, 10, detector.current_reflectivity); 
 

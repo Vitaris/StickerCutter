@@ -56,6 +56,7 @@ void machine_init(void) {
     machine.enable = false;
     machine.homed = false;
     set_text_20(machine.error_message, "OK");
+    set_text_20(machine.state_text_2, "");
 
     // Init PIO
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
