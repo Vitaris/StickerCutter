@@ -16,15 +16,12 @@ struct repeating_timer LCD_refresh_timer;
 
 bool lcd_refresh;
 
-// machine_t machine;
-
 void core1_entry() {
     while (1)
     {
         if (lcd_refresh == true)
         { 
             string2LCD(devices.lcd, 0, 0, machine.state_text_1);
-            // set_text_20(machine.state_text_1, machine.homed ? "Manual" : "Manual - NO Home");
             if (machine.machine_error) {
                 string2LCD(devices.lcd, 0, 1, get_error_message());
             }
