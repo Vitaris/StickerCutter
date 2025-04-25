@@ -79,7 +79,7 @@ void machine_init(void) {
     );
 
     // Debug
-    machine.paper_right_mark_position = -70.0;
+    machine.paper_right_mark_position = -135.0;
 
     // Knife
     gpio_init(KNIFE_OUTPUT_PIN);

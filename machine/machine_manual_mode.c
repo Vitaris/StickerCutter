@@ -52,6 +52,7 @@ void servo_manual_movement_slow(void) {
 void handle_manual_state(void) {
     // Update machine
     set_text_20(machine.state_text_1, machine.homed ? "Manual" : "Manual - NO Home");
+    set_text_20(machine.state_text_2, "");
     set_text_10(machine.F1_text, machine.enable ? "Mot->OFF" : "Mot->ON");
 
     // Always able to switch on/off servos
@@ -125,6 +126,7 @@ void handle_manual_state(void) {
 void handle_homing_state(void) {
     // Update machine
     set_text_20(machine.state_text_1, "HOMING");
+    set_text_20(machine.state_text_2, "");
 
     set_text_10(machine.F1_text, "Stop");
     if (button_raised(devices.F1)) {

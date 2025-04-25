@@ -5,7 +5,8 @@
 #include "mark_detector.h"
 
 static const float STICKER_HEIGHT_TOLERNACE = 10.0; // 10mm tolerance for sticker height
-char temp_text[21];
+char state_text_1[21];
+char state_text_2[21];
 
 /**
  * @brief Structure for monitoring and storing mark positions and sticker dimensions
@@ -17,6 +18,7 @@ typedef struct {
     
     float sticker_height;                 // Height of a single sticker
     float mark_distance;                  // Distance between stickers in a row
+    float current_sticker_measurement;    // Current sticker measurement
     
     float first_mark_position;            // Position of first detected mark
     float second_mark_position;           // Position of second detected mark
@@ -101,12 +103,13 @@ void activate_automatic_state() {
     monitor_data.third_mark_position = 0.0;
     monitor_data.sticker_height = 0.0;
     monitor_data.mark_distance = 0.0;
-
+    monitor_data.current_sticker_measurement = 0.0;
     monitor_data.sticker_dimensions_set = false;
 }
 
 void handle_automatic_state(void) {
     set_text_20(machine.state_text_1, "Automat");
+    set_text_20(machine.state_text_2, "");
     set_text_10(machine.F1_text, "Stop");
 
     if (button_raised(devices.F1)) {
@@ -166,8 +169,9 @@ void handle_automatic_state(void) {
             break;
 
         case DETECT_SCANNING:
+            monitor_data.current_sticker_measurement = servo_get_position(devices.servo_1) - monitor_data.last_stop_position;
             if (monitor_data.sticker_dimensions_set &&
-                servo_get_position(devices.servo_1) - monitor_data.last_stop_position >= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
+                monitor_data.current_sticker_measurement >= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
                     automatic_substate = MONITOR_STICKER_HEIGHT_FAILURE;
                 }
             if (detect_mark()) {
@@ -191,7 +195,8 @@ void handle_automatic_state(void) {
                         automatic_substate = LEARN_SECOND_MARK;
                     } else if (monitor_data.third_mark_position == 0) {
                         set_text_10(machine.F2_text, "  Zn 3 OK");
-                        automatic_substate = LEARN_THIRD_MARK; }
+                        automatic_substate = LEARN_THIRD_MARK;
+                    }
                 }
             break;
 
@@ -208,8 +213,8 @@ void handle_automatic_state(void) {
             monitor_data.sticker_height = monitor_data.second_mark_position - monitor_data.first_mark_position;
             set_text_20(machine.state_text_1, "Potvrd vysku nalepky");
 
-            snprintf(temp_text, sizeof(temp_text), "Vyska: %.1fmm", monitor_data.sticker_height);
-            set_text_20(machine.state_text_2, temp_text);
+            snprintf(state_text_2, sizeof(state_text_2), "Vyska: %.1fmm", monitor_data.sticker_height);
+            set_text_20(machine.state_text_2, state_text_2);
             
             set_text_10(machine.F2_text, "    Potvrd");
             if (button_raised(devices.F2)) {
@@ -225,8 +230,8 @@ void handle_automatic_state(void) {
             monitor_data.mark_distance = monitor_data.third_mark_position - monitor_data.second_mark_position;
             set_text_20(machine.state_text_1, "Potvrd vzdial. znac.");
 
-            snprintf(temp_text, sizeof(temp_text), "Znacky: %.1fmm", monitor_data.mark_distance);
-            set_text_20(machine.state_text_2, temp_text);
+            snprintf(state_text_2, sizeof(state_text_2), "Znacky: %.1fmm", monitor_data.mark_distance);
+            set_text_20(machine.state_text_2, state_text_2);
 
             set_text_10(machine.F2_text, "    Potvrd");
             if (servo_is_idle(devices.servo_1) && button_raised(devices.F2)) {
@@ -238,10 +243,12 @@ void handle_automatic_state(void) {
         case CUT_STOP_AT_MARK:
             stop_knife_between_marks();
             if (servo_is_idle(devices.servo_1)) {
-                if (servo_get_position(devices.servo_1) - monitor_data.last_stop_position <= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
-                    automatic_substate = MONITOR_MARK_DISTANCE_FAILURE;
+                if (true || monitor_data.current_sticker_measurement <= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
+                    automatic_substate = MONITOR_STICKER_HEIGHT_FAILURE;
                 }
-                automatic_substate = CUT_BEGIN_SEQUENCE;
+                else {
+                    automatic_substate = CUT_BEGIN_SEQUENCE;
+                }
             }
             break;
 
@@ -310,16 +317,22 @@ void handle_automatic_state(void) {
             break;
 
         case MONITOR_STICKER_HEIGHT_FAILURE:
-            snprintf(temp_text, sizeof(temp_text), "Znacky: %.1fmm", monitor_data.mark_distance);
-            set_text_20(machine.state_text_2, temp_text);
-            set_text_10(machine.F2_text, "Err. nalep");
+            servo_stop_positioning(devices.servo_1);
+            set_text_20(machine.state_text_1, "Nespravna vyska!");
+            snprintf(state_text_2, sizeof(state_text_2), "znacky: %.1fmm !", monitor_data.current_sticker_measurement);
+            set_text_20(machine.state_text_2, state_text_2);
+            set_text_10(machine.F2_text, "Reset Auto");
             if (button_raised(devices.F2)) {
                 automatic_substate = IDLE;
             }
             break;
 
         case MONITOR_MARK_DISTANCE_FAILURE:
-            set_text_10(machine.F2_text, "Err. medzr");
+            servo_stop_positioning(devices.servo_1);
+            set_text_20(machine.state_text_1, "Nespravna vyska!");
+            snprintf(state_text_2, sizeof(state_text_2), "medzery: %.1fmm !", monitor_data.current_sticker_measurement);
+            set_text_20(machine.state_text_2, state_text_2);
+            set_text_10(machine.F2_text, "Reset Auto");
             if (button_raised(devices.F2)) {
                 automatic_substate = IDLE;
             }
