@@ -85,11 +85,10 @@ void stop_knife_between_marks(void) {
 
 void reset_paper_mark_positions(void) {
     machine.paper_right_mark_position = 0.0;
-    machine.paper_left_mark_position = 0.0;
 }
 
 bool is_paper_positions_set(void) {
-    return machine.paper_right_mark_position != 0.0 && machine.paper_left_mark_position != 0.0;
+    return machine.paper_right_mark_position != 0.0;
 }
 
 void activate_automatic_state() {

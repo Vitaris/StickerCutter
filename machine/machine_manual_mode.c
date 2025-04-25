@@ -14,8 +14,7 @@
 typedef enum {
     MANUAL_IDLE,      // Motors disabled, waiting for enable command
     MANUAL_READY,     // Motors enabled, ready for operations
-    MANUAL_SET_RIGHT,
-    MANUAL_SET_LEFT,
+    MANUAL_SET_RIGHT
 } manual_substate_t;
 
 typedef enum {
@@ -110,30 +109,13 @@ void handle_manual_state(void) {
                 servo_manual_movement_slow();
                 if (button_raised(devices.F2)) {
                     machine.paper_right_mark_position = servo_get_position(devices.servo_0);
-                    manual_substate = MANUAL_SET_LEFT;
+                    manual_substate = MANUAL_READY;
                 }
             }
             else {
                 set_text_10(machine.F2_text, "Pravy kraj");
                 if (button_raised(devices.F2)) {
                     servo_goto(devices.servo_0, -50, MANUAL_SPEED_FAST);
-                }
-            }
-            break;
-
-        case MANUAL_SET_LEFT:
-            if (servo_get_position(devices.servo_0) < DESK_AREA_LEFT) {
-                set_text_10(machine.F2_text, "Lava znack");
-                servo_manual_movement_slow();
-                if (button_raised(devices.F2)) {
-                    machine.paper_left_mark_position = servo_get_position(devices.servo_0);
-                    manual_substate = MANUAL_READY;
-                }
-            }
-            else {
-                set_text_10(machine.F2_text, " Lavy kraj");
-                if (button_raised(devices.F2)) {
-                    servo_goto(devices.servo_0, -1400, MANUAL_SPEED_FAST);
                 }
             }
             break;

@@ -64,7 +64,6 @@ typedef struct {
 	// Cutter
 	bool params_ready;
 	float paper_right_mark_position;
-	float paper_left_mark_position;
 
 	// LCD Texts
 	char state_text_1[21];
