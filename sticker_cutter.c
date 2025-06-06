@@ -17,6 +17,9 @@ struct repeating_timer LCD_refresh_timer;
 bool lcd_refresh;
 
 void core1_entry() {
+    string2LCD(devices.lcd, 3, 1, "Sticker Cutter");
+    string2LCD(devices.lcd, 16, 3, "V1.0");
+    busy_wait_ms(2000);
     while (1)
     {
         if (lcd_refresh == true)
