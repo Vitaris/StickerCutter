@@ -17,9 +17,11 @@ struct repeating_timer LCD_refresh_timer;
 bool lcd_refresh;
 
 void core1_entry() {
+    // Intro Screen
     string2LCD(devices.lcd, 3, 1, "Sticker Cutter");
     string2LCD(devices.lcd, 16, 3, "V1.0");
     busy_wait_ms(2000);
+
     while (1)
     {
         if (lcd_refresh == true)
@@ -31,9 +33,6 @@ void core1_entry() {
             else {
                 string2LCD(devices.lcd, 0, 1, machine.state_text_2);
             }
-
-            // int2LCD(devices.lcd, 10, 0, 10, detector.average); 
-            // int2LCD(devices.lcd, 10, 1, 10, detector.current_reflectivity); 
 
             float2LCD(devices.lcd, 0, 2, 8, servo_get_position(devices.servo_0));
             string2LCD(devices.lcd, 8, 2, "mm");
