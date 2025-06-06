@@ -34,6 +34,7 @@ void activate_homing_state(void) {
 }
 
 void activate_manual_state(void) {
+    machine.paper_right_mark_position = 0.0;
     manual_substate = MANUAL_READY;
     machine_state = MANUAL;
     machine.enable = true;
