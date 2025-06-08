@@ -243,7 +243,7 @@ void handle_automatic_state(void) {
         case CUT_STOP_AT_MARK:
             stop_knife_between_marks();
             if (servo_is_idle(devices.servo_1)) {
-                if (true || monitor_data.current_sticker_measurement <= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
+                if (false && monitor_data.current_sticker_measurement <= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
                     automatic_substate = MONITOR_STICKER_HEIGHT_FAILURE;
                 }
                 else {
@@ -270,6 +270,7 @@ void handle_automatic_state(void) {
             break;
             
         case CUT_BEGIN_SEQUENCE:
+            set_text_10(machine.F2_text, "");
             if (servo_is_idle(devices.servo_0)) {
                 servo_goto_delayed(devices.servo_0, machine.paper_right_mark_position - 50.0, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
                 automatic_substate = CUT_REACH_EDGE;
@@ -279,7 +280,7 @@ void handle_automatic_state(void) {
 
         case CUT_REACH_EDGE:
             if (servo_is_idle(devices.servo_0)) {
-                // knife_down();
+                knife_down();
                 servo_goto_delayed(devices.servo_0, POSITION_EDGE_RIGHT, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
                 automatic_substate = CUT_RETURN_CENTER;
             }
@@ -295,7 +296,7 @@ void handle_automatic_state(void) {
 
         case CUT_FINISH_SEQUENCE:
             if (servo_is_idle(devices.servo_0)) {
-                // knife_down();
+                knife_down();
                 servo_goto_delayed(devices.servo_0, POSITION_EDGE_LEFT, AUTOMAT_SPEED_CUT, HALF_SECOND_DELAY);
                 automatic_substate = PREP_NEXT_CYCLE;
             }
