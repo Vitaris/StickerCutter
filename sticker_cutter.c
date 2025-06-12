@@ -19,7 +19,7 @@ bool lcd_refresh;
 void core1_entry() {
     // Intro Screen
     string2LCD(devices.lcd, 3, 1, "Sticker Cutter");
-    string2LCD(devices.lcd, 16, 3, "V1.0");
+    string2LCD(devices.lcd, 16, 3, "V1.1");
     busy_wait_ms(2000);
 
     while (1)
