@@ -41,8 +41,8 @@ typedef enum {
 extern machine_state_t machine_state;
 
 typedef struct {
-	servo_t* servo_0;
-	servo_t* servo_1;
+	servo_t* servo_cutter;
+	servo_t* servo_feeder;
 
 	button_t* F1;
 	button_t* F2;

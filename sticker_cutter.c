@@ -34,10 +34,10 @@ void core1_entry() {
                 string2LCD(devices.lcd, 0, 1, machine.state_text_2);
             }
 
-            float2LCD(devices.lcd, 0, 2, 8, servo_get_position(devices.servo_0));
+            float2LCD(devices.lcd, 0, 2, 8, servo_get_position(devices.servo_cutter));
             string2LCD(devices.lcd, 8, 2, "mm");
             
-            float2LCD(devices.lcd, 10, 2, 8, servo_get_position(devices.servo_1));
+            float2LCD(devices.lcd, 10, 2, 8, servo_get_position(devices.servo_feeder));
             string2LCD(devices.lcd, 18, 2, "mm");
 
             string2LCD(devices.lcd, 0, 3, machine.F1_text);
