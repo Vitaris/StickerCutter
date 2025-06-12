@@ -150,7 +150,6 @@ void handle_automatic_state(void) {
 // ----------------------------------------------------------------------------------------------------------
 // Rolling paper at constant speed
         case PAPER_START_FEED:
-            monitor_data.last_stop_position = servo_get_position(devices.servo_feeder);
             servo_goto_delayed(devices.servo_feeder, FAR_AWAY_DISTANCE, AUTOMAT_SPEED_SCAN, HALF_SECOND_DELAY);
             automatic_substate = PAPER_AWAIT_SPEED;
             break;
@@ -173,7 +172,7 @@ void handle_automatic_state(void) {
             if (monitor_data.sticker_dimensions_set &&
                 monitor_data.current_sticker_measurement >= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
                     automatic_substate = MONITOR_STICKER_HEIGHT_FAILURE;
-                }
+            }
             if (detect_mark()) {
                 automatic_substate = DETECT_MARK_FOUND;
                 // devices.servo_feeder->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET_Y) / devices.servo_feeder->scale;
@@ -203,6 +202,7 @@ void handle_automatic_state(void) {
         // Will save a first mark position and withouth stopping will continue to search the next mark
         case LEARN_FIRST_MARK:
             monitor_data.first_mark_position = get_mark_position() + SENSOR_KNIFE_OFFSET_Y;
+            monitor_data.last_stop_position = monitor_data.first_mark_position;
             automatic_substate = PAPER_AWAIT_SPEED;
             break;
         
@@ -243,10 +243,11 @@ void handle_automatic_state(void) {
         case CUT_STOP_AT_MARK:
             stop_knife_between_marks();
             if (servo_is_idle(devices.servo_feeder)) {
-                if (false && monitor_data.current_sticker_measurement <= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
+                if (monitor_data.current_sticker_measurement <= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
                     automatic_substate = MONITOR_STICKER_HEIGHT_FAILURE;
                 }
                 else {
+                    monitor_data.last_stop_position = monitor_data.current_sticker_measurement;
                     automatic_substate = CUT_BEGIN_SEQUENCE;
                 }
             }
