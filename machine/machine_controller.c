@@ -62,8 +62,8 @@ void machine_init(void) {
     uint offset = pio_add_program(pio0, &quadrature_encoder_program);
 
     // Create servos
-    devices.servo_0 = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, devices.Right, devices.Left, &machine.enable, &machine.machine_error, &machine.error_message);
-    devices.servo_1 = servo_create("Feeder", offset, 1, ENC_1, PWM_1, SCALE_FEEDER, devices.Out, devices.In, &machine.enable, &machine.machine_error, &machine.error_message);
+    devices.servo_cutter = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, devices.Right, devices.Left, &machine.enable, &machine.machine_error, &machine.error_message);
+    devices.servo_feeder = servo_create("Feeder", offset, 1, ENC_1, PWM_1, SCALE_FEEDER, devices.Out, devices.In, &machine.enable, &machine.machine_error, &machine.error_message);
 
     // Create lcd
     devices.lcd = lcd_create(
@@ -86,7 +86,7 @@ void machine_init(void) {
     machine.params_ready = false;
 
     // Mark probe
-    init_detector(0, servo_get_position_pointer(devices.servo_1), &machine.machine_error, &machine.error_message);
+    init_detector(0, servo_get_position_pointer(devices.servo_feeder), &machine.machine_error, &machine.error_message);
 
     // Machine states
     activate_manual_state();
@@ -94,8 +94,8 @@ void machine_init(void) {
 
 void machine_compute(void) {
     // Update I/devices
-    servo_compute(devices.servo_0);
-    servo_compute(devices.servo_1);
+    servo_compute(devices.servo_cutter);
+    servo_compute(devices.servo_feeder);
     button_compute(devices.F1);
     button_compute(devices.F2);
     button_compute(devices.Right);

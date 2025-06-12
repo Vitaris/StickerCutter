@@ -41,13 +41,13 @@ void activate_manual_state(void) {
 }
 
 void servo_manual_movement(void) {
-    servo_manual_handling(devices.servo_0, -1500, 20, MANUAL_SPEED_NORMAL, machine.homed);
-    servo_manual_handling(devices.servo_1, 0, 0, MANUAL_SPEED_NORMAL, false);
+    servo_manual_handling(devices.servo_cutter, -1500, 20, MANUAL_SPEED_NORMAL, machine.homed);
+    servo_manual_handling(devices.servo_feeder, 0, 0, MANUAL_SPEED_NORMAL, false);
 }
 
 void servo_manual_movement_slow(void) {
-    servo_manual_handling(devices.servo_0, -1500, 20, MANUAL_SPEED_SLOW, machine.homed);
-    servo_manual_handling(devices.servo_1, 0, 0, MANUAL_SPEED_SLOW, false);
+    servo_manual_handling(devices.servo_cutter, -1500, 20, MANUAL_SPEED_SLOW, machine.homed);
+    servo_manual_handling(devices.servo_feeder, 0, 0, MANUAL_SPEED_SLOW, false);
 }
 
 void handle_manual_state(void) {
@@ -106,18 +106,18 @@ void handle_manual_state(void) {
             break;
         
         case MANUAL_SET_RIGHT:
-            if (servo_get_position(devices.servo_0) > DESK_AREA_RIGHT) {
+            if (servo_get_position(devices.servo_cutter) > DESK_AREA_RIGHT) {
                 set_text_10(machine.F2_text, "Prava znck");
                 servo_manual_movement_slow();
                 if (button_raised(devices.F2)) {
-                    machine.paper_right_mark_position = servo_get_position(devices.servo_0);
+                    machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
                     manual_substate = MANUAL_READY;
                 }
             }
             else {
                 set_text_10(machine.F2_text, "Pravy kraj");
                 if (button_raised(devices.F2)) {
-                    servo_goto(devices.servo_0, -50, MANUAL_SPEED_FAST);
+                    servo_goto(devices.servo_cutter, -50, MANUAL_SPEED_FAST);
                 }
             }
             break;
@@ -137,8 +137,8 @@ void handle_homing_state(void) {
     // Handle state transitions
     switch(homing_substate) {
         case HOMING_START:
-            if (servo_is_idle(devices.servo_0)) {
-                servo_goto_delayed(devices.servo_0, 2000.0, 100.0, HALF_SECOND_DELAY);
+            if (servo_is_idle(devices.servo_cutter)) {
+                servo_goto_delayed(devices.servo_cutter, 2000.0, 100.0, HALF_SECOND_DELAY);
                 homing_substate = HOMING_SCANNING;
             }
             break;
@@ -151,20 +151,20 @@ void handle_homing_state(void) {
             break;
 
         case HOMING_FOUND:
-            if (servo_is_accelerating(devices.servo_0)) {
-                servo_stop_positioning(devices.servo_0);
+            if (servo_is_accelerating(devices.servo_cutter)) {
+                servo_stop_positioning(devices.servo_cutter);
             }
-            else if (servo_is_position_reached(devices.servo_0)) {
+            else if (servo_is_position_reached(devices.servo_cutter)) {
                 homing_substate = HOMING_RETURN_TO_ZERO;
             }
             break;
 
         case HOMING_RETURN_TO_ZERO:
-            if (servo_is_idle(devices.servo_0)) {
-                servo_set_zero_position(devices.servo_0);
-                servo_goto_delayed(devices.servo_0, -50.0, 100.0, HALF_SECOND_DELAY);
+            if (servo_is_idle(devices.servo_cutter)) {
+                servo_set_zero_position(devices.servo_cutter);
+                servo_goto_delayed(devices.servo_cutter, -50.0, 100.0, HALF_SECOND_DELAY);
             }
-            else if (servo_is_position_reached(devices.servo_0)) {
+            else if (servo_is_position_reached(devices.servo_cutter)) {
                 homing_substate = HOMING_FINISHED;
             }
             break;
