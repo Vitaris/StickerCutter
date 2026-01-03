@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include "pico/stdlib.h"
 #include <string.h>
+#include <stdint.h>
+
+// Add these missing includes
+#include "hardware/pio.h"
+#include "quadrature_encoder.pio.h"
 
 #include "machine_controller.h"
 #include "machine_manual_mode.h"
