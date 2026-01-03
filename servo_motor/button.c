@@ -12,8 +12,8 @@ struct button {
 	bool state_raised;
 	bool state_dropped;
 
-	time_t time_pressed;
-	time_t time_released;
+	uint64_t time_pressed;
+	uint64_t time_released;
 };
 
 button_t* create_button(const uint8_t gpio_pin_num)
