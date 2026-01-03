@@ -69,7 +69,7 @@ struct servo_motor {
 	button_t *man_minus;
 };
 
-servo_t* servo_create(const char servo_name[10], const uint pio_ofset, const uint sm, 
+servo_t* servo_create(const char servo_name[7], const uint pio_ofset, const uint sm, 
                     const uint encoder_pin, const uint pwm_pin, const float scale,
                     button_t *const man_plus, button_t *const man_minus, 
                     bool *const enable, bool *const error, char (*const message)[21]) {
