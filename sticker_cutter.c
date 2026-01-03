@@ -5,6 +5,7 @@
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
 #include "hardware/timer.h"
+#include "quadrature_encoder.pio.h"
 #include "machine/machine_controller.h"
 
 #include "servo_motor/servo_motor.h"
