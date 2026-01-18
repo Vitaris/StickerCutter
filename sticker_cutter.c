@@ -15,7 +15,7 @@
 struct repeating_timer servo_timer;
 struct repeating_timer LCD_refresh_timer;
 
-bool lcd_refresh;
+volatile bool lcd_refresh;
 
 void core1_entry() {
     // Intro Screen
