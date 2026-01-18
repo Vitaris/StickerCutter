@@ -16,9 +16,9 @@
 #include "mark_detector.h"
 
 // Physical constants
-static const uint KNIFE_OUTPUT_PIN = 17;
-static const float SCALE_CUTTER = 20.0;
-static const float SCALE_FEEDER = 6.4;
+#define KNIFE_OUTPUT_PIN 17
+#define SCALE_CUTTER 20.0
+#define SCALE_FEEDER 6.4
 
 // LCD display configuration
 #define DISPLAY_COLS 20
@@ -37,13 +37,12 @@ machine_t machine;
 
 // Base pin to connect the A phase of the encoder.
 // The B phase must be connected to the next pin
-static const uint ENC_0 = 6;
-static const uint ENC_1 = 8;
+#define ENC_0 6
+#define ENC_1 8
 
 // First pin of PWM couple.
-static const uint PWM_0 = 18;
-static const uint PWM_1 = 20;
-
+#define PWM_0 18
+#define PWM_1 20
 void machine_init(void) {
     // Initialize machine state
     machine_state = MANUAL;
@@ -64,7 +63,7 @@ void machine_init(void) {
     set_text_20(machine.state_text_2, "");
 
     // Init PIO
-    uint offset = pio_add_program(pio0, &quadrature_encoder_program);
+    int offset = pio_add_program(pio0, &quadrature_encoder_program);
 
     // Create servos
     devices.servo_cutter = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, devices.Right, devices.Left, &machine.enable, &machine.machine_error, &machine.error_message);
@@ -158,9 +157,9 @@ char* get_error_message(void) {
     return machine.error_message;
 }
 
-void set_text(char LCD_text[], char text[], uint8_t len) {
+void set_text(char LCD_text[], char text[], int len) {
     bool fill_spaces = false;
-    uint8_t i = 0;
+    int i = 0;
     while (i < len) {
         if (text[i] == '\0') {
             fill_spaces = true;

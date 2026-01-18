@@ -8,11 +8,11 @@
 
 struct servo_motor {
 	// Encoder
-	uint sm;
+	int sm;
 	int32_t enc_old;
 
 	// PWM
-	uint pwm_slice;
+	int pwm_slice;
 	
 	// PID Position
 	pid_data_t* pid_pos;
@@ -69,8 +69,8 @@ struct servo_motor {
 	button_t *man_minus;
 };
 
-servo_t* servo_create(const char servo_name[7], const uint pio_ofset, const uint sm, 
-                    const uint encoder_pin, const uint pwm_pin, const float scale,
+servo_t* servo_create(const char servo_name[7], const int pio_ofset, const int sm, 
+                    const int encoder_pin, const int pwm_pin, const float scale,
                     button_t *const man_plus, button_t *const man_minus, 
                     bool *const enable, bool *const error, char (*const message)[21]) {
 	// Create servo data structure
