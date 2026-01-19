@@ -14,6 +14,7 @@
 // Timers
 struct repeating_timer servo_timer;
 struct repeating_timer LCD_refresh_timer;
+struct repeating_timer comm_timer;
 
 volatile bool lcd_refresh;
 
@@ -22,6 +23,7 @@ void core1_entry() {
     string2LCD(devices.lcd, 3, 1, "Sticker Cutter");
     string2LCD(devices.lcd, 16, 3, "V1.1");
     busy_wait_ms(2000);
+    int i = 0;
 
     while (1)
     {
@@ -45,6 +47,15 @@ void core1_entry() {
             string2LCD(devices.lcd, 10, 3, machine.F2_text);
 
             lcd_refresh = false;
+            if (i < 1) {
+                i++;
+            } else {
+                i = 0;
+                const uint16_t* history = get_reflectivity_history();
+                for (uint16_t j = 0; j < 200; j++) {
+                    printf("%u%s", history[j], (j < 199) ? "," : "\n");
+                }
+            }   
         }
     }
 }
