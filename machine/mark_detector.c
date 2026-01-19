@@ -6,11 +6,11 @@
 
 #define MEM_SIZE 250
 #define WINDOW_SIZE 10
-static const uint32_t BELLOW_AVG_MIN = 80;
-static const uint32_t VOID_REFLECTIVITY_THRESHOLD = 120;
-static const uint32_t INITIAL_MINIMUM_VALUE = 0x1000;   // 4096 in hex
-static const uint32_t MIN_SPIKE_AREA = 4000;           // Minimum valid area
-static const uint32_t MAX_SPIKE_AREA = 20000;          // Maximum valid area
+#define BELLOW_AVG_MIN 80
+#define VOID_REFLECTIVITY_THRESHOLD 120
+#define INITIAL_MINIMUM_VALUE 0x1000   // 4096 in hex
+#define MIN_SPIKE_AREA 4000           // Minimum valid area
+#define MAX_SPIKE_AREA 20000          // Maximum valid area
 
 typedef struct {
     uint16_t buffer[WINDOW_SIZE];
@@ -208,4 +208,8 @@ bool get_void_absence() {
 
 float get_mark_position(void) {
     return detector.mark_position;
+}
+
+const uint16_t* get_reflectivity_history(void) {
+    return detector.reflectivity_history;
 }

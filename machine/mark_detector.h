@@ -66,4 +66,10 @@ bool is_sampling_done(void);
  */
 float get_mark_position(void);
 
+/**
+ * @brief Gets pointer to reflectivity history array
+ * @return Pointer to array of MEM_SIZE (250) uint16_t values
+ */
+const uint16_t* get_reflectivity_history(void);
+
 #endif
