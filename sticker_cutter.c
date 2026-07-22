@@ -51,10 +51,9 @@ void core1_entry() {
                 i++;
             } else {
                 i = 0;
-                const uint16_t* history = get_reflectivity_history();
-                for (uint16_t j = 0; j < 200; j++) {
-                    printf("%u%s", history[j], (j < 199) ? "," : "\n");
-                }
+                // print long term average and current reflectivity for debugging
+                printf("%d,%d\n", get_long_term_average(), get_reflectivity_history()[0]);
+          
             }   
         }
     }
@@ -80,7 +79,7 @@ int main() {
     add_repeating_timer_ms(-1, servo_timer_callback, NULL, &servo_timer);
 
     // 100ms LCD refresh timer
-    add_repeating_timer_ms(-100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
+    add_repeating_timer_ms(-20, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
     
     // Launch core1
     multicore_launch_core1(core1_entry);

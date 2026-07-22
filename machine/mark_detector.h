@@ -72,4 +72,6 @@ float get_mark_position(void);
  */
 const uint16_t* get_reflectivity_history(void);
 
+const int get_long_term_average(void);
+
 #endif

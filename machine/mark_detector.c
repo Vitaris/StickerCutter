@@ -5,7 +5,7 @@
 #include "mark_detector.h"
 
 #define MEM_SIZE 250
-#define WINDOW_SIZE 10
+#define WINDOW_SIZE 500
 #define BELLOW_AVG_MIN 80
 #define VOID_REFLECTIVITY_THRESHOLD 120
 #define INITIAL_MINIMUM_VALUE 0x1000   // 4096 in hex
@@ -131,7 +131,7 @@ void init_detector(const uint8_t sensor_pin,
     init_moving_average_filter(&detector.reflectivity_filter);
 
     // Initialize long term average
-    detector.long_term_alpha = 0.2;
+    detector.long_term_alpha = 0.95f;
     detector.long_term_average = 0;
 }
 
@@ -212,4 +212,8 @@ float get_mark_position(void) {
 
 const uint16_t* get_reflectivity_history(void) {
     return detector.reflectivity_history;
+}
+
+const int get_long_term_average(void) {
+    return detector.long_term_average;
 }
