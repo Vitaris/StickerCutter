@@ -50,3 +50,10 @@ target_link_libraries(stickerCutter pico_stdlib
         hardware_adc
         )
         
+# Add a custom option in CMake (ON by default for testing)
+option(ENABLE_SIMULATION_MODE "Build with simulated hardware" ON)
+
+if(ENABLE_SIMULATION_MODE)
+    # Defines SIMULATION_MODE globally for all source files in the project
+    add_compile_definitions(SIMULATION_MODE)
+endif()

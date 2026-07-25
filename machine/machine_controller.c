@@ -42,6 +42,7 @@ machine_t machine;
 // First pin of PWM couple.
 #define PWM_0 18
 #define PWM_1 20
+
 void machine_init(void) {
     // Initialize machine state
     machine_state = MANUAL;
@@ -53,6 +54,9 @@ void machine_init(void) {
     devices.Left = create_button(3);
     devices.In = create_button(4);
     devices.Out = create_button(0);
+
+    // Initialize home switch
+    devices.home_switch = create_button(22);
 
     // Init servos
     machine.machine_error = false;

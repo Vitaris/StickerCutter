@@ -14,7 +14,6 @@
 
 // Timers
 struct repeating_timer servo_timer;
-struct repeating_timer comm_timer;
 
 bool servo_timer_callback(struct repeating_timer *t) {
     machine_compute();

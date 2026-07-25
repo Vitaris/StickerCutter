@@ -49,6 +49,8 @@ typedef struct {
 	button_t* Left;
 	button_t* In;
 	button_t* Out;
+	button_t* home_switch;
+
 	lcd_t* lcd;
 } devices_t;
 
