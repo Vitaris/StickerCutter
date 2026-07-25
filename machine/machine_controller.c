@@ -13,7 +13,6 @@
 #include "machine_automatic_mode.h"
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
-#include "mark_detector.h"
 
 // Physical constants
 #define KNIFE_OUTPUT_PIN 17
@@ -89,9 +88,6 @@ void machine_init(void) {
     // Cutter
     machine.params_ready = false;
 
-    // Mark probe
-    init_detector(0, servo_get_position_pointer(devices.servo_feeder), &machine.machine_error, &machine.error_message);
-
     // Machine states
     activate_manual_state();
 }
@@ -106,7 +102,6 @@ void machine_compute(void) {
     button_compute(devices.Left);
     button_compute(devices.In);
     button_compute(devices.Out);
-    detector_compute();
     
     // Handle error conditions and cutter state machine
     if (machine.machine_error) {

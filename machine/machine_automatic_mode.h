@@ -2,7 +2,6 @@
 #define MACHINE_AUTOMATIC_MODE_H
 
 #include <stdbool.h>
-#include "mark_detector.h"
 
 /**
  * @brief Initializes the automatic mode state machine

@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "mark_detector.h"
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 #include "../lcd/ant_lcd.h"

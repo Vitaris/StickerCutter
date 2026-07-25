@@ -32,7 +32,6 @@ add_executable(stickerCutter
     machine/machine_controller.c
     machine/machine_manual_mode.c
     machine/machine_automatic_mode.c
-    machine/mark_detector.c
     hmi/hmi.c
 )
 

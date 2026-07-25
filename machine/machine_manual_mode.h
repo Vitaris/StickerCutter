@@ -2,7 +2,6 @@
 #define MACHINE_MANUAL_MODE_H
 
 #include <stdbool.h>
-#include "mark_detector.h"
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 

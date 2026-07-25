@@ -2,7 +2,6 @@
 #include "machine_controller.h"
 #include "machine_automatic_mode.h"
 #include "machine_manual_mode.h"
-#include "mark_detector.h"
 
 static const float STICKER_HEIGHT_TOLERNACE = 10.0; // 10mm tolerance for sticker height
 char state_text_1[21];
@@ -76,6 +75,10 @@ typedef enum {
 
 automatic_substate_t automatic_substate;
 marks_monitor_t monitor_data;
+
+int get_mark_position(void) {
+    return 0; // Placeholder for actual mark position retrieval logic
+}
 
 void stop_knife_on_mark(void) {
     servo_set_stop_position(devices.servo_feeder, get_mark_position() + SENSOR_KNIFE_OFFSET_Y);
@@ -156,15 +159,12 @@ void handle_automatic_state(void) {
 
         case PAPER_AWAIT_SPEED:
             if (servo_is_speed_reached(devices.servo_feeder)) {
-                detector_restart();
                 automatic_substate = DETECT_AWAIT_SAMPLES;
             }
             break;
 
         case DETECT_AWAIT_SAMPLES:
-            if (is_sampling_done()) {
-                automatic_substate = DETECT_SCANNING;
-            }
+            automatic_substate = DETECT_SCANNING;
             break;
 
         case DETECT_SCANNING:
@@ -172,10 +172,6 @@ void handle_automatic_state(void) {
             if (monitor_data.sticker_dimensions_set &&
                 monitor_data.current_sticker_measurement >= monitor_data.sticker_height + STICKER_HEIGHT_TOLERNACE) {
                     automatic_substate = MONITOR_STICKER_HEIGHT_FAILURE;
-            }
-            if (detect_mark()) {
-                automatic_substate = DETECT_MARK_FOUND;
-                // devices.servo_feeder->next_stop = (detector.mark_position + SENSOR_KNIFE_OFFSET_Y) / devices.servo_feeder->scale;
             }
             break;
 

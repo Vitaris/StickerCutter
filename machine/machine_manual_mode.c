@@ -6,7 +6,6 @@
 #include "machine_automatic_mode.h"
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
-#include "mark_detector.h"
 
 #define DESK_AREA_RIGHT -200.0
 #define DESK_AREA_LEFT -1300.0
@@ -48,6 +47,14 @@ void servo_manual_movement(void) {
 void servo_manual_movement_slow(void) {
     servo_manual_handling(devices.servo_cutter, -1500, 20, MANUAL_SPEED_SLOW, machine.homed);
     servo_manual_handling(devices.servo_feeder, 0, 0, MANUAL_SPEED_SLOW, false);
+}
+
+int get_void_absence(void) {
+    return 0;
+}
+
+int get_void_presence(void) {
+    return 0;
 }
 
 void handle_manual_state(void) {
