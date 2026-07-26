@@ -3,6 +3,7 @@
 #include "hardware/timer.h"
 #include <stdio.h>
 #include "../machine/machine_controller.h"
+#include "../rotary_encoder/rotary_encoder.h"
 
 // Internal state hidden from main
 static struct repeating_timer lcd_refresh_timer;
@@ -46,7 +47,7 @@ static void hmi_core1_entry(void) {
             string2LCD(devices.lcd, 0, 3, machine.F1_text);
             string2LCD(devices.lcd, 10, 3, machine.F2_text);
 
-            float2LCD(devices.lcd, 0, 1, 8, 1, (float)*devices.raw_count / 40.0f);
+            float2LCD(devices.lcd, 0, 1, 8, 1, get_rotary_encoder_position(devices.encoder));
 
             lcd_refresh = false;
         }

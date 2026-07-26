@@ -35,6 +35,7 @@ add_executable(stickerCutter
     machine/machine_manual_mode.c
     machine/machine_automatic_mode.c
     hmi/hmi.c
+    rotary_encoder/rotary_encoder.c
 )
 
 pico_generate_pio_header(stickerCutter ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pio)

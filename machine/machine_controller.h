@@ -8,6 +8,7 @@
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
 #include "../lcd/ant_lcd.h"
+#include "../rotary_encoder/rotary_encoder.h"
 
 // Physical constants
 #define SENSOR_KNIFE_OFFSET_X 25.0f
@@ -53,7 +54,7 @@ typedef struct {
 
 	lcd_t* lcd;
 
-	int32_t* raw_count;
+	rotary_encoder_t* encoder;
 } devices_t;
 
 extern devices_t devices;
