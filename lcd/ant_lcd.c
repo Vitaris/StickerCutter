@@ -160,10 +160,10 @@ void int2LCD(lcd_t* lcd, uint8_t x, uint8_t y, uint8_t max_length, int number) {
     free(str);
 }
 
-void float2LCD(lcd_t* lcd, uint8_t x, uint8_t y, uint8_t max_length, float number) {
+void float2LCD(lcd_t* lcd, uint8_t x, uint8_t y, uint8_t max_length, uint8_t decimals, float number) {
     gotoxy(lcd, x, y); 
     char* str;
-    asprintf (&str, "%*.2f", max_length, number);
+    asprintf(&str, "%*.*f", max_length, decimals, number);
     writeText(lcd, str);
     free(str);
 }

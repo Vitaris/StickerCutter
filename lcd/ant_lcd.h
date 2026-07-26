@@ -48,10 +48,11 @@ void int2LCD(lcd_t* lcd, uint8_t x, uint8_t y, uint8_t max_length, int number);
  * @param x X position
  * @param y Y position
  * @param max_length Max length of the number
+ * @param decimals Number of decimal places to display
  * @param number Float to be displayed
  * 
  */
-void float2LCD(lcd_t* lcd, uint8_t x, uint8_t y, uint8_t max_length, float number);
+void float2LCD(lcd_t* lcd, uint8_t x, uint8_t y, uint8_t max_length, uint8_t decimals, float number);
 
 /**
  * @brief Puts String on LCD
