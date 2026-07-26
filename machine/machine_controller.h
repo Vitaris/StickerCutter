@@ -52,6 +52,8 @@ typedef struct {
 	button_t* home_switch;
 
 	lcd_t* lcd;
+
+	int32_t* raw_count;
 } devices_t;
 
 extern devices_t devices;

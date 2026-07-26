@@ -61,7 +61,11 @@ void machine_init(void) {
     // Init servos
     machine.machine_error = false;
     machine.enable = false;
-    machine.homed = false;
+    #ifndef SIMULATION_MODE
+        machine.homed = false;
+    #else
+        machine.homed = true;
+    #endif
     set_text_20(machine.error_message, "OK");
     set_text_20(machine.state_text_2, "");
 
@@ -71,6 +75,16 @@ void machine_init(void) {
     // Create servos
     devices.servo_cutter = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, devices.Right, devices.Left, &machine.enable, &machine.machine_error, &machine.error_message);
     devices.servo_feeder = servo_create("Feeder", offset, 1, ENC_1, PWM_1, SCALE_FEEDER, devices.Out, devices.In, &machine.enable, &machine.machine_error, &machine.error_message);
+
+    // Init Rotary encoder
+    int offset_1 = pio_add_program_at_offset(pio1, &quadrature_encoder_program, 0);
+
+    gpio_init(26);
+    gpio_init(27);
+    gpio_set_dir(26, GPIO_IN);
+    gpio_set_dir(27, GPIO_IN);
+    
+    quadrature_encoder_program_init(pio1, 0, offset_1, 26, 100000);
 
     // Create lcd
     devices.lcd = lcd_create(
@@ -94,6 +108,8 @@ void machine_init(void) {
 
     // Machine states
     activate_manual_state();
+
+    devices.raw_count = (int32_t *)calloc(1, sizeof(int32_t));
 }
 
 void machine_compute(void) {
@@ -106,6 +122,8 @@ void machine_compute(void) {
     button_compute(devices.Left);
     button_compute(devices.In);
     button_compute(devices.Out);
+
+    *devices.raw_count = quadrature_encoder_get_count(pio1, 0);
     
     // Handle error conditions and cutter state machine
     if (machine.machine_error) {

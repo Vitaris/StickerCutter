@@ -30,21 +30,23 @@ static void hmi_core1_entry(void) {
         if (lcd_refresh == true)
         { 
             string2LCD(devices.lcd, 0, 0, machine.state_text_1);
-            if (machine.machine_error) {
-                string2LCD(devices.lcd, 0, 1, get_error_message());
-            }
-            else {
-                string2LCD(devices.lcd, 0, 1, machine.state_text_2);
-            }
+            // if (machine.machine_error) {
+            //     string2LCD(devices.lcd, 0, 1, get_error_message());
+            // }
+            // else {
+            //     string2LCD(devices.lcd, 0, 1, machine.state_text_2);
+            // }
 
-            float2LCD(devices.lcd, 0, 2, 8, servo_get_position(devices.servo_cutter));
+            float2LCD(devices.lcd, 0, 2, 8, 2, servo_get_position(devices.servo_cutter));
             string2LCD(devices.lcd, 8, 2, "mm");
             
-            float2LCD(devices.lcd, 10, 2, 8, servo_get_position(devices.servo_feeder));
+            float2LCD(devices.lcd, 10, 2, 8, 2, servo_get_position(devices.servo_feeder));
             string2LCD(devices.lcd, 18, 2, "mm");
 
             string2LCD(devices.lcd, 0, 3, machine.F1_text);
             string2LCD(devices.lcd, 10, 3, machine.F2_text);
+
+            float2LCD(devices.lcd, 0, 1, 8, 1, (float)*devices.raw_count / 40.0f);
 
             lcd_refresh = false;
         }
