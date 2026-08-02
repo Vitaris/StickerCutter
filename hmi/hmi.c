@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "../machine/machine_controller.h"
 #include "../rotary_encoder/rotary_encoder.h"
+#include "../lcd/ant_lcd.h"
 
 // Internal state hidden from main
 static struct repeating_timer lcd_refresh_timer;
@@ -25,31 +26,46 @@ static void hmi_core1_entry(void) {
     int i = 0;
     // Set up a repeating timer to refresh the LCD every 20 ms (50 Hz)
     add_repeating_timer_ms(-20, lcd_refresh_timer_callback, NULL, &lcd_refresh_timer);
+    bool cleared = false;
     
     while (1)
     {
         if (lcd_refresh == true)
         { 
-            string2LCD(devices.lcd, 0, 0, machine.state_text_1);
-            // if (machine.machine_error) {
-            //     string2LCD(devices.lcd, 0, 1, get_error_message());
-            // }
-            // else {
-            //     string2LCD(devices.lcd, 0, 1, machine.state_text_2);
-            // }
+            if (machine.test != true) {
 
-            float2LCD(devices.lcd, 0, 2, 8, 2, servo_get_position(devices.servo_cutter));
-            string2LCD(devices.lcd, 8, 2, "mm");
-            
-            float2LCD(devices.lcd, 10, 2, 8, 2, servo_get_position(devices.servo_feeder));
-            string2LCD(devices.lcd, 18, 2, "mm");
+                string2LCD(devices.lcd, 0, 0, machine.state_text_1);
+                if (machine.machine_error) {
+                    string2LCD(devices.lcd, 0, 1, get_error_message());
+                }
+                else {
+                    string2LCD(devices.lcd, 0, 1, machine.state_text_2);
+                }
 
-            string2LCD(devices.lcd, 0, 3, machine.F1_text);
-            string2LCD(devices.lcd, 10, 3, machine.F2_text);
+                float2LCD(devices.lcd, 0, 2, 8, 2, servo_get_position(devices.servo_cutter));
+                string2LCD(devices.lcd, 8, 2, "mm");
+                
+                float2LCD(devices.lcd, 10, 2, 8, 2, servo_get_position(devices.servo_feeder));
+                string2LCD(devices.lcd, 18, 2, "mm");
 
-            float2LCD(devices.lcd, 0, 1, 8, 1, get_rotary_encoder_position(devices.encoder));
+                string2LCD(devices.lcd, 0, 3, machine.F1_text);
+                string2LCD(devices.lcd, 10, 3, machine.F2_text);
 
-            lcd_refresh = false;
+                machine.position_cutter[0] = '\0';
+
+                // float2LCD(devices.lcd, 0, 1, 8, 1, get_rotary_encoder_position(devices.encoder));
+
+                lcd_refresh = false;
+            }
+            else {
+                if (cleared) {
+                    float2LCD(devices.lcd, 0, 1, 8, 1, get_rotary_encoder_position(devices.encoder));
+                }
+                else {
+                    clrscr(devices.lcd);
+                    cleared = true;
+                }
+            }
         }
         tight_loop_contents(); 
     }

@@ -102,8 +102,9 @@ void handle_manual_state(void) {
                     }
                 }
                 else {
-                    set_text_10(machine.F2_text, "Set znaky");
+                    set_text_10(machine.F2_text, "V nalepka");
                     if (button_raised(devices.F2)) {
+                        machine.test = true;
                         manual_substate = MANUAL_SET_RIGHT;
                     }   
                 }

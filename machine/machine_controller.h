@@ -77,6 +77,8 @@ typedef struct {
 	char position_feeder[8];
 	char F1_text[11];
 	char F2_text[11];
+
+	bool test;
 } machine_t;
 
 extern machine_t machine;
