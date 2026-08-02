@@ -10,78 +10,82 @@
 #include "../rotary_encoder/rotary_encoder.h"
 #include "../lcd/ant_lcd.h"
 
-#define LINE_COUNT 4
-#define LINE_LENGTH 20
-
-typedef enum {
-    WELCOME_SCREEN,
-    STANDARD_SCREEN,
-    INPUT_SCREEM,
-    FAILURE_SCREEN
-} screen_state_t;
-
-typedef char lcd_line_t[LINE_LENGTH];
-typedef char lcd_halfline[LINE_LENGTH / 2];
-
-struct lcd_screen {
-    lcd_line_t screen[LINE_COUNT];
-};
-
-struct hmi {
-    screen_state_t screen_state;
-    uint64_t start_us; 
-    lcd_screen_t welcome;
-    lcd_screen_t standard;
-    lcd_screen_t screen_input;
-    lcd_screen_t screen_actual;
-};
-
 void place_to_left(lcd_line_t line, const char *string) {
+    memset(line, ' ', LINE_LENGTH - 1);
+
     snprintf(line, LINE_LENGTH, "%s", string);
 }
 
 void place_to_center(lcd_line_t line, const char *string) {
+    memset(line, ' ', LINE_LENGTH - 1);
     size_t len = strlen(string);
     int pad = (len >= LINE_LENGTH) ? 0 : (LINE_LENGTH - (int)len) / 2;
 
-    memset(line, ' ', pad);
     snprintf(line + pad, LINE_LENGTH - pad, "%s", string);
 }
 
 void place_to_right(lcd_line_t line, const char *string) {
+    memset(line, ' ', LINE_LENGTH - 1);
     size_t len = strlen(string);
     int pad = (len >= LINE_LENGTH) ? 0 : LINE_LENGTH - 1 - (int)len;
 
-    memset(line, ' ', pad);
     snprintf(line + pad, LINE_LENGTH - pad, "%s", string);
 }
 
-hmi_t* hmi_create() {
-    hmi_t* hmi = calloc(1, sizeof(struct hmi));
+void clear_line(lcd_line_t line) {
+    memset(line, ' ', LINE_LENGTH - 1);
+    line[20] = '\0';
+}
 
-    // Welcome Screen
-    place_to_center(hmi->welcome.screen[1], "Sticker Cutter");
-    place_to_right(hmi->welcome.screen[3], "V1.1");
+void clear_screen(lcd_screen_t *screen) {
+    for (size_t i = 0; i < LINE_COUNT; i++) {
+        clear_line(screen->line[i]);
+    }
+}
 
-    // Standard Screen
+void draw_screen(hmi_t* hmi) {
+    for (size_t i = 0; i < LINE_COUNT; i++) {
+        string2LCD(hmi->lcd, 0, i, hmi->actual_screen.line[i]);
+    }
+}
 
+void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
+    hard_assert(hmi != NULL);
+
+    memset(hmi, 0, sizeof(hmi_t));
+    clear_screen(&hmi->welcome_screen);
+    clear_screen(&hmi->standard_screen);
+    clear_screen(&hmi->input_screen);
+    clear_screen(&hmi->actual_screen);
     
+    // Welcome Screen
+    place_to_center(hmi->welcome_screen.line[1], "Sticker Cutter");
+    place_to_right(hmi->welcome_screen.line[3], "V1.1");
+    
+    // Standard Screen
+    
+    
+    
+    hmi->lcd = lcd_create(config);
     hmi->start_us = time_us_64();
-    return hmi;
+        
+    
 }
 
 void hmi_compute(hmi_t* hmi) {
 
     switch(hmi->screen_state) {
         case WELCOME_SCREEN:
-			hmi->screen_actual = hmi->welcome;
-            if (time_us_64() - hmi->start_us > 2000000) {
+			hmi->actual_screen = hmi->welcome_screen;
+            if (time_us_64() - hmi->start_us > 2000000ULL) {
                 hmi->screen_state = STANDARD_SCREEN;
             }
 			break;
 		
 		case STANDARD_SCREEN:
-            hmi->screen_actual = hmi->standard;
+            place_to_left(hmi->standard_screen.line[0], "Mode: Manual");
+            place_to_right(hmi->standard_screen.line[1], "Vpravo!");
+            hmi->actual_screen = hmi->standard_screen;
 
             // if (machine.test != true) {
 
@@ -109,11 +113,13 @@ void hmi_compute(hmi_t* hmi) {
 
             break;
             
-        case INPUT_SCREEM:
+        case INPUT_SCREEN:
             break;
         
         case FAILURE_SCREEN:
             break;
     }
+
+    draw_screen(hmi);
 
 };

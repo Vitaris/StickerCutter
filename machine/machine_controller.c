@@ -20,17 +20,6 @@
 #define SCALE_CUTTER 20.0
 #define SCALE_FEEDER 6.4
 
-// LCD display configuration
-#define DISPLAY_COLS 20
-#define DISPLAY_ROWS 4
-#define LCD_PIN_RS 10
-#define LCD_PIN_RW 11
-#define LCD_PIN_EN 12
-#define LCD_PIN_D4 13
-#define LCD_PIN_D5 14
-#define LCD_PIN_D6 15
-#define LCD_PIN_D7 16
-
 machine_state_t machine_state;
 devices_t devices;
 machine_t machine;
@@ -77,19 +66,6 @@ void machine_init(void) {
     devices.servo_cutter = servo_create("Cutter", offset, 0, ENC_0, PWM_0, SCALE_CUTTER, devices.Right, devices.Left, &machine.enable, &machine.machine_error, &machine.error_message);
     devices.servo_feeder = servo_create("Feeder", offset, 1, ENC_1, PWM_1, SCALE_FEEDER, devices.Out, devices.In, &machine.enable, &machine.machine_error, &machine.error_message);
    
-    // Create lcd
-    devices.lcd = lcd_create(
-        LCD_PIN_RS,
-        LCD_PIN_RW,
-        LCD_PIN_EN,
-        LCD_PIN_D4,
-        LCD_PIN_D5,
-        LCD_PIN_D6,
-        LCD_PIN_D7,
-        DISPLAY_COLS,
-        DISPLAY_ROWS
-    );
-
     // Knife
     gpio_init(KNIFE_OUTPUT_PIN);
     gpio_set_dir(KNIFE_OUTPUT_PIN, GPIO_OUT);

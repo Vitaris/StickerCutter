@@ -96,18 +96,18 @@ void lcd_init(lcd_t* lcd) {
 	busy_wait_us(DELAY_250_uS);
 }
 
-lcd_t* lcd_create(uint32_t RS, uint32_t RW, uint32_t EN, uint32_t D4, uint32_t D5,
- 				uint32_t D6, uint32_t D7, uint32_t COL, uint32_t ROW) {
+lcd_t* lcd_create(const lcd_config_t *config) {
 	// Create lcd data structure
 	lcd_t* lcd = calloc(1, sizeof(struct lcd_controller));
+	hard_assert(lcd != NULL);
 
-	lcd->data[0] = D4;
-	lcd->data[1] = D5;
-	lcd->data[2] = D6;
-	lcd->data[3] = D7;
-	lcd->RS = RS;
-	lcd->RW = RW;
-	lcd->EN = EN;
+	lcd->data[0] = config->d4;
+	lcd->data[1] = config->d5;
+	lcd->data[2] = config->d6;
+	lcd->data[3] = config->d7;
+	lcd->RS = config->rs;
+	lcd->RW = config->rw;
+	lcd->EN = config->en;
 
 	gpio_init(lcd->data[0]);
     gpio_set_dir(lcd->data[0], GPIO_OUT);
@@ -124,8 +124,8 @@ lcd_t* lcd_create(uint32_t RS, uint32_t RW, uint32_t EN, uint32_t D4, uint32_t D
 	gpio_init(lcd->EN);
     gpio_set_dir(lcd->EN, GPIO_OUT);
 	
-	lcd->COL = COL;
-	lcd->ROW = ROW;
+	lcd->COL = config->cols;
+	lcd->ROW = config->rows;
 
 	lcd->Xcurrent = 0;
 	lcd->Ycurrent = 0;

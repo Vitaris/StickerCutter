@@ -7,7 +7,6 @@
 
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
-#include "../lcd/ant_lcd.h"
 #include "../rotary_encoder/rotary_encoder.h"
 
 // Physical constants
@@ -51,8 +50,6 @@ typedef struct {
 	button_t* In;
 	button_t* Out;
 	button_t* home_switch;
-
-	lcd_t* lcd;
 
 	rotary_encoder_t* encoder;
 } devices_t;

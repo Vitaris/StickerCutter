@@ -6,6 +6,19 @@
 
 typedef struct lcd_controller lcd_t;
 
+// Configuration structure for HD44780 LCD
+typedef struct {
+    uint8_t rs;
+    uint8_t rw;
+    uint8_t en;
+    uint8_t d4;
+    uint8_t d5;
+    uint8_t d6;
+    uint8_t d7;
+    uint8_t cols;
+    uint8_t rows;
+} lcd_config_t;
+
 /**
  * @brief Creates a new LCD controller
  *
@@ -26,8 +39,7 @@ typedef struct lcd_controller lcd_t;
  * 
  * @note HD44780-compatible LCD in 4-bit mode
  */
-lcd_t* lcd_create(uint32_t RS, uint32_t RW, uint32_t EN, uint32_t D4, uint32_t D5,
-				uint32_t D6, uint32_t D7, uint32_t COL, uint32_t ROW);
+lcd_t* lcd_create(const lcd_config_t *config);
 
 /**
  * @brief Puts Int on LCD
