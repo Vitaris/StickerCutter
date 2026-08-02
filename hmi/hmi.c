@@ -10,6 +10,9 @@
 #include "../rotary_encoder/rotary_encoder.h"
 #include "../lcd/ant_lcd.h"
 
+#define BLINK_INTERVAL_US 500000ULL // 0.5 seconds (500 ms)
+#define WELCOME_INTERVAL_US 2000000ULL // welcome screen duration
+
 void place_to_left(lcd_line_t line, const char *string) {
     memset(line, ' ', LINE_LENGTH - 1);
 
@@ -49,6 +52,11 @@ void draw_screen(hmi_t* hmi) {
     }
 }
 
+void switch_screen(hmi_t* hmi, screen_state_t screen_state) {
+    hmi->screen_state = screen_state;
+    clear_screen(&hmi->actual_screen);
+}
+
 void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     hard_assert(hmi != NULL);
 
@@ -56,6 +64,7 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     clear_screen(&hmi->welcome_screen);
     clear_screen(&hmi->standard_screen);
     clear_screen(&hmi->input_screen);
+    clear_screen(&hmi->failure_screen);
     clear_screen(&hmi->actual_screen);
     
     // Welcome Screen
@@ -68,8 +77,6 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     
     hmi->lcd = lcd_create(config);
     hmi->start_us = time_us_64();
-        
-    
 }
 
 void hmi_compute(hmi_t* hmi) {
@@ -77,8 +84,8 @@ void hmi_compute(hmi_t* hmi) {
     switch(hmi->screen_state) {
         case WELCOME_SCREEN:
 			hmi->actual_screen = hmi->welcome_screen;
-            if (time_us_64() - hmi->start_us > 2000000ULL) {
-                hmi->screen_state = STANDARD_SCREEN;
+            if (time_us_64() - hmi->start_us > WELCOME_INTERVAL_US) {
+                switch_screen(hmi, FAILURE_SCREEN);
             }
 			break;
 		
@@ -117,6 +124,21 @@ void hmi_compute(hmi_t* hmi) {
             break;
         
         case FAILURE_SCREEN:
+            place_to_center(hmi->failure_screen.line[0], "* PORUCHA! *");
+            uint64_t elapsed = time_us_64() - hmi->start_us;
+            
+            // Determines toggle state: 0 = visible, 1 = hidden/blank
+            bool blink_off = (elapsed / BLINK_INTERVAL_US) % 2;
+            
+            // Start with base failure screen buffer
+            hmi->actual_screen = hmi->failure_screen;
+            
+            if (blink_off) {
+                clear_line(hmi->actual_screen.line[0]); 
+            }
+            if (time_us_64() - hmi->start_us > 10000000ULL) {
+                switch_screen(hmi, STANDARD_SCREEN);
+            }
             break;
     }
 

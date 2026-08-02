@@ -28,6 +28,7 @@ typedef struct hmi {
     lcd_screen_t welcome_screen;
     lcd_screen_t standard_screen;
     lcd_screen_t input_screen;
+    lcd_screen_t failure_screen;
     lcd_screen_t actual_screen;
     lcd_t* lcd;
 } hmi_t;
