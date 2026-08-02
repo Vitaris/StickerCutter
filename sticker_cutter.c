@@ -1,7 +1,7 @@
 #include "pico/stdlib.h"
 #include <string.h>
 #include "pico/multicore.h"
-#include "hmi/hmi.h"
+#include "core1_main.h"
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
@@ -30,7 +30,7 @@ int main() {
     add_repeating_timer_ms(-1, servo_timer_callback, NULL, &servo_timer);
 
     // Launch hmi, lcd screen
-    hmi_init();
+    multicore_launch_core1(core1_main);
 
     // Initial wait 
     busy_wait_ms(500);

@@ -26,6 +26,7 @@ pico_sdk_init()
 
 add_executable(stickerCutter
     sticker_cutter.c
+    core1_main.c
     lcd/ant_lcd.c
     pid/PID.c
     servo_motor/servo_pwm.c
