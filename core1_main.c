@@ -49,13 +49,16 @@ static bool lcd_refresh_timer_callback(struct repeating_timer *t) {
 
 // Private entry point for Core 1
 void core1_main(void) {
+    
+    // Set up a repeating timer to refresh the LCD every 20 ms (50 Hz)
+    static alarm_pool_t *core1_pool;
+    core1_pool = alarm_pool_create(2, 4); // hw alarm 2, owned by core 1
+    alarm_pool_add_repeating_timer_ms(core1_pool, -20, lcd_refresh_timer_callback, NULL, &lcd_refresh_timer);
 
+    // Initialize HMI
     hmi_init(&hmi, &lcd_cfg);
 
-    // Set up a repeating timer to refresh the LCD every 20 ms (50 Hz)
-    add_repeating_timer_ms(-20, lcd_refresh_timer_callback, NULL, &lcd_refresh_timer);
-    
-    if (true) {
+    while (true) {
         tight_loop_contents(); 
     }
 }
