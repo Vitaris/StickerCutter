@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include "pico/stdlib.h"
 #include "../lcd/ant_lcd.h"
+#include "../servo_motor/button.h"
+#include "../rotary_encoder/rotary_encoder.h"
 
 #define LINE_COUNT 4
 #define LINE_LENGTH 21 // 20 printable characters + '\0'
@@ -31,6 +33,8 @@ typedef struct hmi {
     lcd_screen_t failure_screen;
     lcd_screen_t actual_screen;
     lcd_t* lcd;
+    button_t* home_switch;
+    rotary_encoder_t* encoder;
 } hmi_t;
 
 // Public API: Starts Core 1 and sets up the display task

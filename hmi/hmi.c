@@ -73,13 +73,20 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     
     // Standard Screen
     
-    
+    // Initialize home switch
+    hmi->home_switch = create_button(22);
+
+    // Init Rotary encoder
+    int offset_1 = pio_add_program(pio1, &quadrature_encoder_program);
+    hmi->encoder = create_rotary_encoder(26, 28, 0, offset_1);
     
     hmi->lcd = lcd_create(config);
     hmi->start_us = time_us_64();
 }
 
 void hmi_compute(hmi_t* hmi) {
+    rotary_encoder_compute(hmi->encoder);
+    button_compute(hmi->home_switch);
 
     switch(hmi->screen_state) {
         case WELCOME_SCREEN:

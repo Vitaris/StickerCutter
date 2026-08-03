@@ -9,6 +9,7 @@ struct rotary_encoder {
 	// Encoder
 	int32_t pos_raw;
 	float position;
+    float delta_position;
     int32_t last_encoder_count;
     float scale;
     uint sm;
@@ -31,7 +32,7 @@ rotary_encoder_t* create_rotary_encoder(const uint8_t enc_pin_num, uint8_t switc
 
     encoder->knob_switch = create_button(switch_pin_num);
     gpio_pull_up(switch_pin_num);
-    encoder->scale = 40.0;
+    encoder->scale = -40.0;
 
     return encoder;
 }
@@ -44,7 +45,8 @@ void rotary_encoder_compute(rotary_encoder_t* encoder) {
     encoder->last_encoder_count = raw_current;
 
     // encoder->position = (float)encoder->pos_raw / 40.0;
-    encoder->position += (float)delta / encoder->scale;
+    encoder->delta_position = (float)delta / encoder->scale;
+    encoder->position += encoder->delta_position;
 
     // Update knob switch state
     button_compute(encoder->knob_switch);
@@ -59,4 +61,8 @@ void rotary_encoder_compute(rotary_encoder_t* encoder) {
 
 float get_rotary_encoder_position(rotary_encoder_t* encoder) {
     return encoder->position;
+}
+
+float get_delta_position(rotary_encoder_t* encoder) {
+    return encoder->delta_position;
 }
