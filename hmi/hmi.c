@@ -13,18 +13,24 @@
 #define BLINK_INTERVAL_US 500000ULL // 0.5 seconds (500 ms)
 #define WELCOME_INTERVAL_US 2000000ULL // welcome screen duration
 
+struct standard_screen standard_screen1 = {
+        .status = "Mode:",
+        .button_text_0 = "",
+        .button_text_1 = ""
+};
+
 void place_to_left(lcd_line_t line, const char *string) {
     memset(line, ' ', LINE_LENGTH - 1);
 
     snprintf(line, LINE_LENGTH, "%s", string);
 }
 
-void place_to_center(lcd_line_t line, const char *string) {
-    memset(line, ' ', LINE_LENGTH - 1);
+void place_to_center(lcd_line_t line, const char *string, uint8_t line_length) {
+    memset(line, ' ', line_length - 1);
     size_t len = strlen(string);
-    int pad = (len >= LINE_LENGTH) ? 0 : (LINE_LENGTH - (int)len) / 2;
-
-    snprintf(line + pad, LINE_LENGTH - pad, "%s", string);
+    int pad = (len >= line_length) ? 0 : (line_length - (int)len) / 2;
+    memcpy(line + pad, string, len);
+    line[line_length] = '\0';
 }
 
 void place_to_right(lcd_line_t line, const char *string) {
@@ -44,6 +50,12 @@ void clear_screen(lcd_screen_t *screen) {
     for (size_t i = 0; i < LINE_COUNT; i++) {
         clear_line(screen->line[i]);
     }
+}
+
+void merge_halfs_lines(lcd_line_t line, lcd_halfline_t half_first, lcd_halfline_t half_second) {
+    snprintf(line, LINE_LENGTH, "%-*.*s%-*.*s", 
+             LINE_LENGTH_HALF, LINE_LENGTH_HALF, half_first, 
+             LINE_LENGTH_HALF, LINE_LENGTH_HALF, half_second);
 }
 
 void draw_screen(hmi_t* hmi) {
@@ -68,7 +80,7 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     clear_screen(&hmi->actual_screen);
     
     // Welcome Screen
-    place_to_center(hmi->welcome_screen.line[1], "Sticker Cutter");
+    place_to_center(hmi->welcome_screen.line[1], "Sticker Cutter", LINE_LENGTH);
     place_to_right(hmi->welcome_screen.line[3], "V1.1");
     
     // Standard Screen
@@ -82,6 +94,8 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     
     hmi->lcd = lcd_create(config);
     hmi->start_us = time_us_64();
+
+    
 }
 
 void hmi_compute(hmi_t* hmi) {
@@ -92,13 +106,13 @@ void hmi_compute(hmi_t* hmi) {
         case WELCOME_SCREEN:
 			hmi->actual_screen = hmi->welcome_screen;
             if (time_us_64() - hmi->start_us > WELCOME_INTERVAL_US) {
-                switch_screen(hmi, FAILURE_SCREEN);
+                switch_screen(hmi, STANDARD_SCREEN);
             }
 			break;
 		
 		case STANDARD_SCREEN:
-            place_to_left(hmi->standard_screen.line[0], "Mode: Manual");
-            place_to_right(hmi->standard_screen.line[1], "Vpravo!");
+            place_to_left(hmi->standard_screen.line[0], standard_screen1.status);
+            merge_halfs_lines(hmi->standard_screen.line[3], standard_screen1.button_text_0, standard_screen1.button_text_1);
             hmi->actual_screen = hmi->standard_screen;
 
             // if (machine.test != true) {
@@ -131,7 +145,7 @@ void hmi_compute(hmi_t* hmi) {
             break;
         
         case FAILURE_SCREEN:
-            place_to_center(hmi->failure_screen.line[0], "* PORUCHA! *");
+            place_to_center(hmi->failure_screen.line[0], "* PORUCHA! *", LINE_LENGTH);
             uint64_t elapsed = time_us_64() - hmi->start_us;
             
             // Determines toggle state: 0 = visible, 1 = hidden/blank

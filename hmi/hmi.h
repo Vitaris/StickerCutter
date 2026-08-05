@@ -10,6 +10,7 @@
 
 #define LINE_COUNT 4
 #define LINE_LENGTH 21 // 20 printable characters + '\0'
+#define LINE_LENGTH_HALF 11 // 10 printable characters + '\0'
 
 typedef enum {
     WELCOME_SCREEN,
@@ -17,6 +18,16 @@ typedef enum {
     INPUT_SCREEN,
     FAILURE_SCREEN
 } screen_state_t;
+
+struct standard_screen {
+    // char status[LINE_LENGTH];
+    const char *status;
+    const char *button_text_0;
+    const char *button_text_1;
+};
+
+extern struct standard_screen standard_screen1;
+
 
 typedef char lcd_line_t[LINE_LENGTH];
 typedef char lcd_halfline_t[LINE_LENGTH / 2];

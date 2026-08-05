@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 
+#include "../hmi/hmi.h"
 #include "machine_controller.h"
 #include "machine_manual_mode.h"
 #include "machine_automatic_mode.h"
@@ -59,6 +60,9 @@ int get_void_presence(void) {
 
 void handle_manual_state(void) {
     // Update machine
+    standard_screen1.status = machine.homed ? "Manual" : "Manual - NO Home";
+    standard_screen1.button_text_0 = "text_1";
+    standard_screen1.button_text_1 = "text_2";
     set_text_20(machine.state_text_1, machine.homed ? "Manual" : "Manual - NO Home");
     set_text_20(machine.state_text_2, "");
     set_text_10(machine.F1_text, machine.enable ? "Mot->OFF" : "Mot->ON");
