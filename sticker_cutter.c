@@ -6,11 +6,14 @@
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
 #include "hardware/timer.h"
+#include "hardware/watchdog.h"
 #include "quadrature_encoder.pio.h"
 #include "machine/machine_controller.h"
 
 #include "servo_motor/servo_motor.h"
 #include "servo_motor/button.h"
+
+#define WATCHDOG_TIMEOUT_MS 50
 
 // Timers
 struct repeating_timer servo_timer;
@@ -34,6 +37,8 @@ int main() {
 
     // Initial wait 
     busy_wait_ms(500);
+
+    watchdog_enable(WATCHDOG_TIMEOUT_MS, true);
 
     while (1)
     {

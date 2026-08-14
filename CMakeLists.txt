@@ -52,6 +52,7 @@ target_link_libraries(stickerCutter pico_stdlib
         hardware_pio
         hardware_pwm
         hardware_adc
+        hardware_watchdog
         )
         
 # Add a custom option in CMake (ON by default for testing)

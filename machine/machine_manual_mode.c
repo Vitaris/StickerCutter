@@ -190,6 +190,7 @@ void param_config_state(void) {
             standard_screen1.button_text_line_1_F2 = "spodok";
             if (button_raised(devices.F2)) {
                 machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
+                switch_screen(&hmi, INPUT_SCREEN);
                 param_substate = PARAM_STICKER_HEIGHT;
             }
 
@@ -197,16 +198,22 @@ void param_config_state(void) {
             break;
 
         case PARAM_STICKER_HEIGHT:
-            switch_screen(&hmi, INPUT_SCREEN);
             standard_screen1.button_text_line_0_F2 = "Set vyska";
             standard_screen1.button_text_line_1_F2 = "nalepky";
+            if (button_raised(devices.F2)) {
+                machine.sticker_height = 0.0;
+                switch_screen(&hmi, STANDARD_SCREEN);
+                param_substate = PARAM_FINSIHED;
+            }
 
             break;
 
         case PARAM_FINSIHED:
-            set_text_10(machine.F2_text, "Pravy kraj");
+            standard_screen1.button_text_line_0_F2 = "Zapnut";
+            standard_screen1.button_text_line_1_F2 = "Automat";
                 if (button_raised(devices.F2)) {
                     servo_goto(devices.servo_cutter, -50, MANUAL_SPEED_FAST);
+                    // activate_automatic_state();
                 }
             break;
     }

@@ -6,6 +6,7 @@
 
 // Add these missing includes
 #include "hardware/pio.h"
+#include "hardware/watchdog.h"
 #include "quadrature_encoder.pio.h"
 
 #include "machine_controller.h"
@@ -75,6 +76,10 @@ void machine_init(void) {
 
     // Machine states
     activate_manual_state();
+
+    if (watchdog_caused_reboot()) {
+        raise_error("watchdog reset");
+    }
     
 }
 
@@ -105,6 +110,8 @@ void machine_compute(void) {
         case AUTOMAT:   handle_automatic_state(); break;
         case FAILURE:   handle_failure_state(); break;
     }
+
+    watchdog_update();
 }
 
 void activate_failure_state(void) {
