@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 
+#include "../core1_main.h"
 #include "../hmi/hmi.h"
 #include "machine_controller.h"
 #include "machine_manual_mode.h"
@@ -196,7 +197,7 @@ void param_config_state(void) {
             break;
 
         case PARAM_STICKER_HEIGHT:
-            switch_screen(hmi, INPUT_SCREEN)
+            switch_screen(&hmi, INPUT_SCREEN);
             standard_screen1.button_text_line_0_F2 = "Set vyska";
             standard_screen1.button_text_line_1_F2 = "nalepky";
 

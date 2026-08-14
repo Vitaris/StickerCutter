@@ -179,6 +179,7 @@ void hmi_compute(hmi_t* hmi) {
             
         case INPUT_SCREEN:
             place_string_centered(hmi->input_screen.line[0], "Input screen!");
+            hmi->actual_screen = hmi->input_screen;
             break;
         
         case FAILURE_SCREEN:

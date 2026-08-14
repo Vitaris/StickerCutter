@@ -11,7 +11,7 @@
 #include "../rotary_encoder/rotary_encoder.h"
 #include "../lcd/ant_lcd.h"
 
-static hmi_t hmi;
+hmi_t hmi;
 
 // LCD display configuration
 #define DISPLAY_COLS 20
