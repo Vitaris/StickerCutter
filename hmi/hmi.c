@@ -15,30 +15,57 @@
 
 struct standard_screen standard_screen1 = {
         .status = "Mode:",
-        .button_text_0 = "",
-        .button_text_1 = ""
+        .float_test = "",
+        .pos_cutter = 0.0,
+        .pos_feeder = 0.0,
+        .button_text_line_0_F1 = "",
+        .button_text_line_1_F1 = "",
+        .button_text_line_0_F2 = "",
+        .button_text_line_1_F2 = ""
 };
 
-void place_to_left(lcd_line_t line, const char *string) {
-    memset(line, ' ', LINE_LENGTH - 1);
-
-    snprintf(line, LINE_LENGTH, "%s", string);
+void place_string_to_left(lcd_line_t line, const char *string) {
+    snprintf(line, LINE_LENGTH, "%-*s", LINE_LENGTH - 1, string);
 }
 
-void place_to_center(lcd_line_t line, const char *string, uint8_t line_length) {
-    memset(line, ' ', line_length - 1);
-    size_t len = strlen(string);
-    int pad = (len >= line_length) ? 0 : (line_length - (int)len) / 2;
-    memcpy(line + pad, string, len);
-    line[line_length] = '\0';
+void place_string_centered(lcd_line_t line, const char *string) {
+    int len = strlen(string);
+    int max_len = LINE_LENGTH - 1;
+
+    if (len >= max_len) {
+        snprintf(line, LINE_LENGTH, "%s", string);
+        return;
+    }
+
+    // Calculate how many spaces belong on the left and right
+    int left_pad = (max_len - len) / 2;
+    int right_pad = max_len - len - left_pad;
+
+    snprintf(line, LINE_LENGTH, "%*s%s%*s", left_pad, "", string, right_pad, "");
 }
 
-void place_to_right(lcd_line_t line, const char *string) {
-    memset(line, ' ', LINE_LENGTH - 1);
-    size_t len = strlen(string);
-    int pad = (len >= LINE_LENGTH) ? 0 : LINE_LENGTH - 1 - (int)len;
+void place_string_to_right(lcd_line_t line, const char *string) {
+    snprintf(line, LINE_LENGTH, "%*s", LINE_LENGTH - 1, string);
+}
 
-    snprintf(line + pad, LINE_LENGTH - pad, "%s", string);
+void place_float_to_left(lcd_line_t line, float value, int decimals) {
+    snprintf(line, LINE_LENGTH, "%-*.*f", LINE_LENGTH - 1, decimals, value);
+}
+
+void place_float_centered(lcd_line_t line, float value, int decimals) {
+    char temp_buf[LINE_LENGTH];
+    snprintf(temp_buf, LINE_LENGTH, "%.*f", decimals, value);
+    place_string_centered(line, temp_buf);
+}
+
+void place_float_to_right(lcd_line_t line, float value, int decimals) {
+    snprintf(line, LINE_LENGTH, "%*.*f", LINE_LENGTH - 1, decimals, value);
+}
+
+void place_float_with_unit_to_right(lcd_line_t line, float value, int decimals, const char *unit) {
+    char temp_buf[LINE_LENGTH_HALF];
+    snprintf(temp_buf, LINE_LENGTH_HALF, "%.*f%s", decimals, value, unit);
+    snprintf(line, LINE_LENGTH_HALF, "%*s", LINE_LENGTH_HALF - 1, temp_buf);
 }
 
 void clear_line(lcd_line_t line) {
@@ -80,8 +107,8 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     clear_screen(&hmi->actual_screen);
     
     // Welcome Screen
-    place_to_center(hmi->welcome_screen.line[1], "Sticker Cutter", LINE_LENGTH);
-    place_to_right(hmi->welcome_screen.line[3], "V1.1");
+    place_string_centered(hmi->welcome_screen.line[1], "Sticker Cutter");
+    place_string_to_right(hmi->welcome_screen.line[3], "V1.1");
     
     // Standard Screen
     
@@ -111,8 +138,17 @@ void hmi_compute(hmi_t* hmi) {
 			break;
 		
 		case STANDARD_SCREEN:
-            place_to_left(hmi->standard_screen.line[0], standard_screen1.status);
-            merge_halfs_lines(hmi->standard_screen.line[3], standard_screen1.button_text_0, standard_screen1.button_text_1);
+            place_string_to_left(hmi->standard_screen.line[0], standard_screen1.status);
+            merge_halfs_lines(hmi->standard_screen.line[2], standard_screen1.button_text_line_0_F1, standard_screen1.button_text_line_0_F2);
+            merge_halfs_lines(hmi->standard_screen.line[3], standard_screen1.button_text_line_1_F1, standard_screen1.button_text_line_1_F2);
+            // place_float_to_left(hmi->standard_screen.line[2], 125.05, 2);
+            lcd_halfline_t number_0;
+            lcd_halfline_t number_1;
+            place_float_with_unit_to_right(number_0, standard_screen1.pos_cutter, 2, "mm");
+            place_float_with_unit_to_right(number_1, standard_screen1.pos_feeder, 2, "mm");
+            merge_halfs_lines(hmi->standard_screen.line[1], number_0, number_1);
+            // place_float_with_unit_to_right(hmi->standard_screen.line[2], standard_screen1.pos_cutter, 2, "mm");
+            // float_test
             hmi->actual_screen = hmi->standard_screen;
 
             // if (machine.test != true) {
@@ -142,10 +178,11 @@ void hmi_compute(hmi_t* hmi) {
             break;
             
         case INPUT_SCREEN:
+            place_string_centered(hmi->input_screen.line[0], "Input screen!");
             break;
         
         case FAILURE_SCREEN:
-            place_to_center(hmi->failure_screen.line[0], "* PORUCHA! *", LINE_LENGTH);
+            place_string_centered(hmi->failure_screen.line[0], "* PORUCHA! *");
             uint64_t elapsed = time_us_64() - hmi->start_us;
             
             // Determines toggle state: 0 = visible, 1 = hidden/blank

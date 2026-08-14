@@ -14,7 +14,6 @@
 typedef enum {
     MANUAL_IDLE,      // Motors disabled, waiting for enable command
     MANUAL_READY,     // Motors enabled, ready for operations
-    MANUAL_SET_RIGHT
 } manual_substate_t;
 
 typedef enum {
@@ -25,8 +24,15 @@ typedef enum {
     HOMING_FINISHED          // Homing sequence completed
 } homing_substate_t;
 
+typedef enum {
+    PARAM_START,
+    PARAM_STICKER_HEIGHT,
+    PARAM_FINSIHED,
+} param_substate_t;
+
 manual_substate_t manual_substate;
 homing_substate_t homing_substate;
+param_substate_t param_substate;
 
 void activate_homing_state(void) {
     manual_substate = HOMING_START;
@@ -38,6 +44,11 @@ void activate_manual_state(void) {
     manual_substate = MANUAL_READY;
     machine_state = MANUAL;
     machine.enable = true;
+}
+
+void activate_param_state(void) {
+    machine_state = PARAMS;
+    param_substate = PARAM_START;
 }
 
 void servo_manual_movement(void) {
@@ -61,11 +72,10 @@ int get_void_presence(void) {
 void handle_manual_state(void) {
     // Update machine
     standard_screen1.status = machine.homed ? "Manual" : "Manual - NO Home";
-    standard_screen1.button_text_0 = "text_1";
-    standard_screen1.button_text_1 = "text_2";
-    set_text_20(machine.state_text_1, machine.homed ? "Manual" : "Manual - NO Home");
-    set_text_20(machine.state_text_2, "");
-    set_text_10(machine.F1_text, machine.enable ? "Mot->OFF" : "Mot->ON");
+    standard_screen1.button_text_line_0_F1 = "Motory";
+    standard_screen1.button_text_line_1_F1 = machine.enable ? "vypnut" : "zapnut";
+    standard_screen1.button_text_line_0_F2 = "";
+    standard_screen1.button_text_line_1_F2 = "";
 
     // Always able to switch on/off servos
     if (button_raised(devices.F1)) {
@@ -88,7 +98,7 @@ void handle_manual_state(void) {
         case MANUAL_READY:
             if (!machine.homed) {
                 if (get_void_absence()) {
-                    set_text_10(machine.F2_text, "    Home");
+                    // standard_screen1.button_text_F1 = "Home";
                     if (button_raised(devices.F2)) {
                         activate_homing_state();
                     }
@@ -100,16 +110,16 @@ void handle_manual_state(void) {
             }
             else {
                 if (is_paper_positions_set()) {
-                    set_text_10(machine.F2_text, "   Automat");
+                    // standard_screen1.button_text_F1 = "Automat";
                     if (button_raised(devices.F2)) {
                         activate_automatic_state();
                     }
                 }
                 else {
-                    set_text_10(machine.F2_text, "V nalepka");
+                    standard_screen1.button_text_line_0_F2 = "Nastav";
+                    standard_screen1.button_text_line_1_F2 = "parametre";
                     if (button_raised(devices.F2)) {
-                        machine.test = true;
-                        manual_substate = MANUAL_SET_RIGHT;
+                        activate_param_state();
                     }   
                 }
             }
@@ -117,22 +127,6 @@ void handle_manual_state(void) {
             servo_manual_movement();
             break;
         
-        case MANUAL_SET_RIGHT:
-            if (servo_get_position(devices.servo_cutter) > DESK_AREA_RIGHT) {
-                set_text_10(machine.F2_text, "Prava znck");
-                servo_manual_movement_slow();
-                if (button_raised(devices.F2)) {
-                    machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
-                    manual_substate = MANUAL_READY;
-                }
-            }
-            else {
-                set_text_10(machine.F2_text, "Pravy kraj");
-                if (button_raised(devices.F2)) {
-                    servo_goto(devices.servo_cutter, -50, MANUAL_SPEED_FAST);
-                }
-            }
-            break;
     }
 }
 
@@ -185,5 +179,40 @@ void handle_homing_state(void) {
             machine.homed = true;
             activate_manual_state();
             break;
+    }
+}
+
+void param_config_state(void) {
+    switch(param_substate) {
+        case PARAM_START:
+            standard_screen1.button_text_line_0_F2 = "Set";
+            standard_screen1.button_text_line_1_F2 = "spodok";
+            if (button_raised(devices.F2)) {
+                machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
+                param_substate = PARAM_STICKER_HEIGHT;
+            }
+
+            servo_manual_movement_slow();
+            break;
+
+        case PARAM_STICKER_HEIGHT:
+            switch_screen(hmi, INPUT_SCREEN)
+            standard_screen1.button_text_line_0_F2 = "Set vyska";
+            standard_screen1.button_text_line_1_F2 = "nalepky";
+
+            break;
+
+        case PARAM_FINSIHED:
+            set_text_10(machine.F2_text, "Pravy kraj");
+                if (button_raised(devices.F2)) {
+                    servo_goto(devices.servo_cutter, -50, MANUAL_SPEED_FAST);
+                }
+            break;
+    }
+    // button F1
+    standard_screen1.button_text_line_0_F1 = "";
+    standard_screen1.button_text_line_1_F1 = "Exit";
+    if (button_raised(devices.F1)) {
+        activate_manual_state();
     }
 }

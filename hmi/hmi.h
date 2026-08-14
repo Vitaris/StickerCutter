@@ -22,8 +22,13 @@ typedef enum {
 struct standard_screen {
     // char status[LINE_LENGTH];
     const char *status;
-    const char *button_text_0;
-    const char *button_text_1;
+    const char *float_test;
+    float pos_feeder;
+    float pos_cutter;
+    const char *button_text_line_0_F1;
+    const char *button_text_line_1_F1;
+    const char *button_text_line_0_F2;
+    const char *button_text_line_1_F2;
 };
 
 extern struct standard_screen standard_screen1;
@@ -51,5 +56,6 @@ typedef struct hmi {
 // Public API: Starts Core 1 and sets up the display task
 void hmi_init(hmi_t* hmi, const lcd_config_t* config);
 void hmi_compute(hmi_t* hmi);
+void switch_screen(hmi_t* hmi, screen_state_t screen_state);
 
 #endif // HMI_H

@@ -1,4 +1,5 @@
 #include "pico/stdlib.h"
+#include "../hmi/hmi.h"
 #include "machine_controller.h"
 #include "machine_automatic_mode.h"
 #include "machine_manual_mode.h"
@@ -111,8 +112,7 @@ void activate_automatic_state() {
 }
 
 void handle_automatic_state(void) {
-    set_text_20(machine.state_text_1, "Automat");
-    set_text_20(machine.state_text_2, "");
+    standard_screen1.status = "Automat";
     set_text_10(machine.F1_text, "Stop");
 
     if (button_raised(devices.F1)) {

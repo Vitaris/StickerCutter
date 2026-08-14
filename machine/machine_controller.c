@@ -14,6 +14,7 @@
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
 #include "../rotary_encoder/rotary_encoder.h"
+#include "../hmi/hmi.h"
 
 // Physical constants
 #define KNIFE_OUTPUT_PIN 17
@@ -93,10 +94,14 @@ void machine_compute(void) {
         activate_failure_state();
     }
 
+    standard_screen1.pos_cutter = servo_get_position(devices.servo_cutter);
+    standard_screen1.pos_feeder = servo_get_position(devices.servo_feeder);
+
     // Handle main state machine
     switch(machine_state) {
         case MANUAL:    handle_manual_state(); break;
         case HOMING:    handle_homing_state(); break;
+        case PARAMS:    param_config_state(); break;
         case AUTOMAT:   handle_automatic_state(); break;
         case FAILURE:   handle_failure_state(); break;
     }

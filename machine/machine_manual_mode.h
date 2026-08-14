@@ -11,12 +11,16 @@
  */
 void activate_manual_state(void);
 
+void activate_param_state(void);
+
 /**
  * @brief Handles manual operation state of the machine
  * @details Manages motor control, display updates, and state transitions in manual mode
  * Responds to function buttons and sensor inputs
  */
 void handle_manual_state(void);
+
+void param_config_state(void);
 
 /**
  * @brief Handles the homing sequence of the machine
