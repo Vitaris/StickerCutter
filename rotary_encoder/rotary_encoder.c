@@ -59,10 +59,26 @@ void rotary_encoder_compute(rotary_encoder_t* encoder) {
     }
 }
 
-float get_rotary_encoder_position(rotary_encoder_t* encoder) {
+float rotary_encoder_get_position(rotary_encoder_t* encoder) {
     return encoder->position;
 }
 
-float get_delta_position(rotary_encoder_t* encoder) {
-    return encoder->delta_position;
+void rotary_encoder_set_position(rotary_encoder_t* encoder, float new_position) {
+    encoder->position = new_position;
+}
+
+void rotary_encoder_reset_position(rotary_encoder_t* encoder) {
+    encoder->position = 0.0;
+}
+
+void rotary_encoder_set_scale(rotary_encoder_t* encoder, float new_scale) {
+    encoder->position = new_scale;
+}
+
+bool rotary_encoder_button_raised(rotary_encoder_t* encoder) {
+    return button_raised(encoder->knob_switch);
+}
+
+bool rotary_encoder_button_dropped(rotary_encoder_t* encoder) {
+    return button_dropped(encoder->knob_switch);
 }

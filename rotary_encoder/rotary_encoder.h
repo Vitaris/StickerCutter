@@ -13,6 +13,16 @@ rotary_encoder_t* create_rotary_encoder(const uint8_t enc_pin_num, uint8_t switc
 
 void rotary_encoder_compute(rotary_encoder_t* encoder);
 
-float get_rotary_encoder_position(rotary_encoder_t* encoder);
+float rotary_encoder_get_position(rotary_encoder_t* encoder);
+
+void rotary_encoder_set_position(rotary_encoder_t* encoder, float new_position);
+
+void rotary_encoder_reset_position(rotary_encoder_t* encoder);
+
+void rotary_encoder_set_scale(rotary_encoder_t* encoder, float new_scale);
+
+bool rotary_encoder_button_raised(rotary_encoder_t* encoder);
+
+bool rotary_encoder_button_dropped(rotary_encoder_t* encoder);
 
 #endif
