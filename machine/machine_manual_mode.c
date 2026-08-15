@@ -8,6 +8,7 @@
 #include "machine_automatic_mode.h"
 #include "../servo_motor/servo_motor.h"
 #include "../servo_motor/button.h"
+#include "../rotary_encoder/rotary_encoder.h"
 
 #define DESK_AREA_RIGHT -200.0
 #define DESK_AREA_LEFT -1300.0
@@ -198,8 +199,10 @@ void param_config_state(void) {
             break;
 
         case PARAM_STICKER_HEIGHT:
-            standard_screen1.button_text_line_0_F2 = "Set vyska";
-            standard_screen1.button_text_line_1_F2 = "nalepky";
+            input_screen1.button_text_line_0_F2 = "Set vyska";
+            input_screen1.button_text_line_1_F2 = "nalepky";
+
+            input_screen1.float_test = rotary_encoder_get_position(devices.encoder);;
             if (button_raised(devices.F2)) {
                 machine.sticker_height = 0.0;
                 switch_screen(&hmi, STANDARD_SCREEN);

@@ -7,6 +7,7 @@
 
 #include "../servo_motor/button.h"
 #include "../servo_motor/servo_motor.h"
+#include "../rotary_encoder/rotary_encoder.h"
 
 // Physical constants
 #define SENSOR_KNIFE_OFFSET_X 25.0f
@@ -48,6 +49,8 @@ typedef struct {
 	button_t* Left;
 	button_t* In;
 	button_t* Out;
+	button_t* home_switch;
+	rotary_encoder_t* encoder;
 } devices_t;
 
 extern devices_t devices;

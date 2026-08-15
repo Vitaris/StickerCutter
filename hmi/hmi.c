@@ -7,7 +7,6 @@
 #include "pico/time.h"
 #include <stdio.h>
 #include "../machine/machine_controller.h"
-#include "../rotary_encoder/rotary_encoder.h"
 #include "../lcd/ant_lcd.h"
 
 #define BLINK_INTERVAL_US 500000ULL // 0.5 seconds (500 ms)
@@ -18,6 +17,16 @@ struct standard_screen standard_screen1 = {
         .float_test = "",
         .pos_cutter = 0.0,
         .pos_feeder = 0.0,
+        .button_text_line_0_F1 = "",
+        .button_text_line_1_F1 = "",
+        .button_text_line_0_F2 = "",
+        .button_text_line_1_F2 = ""
+};
+
+struct input_screen input_screen1 = {
+        .status = "Mode:",
+        .float_test = 0.0,
+        .input_scale = 1.0,
         .button_text_line_0_F1 = "",
         .button_text_line_1_F1 = "",
         .button_text_line_0_F2 = "",
@@ -111,23 +120,14 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     place_string_to_right(hmi->welcome_screen.line[3], "V1.1");
     
     // Standard Screen
-    
-    // Initialize home switch
-    hmi->home_switch = create_button(22);
-
-    // Init Rotary encoder
-    int offset_1 = pio_add_program(pio1, &quadrature_encoder_program);
-    hmi->encoder = create_rotary_encoder(26, 28, 0, offset_1);
-    
+       
+    // LCD screen
     hmi->lcd = lcd_create(config);
     hmi->start_us = time_us_64();
-
-    
 }
 
 void hmi_compute(hmi_t* hmi) {
-    rotary_encoder_compute(hmi->encoder);
-    button_compute(hmi->home_switch);
+    
 
     switch(hmi->screen_state) {
         case WELCOME_SCREEN:
@@ -179,6 +179,12 @@ void hmi_compute(hmi_t* hmi) {
             
         case INPUT_SCREEN:
             place_string_centered(hmi->input_screen.line[0], "Input screen!");
+            lcd_halfline_t number_01;
+            lcd_halfline_t number_11;
+            place_float_with_unit_to_right(number_01, input_screen1.float_test, 2, "mm");
+            merge_halfs_lines(hmi->input_screen.line[1], number_01, number_11);
+            merge_halfs_lines(hmi->input_screen.line[2], input_screen1.button_text_line_0_F1, input_screen1.button_text_line_0_F2);
+            merge_halfs_lines(hmi->input_screen.line[3], input_screen1.button_text_line_1_F1, input_screen1.button_text_line_1_F2);
             hmi->actual_screen = hmi->input_screen;
             break;
         

@@ -6,7 +6,6 @@
 #include "pico/stdlib.h"
 #include "../lcd/ant_lcd.h"
 #include "../servo_motor/button.h"
-#include "../rotary_encoder/rotary_encoder.h"
 
 #define LINE_COUNT 4
 #define LINE_LENGTH 21 // 20 printable characters + '\0'
@@ -31,7 +30,19 @@ struct standard_screen {
     const char *button_text_line_1_F2;
 };
 
+struct input_screen {
+    // char status[LINE_LENGTH];
+    const char *status;
+    float float_test;
+    float input_scale;
+    const char *button_text_line_0_F1;
+    const char *button_text_line_1_F1;
+    const char *button_text_line_0_F2;
+    const char *button_text_line_1_F2;
+};
+
 extern struct standard_screen standard_screen1;
+extern struct input_screen input_screen1;
 
 
 typedef char lcd_line_t[LINE_LENGTH];
@@ -49,8 +60,6 @@ typedef struct hmi {
     lcd_screen_t failure_screen;
     lcd_screen_t actual_screen;
     lcd_t* lcd;
-    button_t* home_switch;
-    rotary_encoder_t* encoder;
 } hmi_t;
 
 // Public API: Starts Core 1 and sets up the display task

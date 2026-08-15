@@ -46,8 +46,11 @@ void machine_init(void) {
     devices.Left = create_button(3);
     devices.In = create_button(4);
     devices.Out = create_button(0);
+    devices.home_switch = create_button(22);
 
-    
+    // Init Rotary encoder
+    int offset_1 = pio_add_program(pio1, &quadrature_encoder_program);
+    devices.encoder = create_rotary_encoder(26, 28, 0, offset_1);
 
     // Init servos
     machine.machine_error = false;
@@ -93,6 +96,8 @@ void machine_compute(void) {
     button_compute(devices.Left);
     button_compute(devices.In);
     button_compute(devices.Out);
+    button_compute(devices.home_switch);
+    rotary_encoder_compute(devices.encoder);
     
     // Handle error conditions and cutter state machine
     if (machine.machine_error) {
