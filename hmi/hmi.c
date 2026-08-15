@@ -9,6 +9,10 @@
 #include "../machine/machine_controller.h"
 #include "../lcd/ant_lcd.h"
 
+#ifndef GIT_VERSION
+#define GIT_VERSION "unknown"
+#endif
+
 #define BLINK_INTERVAL_US 500000ULL // 0.5 seconds (500 ms)
 #define WELCOME_INTERVAL_US 2000000ULL // welcome screen duration
 
@@ -116,7 +120,7 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     
     // Welcome Screen
     place_string_centered(hmi->welcome_screen.line[1], "Sticker Cutter");
-    place_string_to_right(hmi->welcome_screen.line[3], "V1.1");
+    place_string_to_right(hmi->welcome_screen.line[3], GIT_VERSION);
     
     // Standard Screen
        

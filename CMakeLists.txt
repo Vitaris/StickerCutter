@@ -22,6 +22,12 @@ include(pico_sdk_import.cmake)
 
 project(stickerCutter)
 
+execute_process(
+    COMMAND git describe --tags --always
+    OUTPUT_VARIABLE GIT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 pico_sdk_init()
 
 add_executable(stickerCutter
@@ -39,6 +45,7 @@ add_executable(stickerCutter
     rotary_encoder/rotary_encoder.c
 )
 
+target_compile_definitions(stickerCutter PRIVATE GIT_VERSION=\"${GIT_VERSION}\")
 pico_generate_pio_header(stickerCutter ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pio)
 
 # enable usb output, disable uart output
