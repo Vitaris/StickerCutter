@@ -25,8 +25,7 @@ struct standard_screen standard_screen1 = {
 
 struct input_screen input_screen1 = {
         .status = "Mode:",
-        .float_test = 0.0,
-        .input_scale = 1.0,
+        .sticker_row_height = 0.0,
         .button_text_line_0_F1 = "",
         .button_text_line_1_F1 = "",
         .button_text_line_0_F2 = "",
@@ -181,7 +180,7 @@ void hmi_compute(hmi_t* hmi) {
             place_string_centered(hmi->input_screen.line[0], "Input screen!");
             lcd_halfline_t number_01;
             lcd_halfline_t number_11;
-            place_float_with_unit_to_right(number_01, input_screen1.float_test, 2, "mm");
+            place_float_with_unit_to_right(number_01, input_screen1.sticker_row_height, 2, "mm");
             merge_halfs_lines(hmi->input_screen.line[1], number_01, number_11);
             merge_halfs_lines(hmi->input_screen.line[2], input_screen1.button_text_line_0_F1, input_screen1.button_text_line_0_F2);
             merge_halfs_lines(hmi->input_screen.line[3], input_screen1.button_text_line_1_F1, input_screen1.button_text_line_1_F2);

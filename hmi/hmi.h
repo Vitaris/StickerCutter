@@ -33,8 +33,7 @@ struct standard_screen {
 struct input_screen {
     // char status[LINE_LENGTH];
     const char *status;
-    float float_test;
-    float input_scale;
+    float sticker_row_height;
     const char *button_text_line_0_F1;
     const char *button_text_line_1_F1;
     const char *button_text_line_0_F2;
