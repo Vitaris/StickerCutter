@@ -21,6 +21,7 @@ struct standard_screen standard_screen1 = {
         .float_test = "",
         .pos_cutter = 0.0,
         .pos_feeder = 0.0,
+        .feeder_offset = 0.0,
         .button_text_line_0_F1 = "",
         .button_text_line_1_F1 = "",
         .button_text_line_0_F2 = "",
@@ -60,24 +61,24 @@ void place_string_to_right(lcd_line_t line, const char *string) {
     snprintf(line, LINE_LENGTH, "%*s", LINE_LENGTH - 1, string);
 }
 
-void place_float_to_left(lcd_line_t line, float value, int decimals) {
-    snprintf(line, LINE_LENGTH, "%-*.*f", LINE_LENGTH - 1, decimals, value);
+void place_float_to_left(lcd_line_t line, float value, int decimals, size_t line_length) {
+    snprintf(line, line_length, "%-*.*f", line_length - 1, decimals, value);
 }
 
-void place_float_centered(lcd_line_t line, float value, int decimals) {
-    char temp_buf[LINE_LENGTH];
-    snprintf(temp_buf, LINE_LENGTH, "%.*f", decimals, value);
+void place_float_centered(lcd_line_t line, float value, int decimals, size_t line_length) {
+    char temp_buf[line_length];
+    snprintf(temp_buf, line_length, "%.*f", decimals, value);
     place_string_centered(line, temp_buf);
 }
 
-void place_float_to_right(lcd_line_t line, float value, int decimals) {
-    snprintf(line, LINE_LENGTH, "%*.*f", LINE_LENGTH - 1, decimals, value);
+void place_float_to_right(lcd_line_t line, float value, int decimals, size_t line_length) {
+    snprintf(line, line_length, "%*.*f", line_length - 1, decimals, value);
 }
 
-void place_float_with_unit_to_right(lcd_line_t line, float value, int decimals, const char *unit) {
-    char temp_buf[LINE_LENGTH_HALF];
-    snprintf(temp_buf, LINE_LENGTH_HALF, "%.*f%s", decimals, value, unit);
-    snprintf(line, LINE_LENGTH_HALF, "%*s", LINE_LENGTH_HALF - 1, temp_buf);
+void place_float_with_unit_to_right(lcd_line_t line, float value, int decimals, const char *unit, size_t line_length) {
+    char temp_buf[line_length];
+    snprintf(temp_buf, line_length, "%.*f%s", decimals, value, unit);
+    snprintf(line, line_length, "%*s", line_length - 1, temp_buf);
 }
 
 void clear_line(lcd_line_t line) {
@@ -106,6 +107,7 @@ void draw_screen(hmi_t* hmi) {
 void switch_screen(hmi_t* hmi, screen_state_t screen_state) {
     hmi->screen_state = screen_state;
     clear_screen(&hmi->actual_screen);
+    clrscr(hmi->lcd);
 }
 
 void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
@@ -147,8 +149,8 @@ void hmi_compute(hmi_t* hmi) {
             // place_float_to_left(hmi->standard_screen.line[2], 125.05, 2);
             lcd_halfline_t number_0;
             lcd_halfline_t number_1;
-            place_float_with_unit_to_right(number_0, standard_screen1.pos_cutter, 2, "mm");
-            place_float_with_unit_to_right(number_1, standard_screen1.pos_feeder, 2, "mm");
+            place_float_with_unit_to_right(number_0, standard_screen1.pos_cutter, 2, "mm", LINE_LENGTH_HALF);
+            place_float_with_unit_to_right(number_1, standard_screen1.pos_feeder - standard_screen1.feeder_offset, 2, "mm", LINE_LENGTH_HALF);
             merge_halfs_lines(hmi->standard_screen.line[1], number_0, number_1);
             // place_float_with_unit_to_right(hmi->standard_screen.line[2], standard_screen1.pos_cutter, 2, "mm");
             // float_test
@@ -181,13 +183,11 @@ void hmi_compute(hmi_t* hmi) {
             break;
             
         case INPUT_SCREEN:
-            place_string_centered(hmi->input_screen.line[0], "Input screen!");
-            lcd_halfline_t number_01;
-            lcd_halfline_t number_11;
-            place_float_with_unit_to_right(number_01, input_screen1.sticker_row_height, 2, "mm");
-            merge_halfs_lines(hmi->input_screen.line[1], number_01, number_11);
-            merge_halfs_lines(hmi->input_screen.line[2], input_screen1.button_text_line_0_F1, input_screen1.button_text_line_0_F2);
-            merge_halfs_lines(hmi->input_screen.line[3], input_screen1.button_text_line_1_F1, input_screen1.button_text_line_1_F2);
+            place_string_to_left(hmi->input_screen.line[0], "Nastav vysku nalepky:");
+            place_string_to_left(hmi->input_screen.line[1], "");
+            place_float_with_unit_to_right(hmi->input_screen.line[2], input_screen1.sticker_row_height, 2, "mm    ", LINE_LENGTH);
+
+            place_string_to_left(hmi->input_screen.line[3], "Exit      Uloz vysku");
             hmi->actual_screen = hmi->input_screen;
             break;
         

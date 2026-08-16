@@ -24,6 +24,7 @@ struct standard_screen {
     const char *float_test;
     float pos_feeder;
     float pos_cutter;
+    float feeder_offset;
     const char *button_text_line_0_F1;
     const char *button_text_line_1_F1;
     const char *button_text_line_0_F2;
