@@ -22,12 +22,13 @@ typedef char lcd_line_t[LINE_LENGTH];
 typedef char lcd_halfline_t[LINE_LENGTH_HALF];
 typedef struct {
     lcd_line_t line[LINE_COUNT];
-} lcd_screen_t;
+} screen_buffer_t;
 
-struct standard_screen {
+typedef struct {
     // char status[LINE_LENGTH];
-    const char *status;
-    const char *float_test;
+    lcd_line_t status;
+    lcd_halfline_t var_0;
+    lcd_halfline_t var_1;
     float pos_feeder;
     float pos_cutter;
     float feeder_offset;
@@ -35,29 +36,28 @@ struct standard_screen {
     lcd_halfline_t F1_1;
     lcd_halfline_t F2_0;
     lcd_halfline_t F2_1;
-};
+} screen_t;
 
 struct input_screen {
-    // char status[LINE_LENGTH];
     lcd_line_t status;
-    float sticker_row_height;
+    lcd_line_t input;
     lcd_halfline_t F1_0;
     lcd_halfline_t F1_1;
     lcd_halfline_t F2_0;
     lcd_halfline_t F2_1;
 };
 
-extern struct standard_screen standard_screen1;
-extern struct input_screen input_screen1;
+extern screen_t standard_screen;
+extern screen_t input_screen;
 
 typedef struct hmi {
     screen_state_t screen_state;
     uint64_t start_us; 
-    lcd_screen_t welcome_screen;
-    lcd_screen_t standard_screen;
-    lcd_screen_t input_screen;
-    lcd_screen_t failure_screen;
-    lcd_screen_t actual_screen;
+    screen_buffer_t welcome_screen_buffer;
+    screen_buffer_t standard_screen_buffer;
+    screen_buffer_t input_screen_buffer;
+    screen_buffer_t failure_screen_buffer;
+    screen_buffer_t actual_screen_buffer;
     lcd_t* lcd;
 } hmi_t;
 
@@ -80,5 +80,8 @@ void place_float_to_left(char *line, float value, int decimals, size_t line_leng
 void place_float_centered(char *line, float value, int decimals, size_t line_length);
 void place_float_to_right(char *line, float value, int decimals, size_t line_length);
 void place_float_with_unit_to_right(char *line, float value, int decimals, const char *unit, size_t line_length);
+
+void show_question(hmi_t* hmi, const char *question, float var, const char *units, const char *f1_0, const char *f1_1, const char *f2_0, const char *f2_1);
+void close_question(hmi_t* hmi);
 
 #endif // HMI_H

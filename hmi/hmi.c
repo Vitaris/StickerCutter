@@ -16,21 +16,11 @@
 #define BLINK_INTERVAL_US 500000ULL // 0.5 seconds (500 ms)
 #define WELCOME_INTERVAL_US 2000000ULL // welcome screen duration
 
-struct standard_screen standard_screen1 = {
+screen_t standard_screen = {
         .status = "Mode:",
-        .float_test = "",
         .pos_cutter = 0.0,
         .pos_feeder = 0.0,
         .feeder_offset = 0.0,
-        .F1_0 = "",
-        .F1_1 = "",
-        .F2_0 = "",
-        .F2_1 = ""
-};
-
-struct input_screen input_screen1 = {
-        .status = "Mode:",
-        .sticker_row_height = 0.0,
         .F1_0 = "",
         .F1_1 = "",
         .F2_0 = "",
@@ -82,17 +72,17 @@ void place_float_with_unit_to_right(char *line, float value, int decimals, const
 }
 
 void hmi_set_status(const char *status) {
-    standard_screen1.status = status;
+    place_string_to_left(standard_screen.status, status, LINE_LENGTH);
 }
 
 void hmi_set_left_button(const char *top, const char *bottom) {
-    place_string_to_left(standard_screen1.F1_0, top, LINE_LENGTH_HALF);
-    place_string_to_left(standard_screen1.F1_1, bottom, LINE_LENGTH_HALF);
+    place_string_to_left(standard_screen.F1_0, top, LINE_LENGTH_HALF);
+    place_string_to_left(standard_screen.F1_1, bottom, LINE_LENGTH_HALF);
 }
 
 void hmi_set_right_button(const char *top, const char *bottom) {
-    place_string_to_right(standard_screen1.F2_0, top, LINE_LENGTH_HALF);
-    place_string_to_right(standard_screen1.F2_1, bottom, LINE_LENGTH_HALF);
+    place_string_to_right(standard_screen.F2_0, top, LINE_LENGTH_HALF);
+    place_string_to_right(standard_screen.F2_1, bottom, LINE_LENGTH_HALF);
 }
 
 void hmi_clear_buttons(void) {
@@ -105,7 +95,7 @@ void clear_line(lcd_line_t line) {
     line[20] = '\0';
 }
 
-void clear_screen(lcd_screen_t *screen) {
+void clear_screen(screen_buffer_t *screen) {
     for (size_t i = 0; i < LINE_COUNT; i++) {
         clear_line(screen->line[i]);
     }
@@ -117,15 +107,32 @@ void merge_halfs_lines(lcd_line_t line, lcd_halfline_t half_first, lcd_halfline_
              LINE_LENGTH_HALF - 1, LINE_LENGTH_HALF - 1, half_second);
 }
 
+void show_question(hmi_t* hmi, const char *question, float var, const char *units, const char *f1_0, const char *f1_1, const char *f2_0, const char *f2_1) {
+    place_string_to_left(hmi->input_screen_buffer.line[0], question, LINE_LENGTH);
+    place_float_centered(hmi->input_screen_buffer.line[1], var, 2, LINE_LENGTH);
+
+    // button F1
+    lcd_halfline_t line_half_0;
+    lcd_halfline_t line_half_1;
+    place_string_to_left(line_half_0, f1_0, LINE_LENGTH_HALF);
+    place_string_to_right(line_half_1, f2_0, LINE_LENGTH_HALF);
+    merge_halfs_lines(hmi->input_screen_buffer.line[2], line_half_0, line_half_1);
+
+    // button F2
+    place_string_to_left(line_half_0, f1_1, LINE_LENGTH_HALF);
+    place_string_to_right(line_half_1, f2_1, LINE_LENGTH_HALF);
+    merge_halfs_lines(hmi->input_screen_buffer.line[3], line_half_0, line_half_1);
+}
+
 void draw_screen(hmi_t* hmi) {
     for (size_t i = 0; i < LINE_COUNT; i++) {
-        string2LCD(hmi->lcd, 0, i, hmi->actual_screen.line[i]);
+        string2LCD(hmi->lcd, 0, i, hmi->actual_screen_buffer.line[i]);
     }
 }
 
 void switch_screen(hmi_t* hmi, screen_state_t screen_state) {
     hmi->screen_state = screen_state;
-    clear_screen(&hmi->actual_screen);
+    clear_screen(&hmi->actual_screen_buffer);
     clrscr(hmi->lcd);
 }
 
@@ -133,15 +140,15 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     hard_assert(hmi != NULL);
 
     memset(hmi, 0, sizeof(hmi_t));
-    clear_screen(&hmi->welcome_screen);
-    clear_screen(&hmi->standard_screen);
-    clear_screen(&hmi->input_screen);
-    clear_screen(&hmi->failure_screen);
-    clear_screen(&hmi->actual_screen);
+    clear_screen(&hmi->welcome_screen_buffer);
+    clear_screen(&hmi->standard_screen_buffer);
+    clear_screen(&hmi->input_screen_buffer);
+    clear_screen(&hmi->failure_screen_buffer);
+    clear_screen(&hmi->actual_screen_buffer);
     
     // Welcome Screen
-    place_string_centered(hmi->welcome_screen.line[1], "Sticker Cutter", LINE_LENGTH);
-    place_string_to_right(hmi->welcome_screen.line[3], GIT_VERSION, LINE_LENGTH);
+    place_string_centered(hmi->welcome_screen_buffer.line[1], "Sticker Cutter", LINE_LENGTH);
+    place_string_to_right(hmi->welcome_screen_buffer.line[3], GIT_VERSION, LINE_LENGTH);
     
     // Standard Screen
        
@@ -155,51 +162,46 @@ void hmi_compute(hmi_t* hmi) {
 
     switch(hmi->screen_state) {
         case WELCOME_SCREEN:
-			hmi->actual_screen = hmi->welcome_screen;
+			hmi->actual_screen_buffer = hmi->welcome_screen_buffer;
             if (time_us_64() - hmi->start_us > WELCOME_INTERVAL_US) {
                 switch_screen(hmi, STANDARD_SCREEN);
             }
 			break;
 		
 		case STANDARD_SCREEN:
-            place_string_to_left(hmi->standard_screen.line[0], standard_screen1.status, LINE_LENGTH);
-            merge_halfs_lines(hmi->standard_screen.line[2], standard_screen1.F1_0, standard_screen1.F2_0);
-            merge_halfs_lines(hmi->standard_screen.line[3], standard_screen1.F1_1, standard_screen1.F2_1);
-            // place_float_to_left(hmi->standard_screen.line[2], 125.05, 2);
+            place_string_to_left(hmi->standard_screen_buffer.line[0], standard_screen.status, LINE_LENGTH);
+            merge_halfs_lines(hmi->standard_screen_buffer.line[2], standard_screen.F1_0, standard_screen.F2_0);
+            merge_halfs_lines(hmi->standard_screen_buffer.line[3], standard_screen.F1_1, standard_screen.F2_1);
+            // place_float_to_left(hmi->standard_screen_buffer.line[2], 125.05, 2);
             lcd_halfline_t number_0;
             lcd_halfline_t number_1;
-            place_float_with_unit_to_right(number_0, standard_screen1.pos_cutter, 2, "mm", LINE_LENGTH_HALF);
-            place_float_with_unit_to_right(number_1, standard_screen1.pos_feeder - standard_screen1.feeder_offset, 2, "mm", LINE_LENGTH_HALF);
-            merge_halfs_lines(hmi->standard_screen.line[1], number_0, number_1);
-            // place_float_with_unit_to_right(hmi->standard_screen.line[2], standard_screen1.pos_cutter, 2, "mm");
+            place_float_with_unit_to_right(number_0, standard_screen.pos_cutter, 2, "mm", LINE_LENGTH_HALF);
+            place_float_with_unit_to_right(number_1, standard_screen.pos_feeder - standard_screen.feeder_offset, 2, "mm", LINE_LENGTH_HALF);
+            merge_halfs_lines(hmi->standard_screen_buffer.line[1], number_0, number_1);
+            // place_float_with_unit_to_right(hmi->standard_screen_buffer.line[2], standard_screen.pos_cutter, 2, "mm");
             // float_test
-            hmi->actual_screen = hmi->standard_screen;
+            hmi->actual_screen_buffer = hmi->standard_screen_buffer;
 
             break;
             
         case INPUT_SCREEN:
-            place_string_to_left(hmi->input_screen.line[0], "Nastav vysku nalepky:", LINE_LENGTH);
-            place_string_to_left(hmi->input_screen.line[1], "", LINE_LENGTH);
-            place_float_with_unit_to_right(hmi->input_screen.line[2], input_screen1.sticker_row_height, 2, "mm    ", LINE_LENGTH);
-
-            place_string_to_left(hmi->input_screen.line[3], "Exit      Uloz vysku", LINE_LENGTH);
-            hmi->actual_screen = hmi->input_screen;
+            hmi->actual_screen_buffer = hmi->input_screen_buffer;
             break;
         
         case FAILURE_SCREEN:
-            place_string_centered(hmi->failure_screen.line[0], "* PORUCHA! *", LINE_LENGTH);
-            place_string_centered(hmi->failure_screen.line[2], get_error_message(), LINE_LENGTH);
-            place_string_to_left(hmi->failure_screen.line[3], "Potvrdit", LINE_LENGTH);
+            place_string_centered(hmi->failure_screen_buffer.line[0], "* PORUCHA! *", LINE_LENGTH);
+            place_string_centered(hmi->failure_screen_buffer.line[2], get_error_message(), LINE_LENGTH);
+            place_string_to_left(hmi->failure_screen_buffer.line[3], "Potvrdit", LINE_LENGTH);
             uint64_t elapsed = time_us_64() - hmi->start_us;
             
             // Determines toggle state: 0 = visible, 1 = hidden/blank
             bool blink_off = (elapsed / BLINK_INTERVAL_US) % 2;
             
             // Start with base failure screen buffer
-            hmi->actual_screen = hmi->failure_screen;
+            hmi->actual_screen_buffer = hmi->failure_screen_buffer;
             
             if (blink_off) {
-                clear_line(hmi->actual_screen.line[0]); 
+                clear_line(hmi->actual_screen_buffer.line[0]); 
             }
             // Exit is driven by the machine controller (operator confirmation).
             break;

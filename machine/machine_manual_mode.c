@@ -74,7 +74,7 @@ int get_void_presence(void) {
 
 void handle_manual_state(void) {
     // Update machine
-    hmi_set_status("Mode:");
+    hmi_set_status(machine.homed ? "Manual" : "Manual - NO Home");
     hmi_set_left_button("Motory", machine.enable ? "vypnut" : "zapnut");
 
     // Always able to switch on/off servos
@@ -184,7 +184,7 @@ void handle_homing_state(void) {
 void param_config_state(void) {
     switch(param_substate) {
         case PARAM_START:
-            if (servo_get_position(devices.servo_feeder) - standard_screen1.feeder_offset == 0.0) {
+            if (servo_get_position(devices.servo_feeder) - standard_screen.feeder_offset == 0.0) {
                 hmi_set_right_button("", "Pokracuj");
                 if (button_raised(devices.F2)) {
                     switch_screen(&hmi, INPUT_SCREEN);
@@ -194,7 +194,7 @@ void param_config_state(void) {
                 hmi_set_right_button("Vynuluj", "feeder");
                 if (button_raised(devices.F2)) {
                     machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
-                    standard_screen1.feeder_offset = servo_get_position(devices.servo_feeder);
+                    standard_screen.feeder_offset = servo_get_position(devices.servo_feeder);
                 }
             }
             servo_manual_movement_slow();
@@ -202,21 +202,22 @@ void param_config_state(void) {
 
         case PARAM_STICKER_HEIGHT:
             float sticker_height = rotary_encoder_get_position(devices.encoder);
-            input_screen1.sticker_row_height = sticker_height;
+            show_question(&hmi, "Nastav vysku nalepky:", sticker_height, "mm", "", "Exit", "", "Uloz vysku");
             if (button_raised(devices.F2)) {
                 machine.sticker_height = sticker_height;
-                switch_screen(&hmi, STANDARD_SCREEN);
-                param_substate = PARAM_FINSIHED;
+                param_substate = PARAM_ROWS_TO_CUT;
+                rotary_encoder_reset_position(devices.encoder);
             }
             break;
             
         case PARAM_ROWS_TO_CUT:
             float rows = rotary_encoder_get_position(devices.encoder);
-            input_screen1.sticker_row_height = sticker_height;
+            show_question(&hmi, "Nastav pocet rezov:", rows, "ks", "", "Exit", "Uloz", "pocet");
             if (button_raised(devices.F2)) {
-                machine.sticker_height = sticker_height;
+                machine.rows_to_cut = (size_t)rows;
                 switch_screen(&hmi, STANDARD_SCREEN);
                 param_substate = PARAM_FINSIHED;
+                rotary_encoder_reset_position(devices.encoder);
             }
             break;
 

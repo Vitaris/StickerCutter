@@ -106,8 +106,8 @@ void machine_compute(void) {
         activate_failure_state();
     }
 
-    standard_screen1.pos_cutter = servo_get_position(devices.servo_cutter);
-    standard_screen1.pos_feeder = servo_get_position(devices.servo_feeder);
+    standard_screen.pos_cutter = servo_get_position(devices.servo_cutter);
+    standard_screen.pos_feeder = servo_get_position(devices.servo_feeder);
 
     // Handle main state machine
     switch(machine_state) {
