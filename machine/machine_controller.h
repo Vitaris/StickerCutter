@@ -65,6 +65,7 @@ typedef struct {
 	bool params_ready;
 	float paper_right_mark_position;
 	float sticker_height;
+	float paper_width;
 	size_t rows_to_cut; 
 
 	bool test;

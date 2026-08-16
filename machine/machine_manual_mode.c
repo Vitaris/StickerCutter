@@ -30,6 +30,7 @@ typedef enum {
     PARAM_START,
     PARAM_STICKER_HEIGHT,
     PARAM_ROWS_TO_CUT,
+    PARAM_PAPER_WIDTH,
     PARAM_FINSIHED,
 } param_substate_t;
 
@@ -206,7 +207,7 @@ void param_config_state(void) {
             if (button_raised(devices.F2)) {
                 machine.sticker_height = sticker_height;
                 param_substate = PARAM_ROWS_TO_CUT;
-                rotary_encoder_reset_position(devices.encoder);
+                rotary_encoder_set_position(devices.encoder, 1.0);
             }
             break;
             
@@ -215,9 +216,22 @@ void param_config_state(void) {
             show_question(&hmi, "Nastav pocet rezov:", rows, "ks", "", "Exit", "Uloz", "pocet");
             if (button_raised(devices.F2)) {
                 machine.rows_to_cut = (size_t)rows;
+                param_substate = PARAM_PAPER_WIDTH;
+                rotary_encoder_reset_position(devices.encoder);
+                rotary_encoder_set_scale(devices.encoder, -0.4);
+                rotary_encoder_set_position(devices.encoder, 200.0);
+            }
+            break;
+
+        case PARAM_PAPER_WIDTH:
+            float width = rotary_encoder_get_position(devices.encoder);
+            show_question(&hmi, "Nastav sirku papiera:", width, "ks", "", "Exit", "Uloz", "sirku");
+            if (button_raised(devices.F2)) {
+                machine.paper_width = width;
                 switch_screen(&hmi, STANDARD_SCREEN);
                 param_substate = PARAM_FINSIHED;
                 rotary_encoder_reset_position(devices.encoder);
+                rotary_encoder_set_scale(devices.encoder, -40.0);
             }
             break;
 

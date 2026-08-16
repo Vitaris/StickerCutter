@@ -84,7 +84,7 @@ void rotary_encoder_reset_position(rotary_encoder_t* encoder) {
 }
 
 void rotary_encoder_set_scale(rotary_encoder_t* encoder, float new_scale) {
-    encoder->position = new_scale;
+    encoder->scale = new_scale;
 }
 
 bool rotary_encoder_button_raised(rotary_encoder_t* encoder) {
