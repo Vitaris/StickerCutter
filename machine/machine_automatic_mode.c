@@ -5,8 +5,6 @@
 #include "machine_manual_mode.h"
 
 static const float STICKER_HEIGHT_TOLERNACE = 10.0; // 10mm tolerance for sticker height
-char state_text_1[21];
-char state_text_2[21];
 
 typedef enum {
     IDLE,                           // Waiting for start command
@@ -65,12 +63,9 @@ void activate_automatic_state() {
 }
 
 void handle_automatic_state(void) {
-    standard_screen1.status = "Automat";
-    set_text_10(machine.F1_text, "Stop");
-    place_string_to_left(standard_screen1.F1_0, "", LINE_LENGTH_HALF);
-    place_string_to_left(standard_screen1.F1_1, "Stop", LINE_LENGTH_HALF);
-    place_string_to_right(standard_screen1.F2_0, "", LINE_LENGTH_HALF);
-    place_string_to_right(standard_screen1.F2_1, "", LINE_LENGTH_HALF);
+    hmi_set_status("Automat");
+    hmi_set_left_button("", "Stop");
+    hmi_set_right_button("", "");
 
     if (button_raised(devices.F1)) {
         activate_manual_state();

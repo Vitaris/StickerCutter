@@ -16,6 +16,7 @@
 #include "../servo_motor/button.h"
 #include "../rotary_encoder/rotary_encoder.h"
 #include "../hmi/hmi.h"
+#include "../core1_main.h"
 
 // Physical constants
 #define KNIFE_OUTPUT_PIN 17
@@ -61,8 +62,7 @@ void machine_init(void) {
     #else
         machine.homed = true;
     #endif
-    set_text_20(machine.error_message, "OK");
-    set_text_20(machine.state_text_2, "");
+    strcpy(machine.error_message, "OK");
 
     // Init PIO
     int offset = pio_add_program(pio0, &quadrature_encoder_program);
@@ -102,7 +102,7 @@ void machine_compute(void) {
     rotary_encoder_compute(devices.encoder);
     
     // Handle error conditions and cutter state machine
-    if (machine.machine_error) {
+    if (machine.machine_error && machine_state != FAILURE) {
         activate_failure_state();
     }
 
@@ -125,17 +125,15 @@ void activate_failure_state(void) {
     machine_state = FAILURE;
     machine.enable = false;
     knife_up();
+    switch_screen(&hmi, FAILURE_SCREEN);
 }
 
 void handle_failure_state(void) {
-    set_text_20(machine.state_text_1, "Porucha!");
-    set_text_10(machine.F1_text, "Potvrdit");
-    set_text_10(machine.F2_text, "");
-
     if (button_raised(devices.F1)) {
         activate_manual_state();
-        set_text_20(machine.error_message, "OK");
+        strcpy(machine.error_message, "OK");
         machine.machine_error = false;
+        switch_screen(&hmi, STANDARD_SCREEN);
     }
 }
 
@@ -148,31 +146,10 @@ void knife_down(void) {
 }
 
 void raise_error(char text[]) {
-    set_text_20(machine.error_message, text);
+    strcpy(machine.error_message, text);
     machine.machine_error = true;
 }
 
 char* get_error_message(void) {
     return machine.error_message;
-}
-
-void set_text(char LCD_text[], char text[], int len) {
-    bool fill_spaces = false;
-    int i = 0;
-    while (i < len) {
-        if (text[i] == '\0') {
-            fill_spaces = true;
-        }
-        LCD_text[i] = fill_spaces ? ' ' : text[i];
-        i++;
-    }
-    LCD_text[len] = '\0';
-}
-
-void set_text_10(char LCD_text[], char text[]) {
-    set_text(LCD_text, text, 10);
-}
-
-void set_text_20(char LCD_text[], char text[]) {
-    set_text(LCD_text, text, 20);
 }

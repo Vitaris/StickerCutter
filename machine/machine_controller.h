@@ -67,15 +67,6 @@ typedef struct {
 	float sticker_height;
 	size_t rows_to_cut; 
 
-	// LCD Texts
-	char state_text_1[21];
-	char state_text_2[21];
-	char condition_text[10];
-	char position_cutter[8];
-	char position_feeder[8];
-	char F1_text[11];
-	char F2_text[11];
-
 	bool test;
 } machine_t;
 
@@ -129,22 +120,6 @@ void raise_error(char text[]);
  * @return Pointer to the error message text
  */
 char* get_error_message(void);
-
-/**
- * @brief Sets the text at index 10 in the LCD text array
- * 
- * @param LCD_text Array of strings storing the LCD text content
- * @param text The text to be set at index 10
- */
-void set_text_10(char LCD_text[], char text[]);
-
-/**
- * @brief Sets a text string in a 20-character LCD display position
- * 
- * @param LCD_text Array of character pointers representing LCD display text buffer
- * @param text The text string to be set (up to 20 characters)
- */
-void set_text_20(char LCD_text[], char text[]);
 
 
 #endif

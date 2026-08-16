@@ -19,7 +19,7 @@ typedef enum {
 } screen_state_t;
 
 typedef char lcd_line_t[LINE_LENGTH];
-typedef char lcd_halfline_t[LINE_LENGTH / 2];
+typedef char lcd_halfline_t[LINE_LENGTH_HALF];
 typedef struct {
     lcd_line_t line[LINE_COUNT];
 } lcd_screen_t;
@@ -65,6 +65,13 @@ typedef struct hmi {
 void hmi_init(hmi_t* hmi, const lcd_config_t* config);
 void hmi_compute(hmi_t* hmi);
 void switch_screen(hmi_t* hmi, screen_state_t screen_state);
+
+// Standard-screen helpers: set the status line and the two soft-button
+// labels (F1 = left, F2 = right), each spanning two 10-character lines.
+void hmi_set_status(const char *status);
+void hmi_set_left_button(const char *top, const char *bottom);
+void hmi_set_right_button(const char *top, const char *bottom);
+void hmi_clear_buttons(void);
 
 void place_string_to_left(char *line, const char *string, size_t line_length);
 void place_string_centered(char *line, const char *string, size_t line_length);

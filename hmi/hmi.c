@@ -81,6 +81,25 @@ void place_float_with_unit_to_right(char *line, float value, int decimals, const
     snprintf(line, line_length, "%*s", line_length - 1, temp_buf);
 }
 
+void hmi_set_status(const char *status) {
+    standard_screen1.status = status;
+}
+
+void hmi_set_left_button(const char *top, const char *bottom) {
+    place_string_to_left(standard_screen1.F1_0, top, LINE_LENGTH_HALF);
+    place_string_to_left(standard_screen1.F1_1, bottom, LINE_LENGTH_HALF);
+}
+
+void hmi_set_right_button(const char *top, const char *bottom) {
+    place_string_to_right(standard_screen1.F2_0, top, LINE_LENGTH_HALF);
+    place_string_to_right(standard_screen1.F2_1, bottom, LINE_LENGTH_HALF);
+}
+
+void hmi_clear_buttons(void) {
+    hmi_set_left_button("", "");
+    hmi_set_right_button("", "");
+}
+
 void clear_line(lcd_line_t line) {
     memset(line, ' ', LINE_LENGTH - 1);
     line[20] = '\0';
@@ -94,8 +113,8 @@ void clear_screen(lcd_screen_t *screen) {
 
 void merge_halfs_lines(lcd_line_t line, lcd_halfline_t half_first, lcd_halfline_t half_second) {
     snprintf(line, LINE_LENGTH, "%-*.*s%-*.*s", 
-             LINE_LENGTH_HALF, LINE_LENGTH_HALF, half_first, 
-             LINE_LENGTH_HALF, LINE_LENGTH_HALF, half_second);
+             LINE_LENGTH_HALF - 1, LINE_LENGTH_HALF - 1, half_first, 
+             LINE_LENGTH_HALF - 1, LINE_LENGTH_HALF - 1, half_second);
 }
 
 void draw_screen(hmi_t* hmi) {
@@ -169,6 +188,8 @@ void hmi_compute(hmi_t* hmi) {
         
         case FAILURE_SCREEN:
             place_string_centered(hmi->failure_screen.line[0], "* PORUCHA! *", LINE_LENGTH);
+            place_string_centered(hmi->failure_screen.line[2], get_error_message(), LINE_LENGTH);
+            place_string_to_left(hmi->failure_screen.line[3], "Potvrdit", LINE_LENGTH);
             uint64_t elapsed = time_us_64() - hmi->start_us;
             
             // Determines toggle state: 0 = visible, 1 = hidden/blank
@@ -180,9 +201,7 @@ void hmi_compute(hmi_t* hmi) {
             if (blink_off) {
                 clear_line(hmi->actual_screen.line[0]); 
             }
-            if (time_us_64() - hmi->start_us > 10000000ULL) {
-                switch_screen(hmi, STANDARD_SCREEN);
-            }
+            // Exit is driven by the machine controller (operator confirmation).
             break;
     }
 

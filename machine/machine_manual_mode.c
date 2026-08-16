@@ -74,8 +74,8 @@ int get_void_presence(void) {
 
 void handle_manual_state(void) {
     // Update machine
-    place_string_to_left(standard_screen1.F1_0, "Motory", LINE_LENGTH_HALF);
-    place_string_to_left(standard_screen1.F1_1, machine.enable ? "vypnut" : "zapnut", LINE_LENGTH_HALF);
+    hmi_set_status("Mode:");
+    hmi_set_left_button("Motory", machine.enable ? "vypnut" : "zapnut");
 
     // Always able to switch on/off servos
     if (button_raised(devices.F1)) {
@@ -92,32 +92,31 @@ void handle_manual_state(void) {
     // Handle state transitions
     switch(manual_substate) {
         case MANUAL_IDLE:
-            set_text_10(machine.F2_text, "");
+            hmi_set_right_button("", "");
             break;
 
         case MANUAL_READY:
             if (!machine.homed) {
                 if (get_void_absence()) {
-                    // standard_screen1.button_text_F1 = "Home";
+                    hmi_set_right_button("", "Home");
                     if (button_raised(devices.F2)) {
                         activate_homing_state();
                     }
                 } 
                 else {
                     // Do not allow homing if cutter head is out of cutting table
-                    set_text_10(machine.F2_text, "");
+                    hmi_set_right_button("", "");
                 }
             }
             else {
                 if (is_paper_positions_set()) {
-                    // standard_screen1.button_text_F1 = "Automat";
+                    hmi_set_right_button("", "Automat");
                     if (button_raised(devices.F2)) {
                         activate_automatic_state();
                     }
                 }
                 else {
-                    place_string_to_right(standard_screen1.F2_0, "Nastav", LINE_LENGTH_HALF);
-                    place_string_to_right(standard_screen1.F2_1, "parametre", LINE_LENGTH_HALF);    
+                    hmi_set_right_button("Nastav", "parametre");
                     if (button_raised(devices.F2)) {
                         activate_param_state();
                     }   
@@ -132,10 +131,10 @@ void handle_manual_state(void) {
 
 void handle_homing_state(void) {
     // Update machine
-    set_text_20(machine.state_text_1, "HOMING");
-    set_text_20(machine.state_text_2, "");
+    hmi_set_status("HOMING");
+    hmi_set_left_button("", "Stop");
+    hmi_set_right_button("", "");
 
-    set_text_10(machine.F1_text, "Stop");
     if (button_raised(devices.F1)) {
         activate_manual_state();
     }
@@ -150,7 +149,7 @@ void handle_homing_state(void) {
             break;
         
         case HOMING_SCANNING:
-            set_text_10(machine.F2_text, "Hlada sa->");
+            hmi_set_right_button("", "Hlada sa->");
             if (get_void_presence()) {
                 homing_substate = HOMING_FOUND;
             }
@@ -186,15 +185,13 @@ void param_config_state(void) {
     switch(param_substate) {
         case PARAM_START:
             if (servo_get_position(devices.servo_feeder) - standard_screen1.feeder_offset == 0.0) {
-                place_string_to_right(standard_screen1.F2_0, "", LINE_LENGTH_HALF);
-                place_string_to_right(standard_screen1.F2_1, "Pokracuj", LINE_LENGTH_HALF);
+                hmi_set_right_button("", "Pokracuj");
                 if (button_raised(devices.F2)) {
                     switch_screen(&hmi, INPUT_SCREEN);
                     param_substate = PARAM_STICKER_HEIGHT;
                 }
             } else {
-                place_string_to_right(standard_screen1.F2_0, "Vynuluj", LINE_LENGTH_HALF);
-                place_string_to_right(standard_screen1.F2_1, "feeder", LINE_LENGTH_HALF);
+                hmi_set_right_button("Vynuluj", "feeder");
                 if (button_raised(devices.F2)) {
                     machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
                     standard_screen1.feeder_offset = servo_get_position(devices.servo_feeder);
@@ -224,8 +221,7 @@ void param_config_state(void) {
             break;
 
         case PARAM_FINSIHED:
-            place_string_to_right(standard_screen1.F2_0, "Zapnut", LINE_LENGTH_HALF);
-            place_string_to_right(standard_screen1.F2_1, "Automat", LINE_LENGTH_HALF);
+            hmi_set_right_button("Zapnut", "Automat");
                 if (button_raised(devices.F2)) {
                     servo_goto(devices.servo_cutter, -50, MANUAL_SPEED_FAST);
                     activate_automatic_state();
@@ -233,8 +229,7 @@ void param_config_state(void) {
             break;
     }
     // button F1
-    place_string_to_right(standard_screen1.F2_0, "", LINE_LENGTH_HALF);
-    place_string_to_right(standard_screen1.F2_1, "Exit", LINE_LENGTH_HALF);
+    hmi_set_left_button("", "Exit");
     if (button_raised(devices.F1)) {
         activate_manual_state();
     }
