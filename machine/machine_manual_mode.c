@@ -29,6 +29,7 @@ typedef enum {
 typedef enum {
     PARAM_START,
     PARAM_STICKER_HEIGHT,
+    PARAM_ROWS_TO_CUT,
     PARAM_FINSIHED,
 } param_substate_t;
 
@@ -73,11 +74,8 @@ int get_void_presence(void) {
 
 void handle_manual_state(void) {
     // Update machine
-    standard_screen1.status = machine.homed ? "Manual" : "Manual - NO Home";
-    standard_screen1.button_text_line_0_F1 = "Motory";
-    standard_screen1.button_text_line_1_F1 = machine.enable ? "vypnut" : "zapnut";
-    standard_screen1.button_text_line_0_F2 = "";
-    standard_screen1.button_text_line_1_F2 = "";
+    place_string_to_left(standard_screen1.F1_0, "Motory", LINE_LENGTH_HALF);
+    place_string_to_left(standard_screen1.F1_1, machine.enable ? "vypnut" : "zapnut", LINE_LENGTH_HALF);
 
     // Always able to switch on/off servos
     if (button_raised(devices.F1)) {
@@ -118,8 +116,8 @@ void handle_manual_state(void) {
                     }
                 }
                 else {
-                    standard_screen1.button_text_line_0_F2 = "Nastav";
-                    standard_screen1.button_text_line_1_F2 = "parametre";
+                    place_string_to_right(standard_screen1.F2_0, "Nastav", LINE_LENGTH_HALF);
+                    place_string_to_right(standard_screen1.F2_1, "parametre", LINE_LENGTH_HALF);    
                     if (button_raised(devices.F2)) {
                         activate_param_state();
                     }   
@@ -188,15 +186,15 @@ void param_config_state(void) {
     switch(param_substate) {
         case PARAM_START:
             if (servo_get_position(devices.servo_feeder) - standard_screen1.feeder_offset == 0.0) {
-                standard_screen1.button_text_line_0_F2 = "";
-                standard_screen1.button_text_line_1_F2 = "Pokracuj";
+                place_string_to_right(standard_screen1.F2_0, "", LINE_LENGTH_HALF);
+                place_string_to_right(standard_screen1.F2_1, "Pokracuj", LINE_LENGTH_HALF);
                 if (button_raised(devices.F2)) {
                     switch_screen(&hmi, INPUT_SCREEN);
                     param_substate = PARAM_STICKER_HEIGHT;
                 }
             } else {
-                standard_screen1.button_text_line_0_F2 = "Vynuluj";
-                standard_screen1.button_text_line_1_F2 = "feeder";
+                place_string_to_right(standard_screen1.F2_0, "Vynuluj", LINE_LENGTH_HALF);
+                place_string_to_right(standard_screen1.F2_1, "feeder", LINE_LENGTH_HALF);
                 if (button_raised(devices.F2)) {
                     machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
                     standard_screen1.feeder_offset = servo_get_position(devices.servo_feeder);
@@ -214,10 +212,20 @@ void param_config_state(void) {
                 param_substate = PARAM_FINSIHED;
             }
             break;
+            
+        case PARAM_ROWS_TO_CUT:
+            float rows = rotary_encoder_get_position(devices.encoder);
+            input_screen1.sticker_row_height = sticker_height;
+            if (button_raised(devices.F2)) {
+                machine.sticker_height = sticker_height;
+                switch_screen(&hmi, STANDARD_SCREEN);
+                param_substate = PARAM_FINSIHED;
+            }
+            break;
 
         case PARAM_FINSIHED:
-            standard_screen1.button_text_line_0_F2 = "Zapnut";
-            standard_screen1.button_text_line_1_F2 = "Automat";
+            place_string_to_right(standard_screen1.F2_0, "Zapnut", LINE_LENGTH_HALF);
+            place_string_to_right(standard_screen1.F2_1, "Automat", LINE_LENGTH_HALF);
                 if (button_raised(devices.F2)) {
                     servo_goto(devices.servo_cutter, -50, MANUAL_SPEED_FAST);
                     activate_automatic_state();
@@ -225,8 +233,8 @@ void param_config_state(void) {
             break;
     }
     // button F1
-    standard_screen1.button_text_line_0_F1 = "";
-    standard_screen1.button_text_line_1_F1 = "Exit";
+    place_string_to_right(standard_screen1.F2_0, "", LINE_LENGTH_HALF);
+    place_string_to_right(standard_screen1.F2_1, "Exit", LINE_LENGTH_HALF);
     if (button_raised(devices.F1)) {
         activate_manual_state();
     }

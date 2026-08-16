@@ -65,6 +65,7 @@ typedef struct {
 	bool params_ready;
 	float paper_right_mark_position;
 	float sticker_height;
+	size_t rows_to_cut; 
 
 	// LCD Texts
 	char state_text_1[21];

@@ -18,6 +18,12 @@ typedef enum {
     FAILURE_SCREEN
 } screen_state_t;
 
+typedef char lcd_line_t[LINE_LENGTH];
+typedef char lcd_halfline_t[LINE_LENGTH / 2];
+typedef struct {
+    lcd_line_t line[LINE_COUNT];
+} lcd_screen_t;
+
 struct standard_screen {
     // char status[LINE_LENGTH];
     const char *status;
@@ -25,31 +31,24 @@ struct standard_screen {
     float pos_feeder;
     float pos_cutter;
     float feeder_offset;
-    const char *button_text_line_0_F1;
-    const char *button_text_line_1_F1;
-    const char *button_text_line_0_F2;
-    const char *button_text_line_1_F2;
+    lcd_halfline_t F1_0;
+    lcd_halfline_t F1_1;
+    lcd_halfline_t F2_0;
+    lcd_halfline_t F2_1;
 };
 
 struct input_screen {
     // char status[LINE_LENGTH];
-    const char *status;
+    lcd_line_t status;
     float sticker_row_height;
-    const char *button_text_line_0_F1;
-    const char *button_text_line_1_F1;
-    const char *button_text_line_0_F2;
-    const char *button_text_line_1_F2;
+    lcd_halfline_t F1_0;
+    lcd_halfline_t F1_1;
+    lcd_halfline_t F2_0;
+    lcd_halfline_t F2_1;
 };
 
 extern struct standard_screen standard_screen1;
 extern struct input_screen input_screen1;
-
-
-typedef char lcd_line_t[LINE_LENGTH];
-typedef char lcd_halfline_t[LINE_LENGTH / 2];
-typedef struct {
-    lcd_line_t line[LINE_COUNT];
-} lcd_screen_t;
 
 typedef struct hmi {
     screen_state_t screen_state;
@@ -66,5 +65,13 @@ typedef struct hmi {
 void hmi_init(hmi_t* hmi, const lcd_config_t* config);
 void hmi_compute(hmi_t* hmi);
 void switch_screen(hmi_t* hmi, screen_state_t screen_state);
+
+void place_string_to_left(char *line, const char *string, size_t line_length);
+void place_string_centered(char *line, const char *string, size_t line_length);
+void place_string_to_right(char *line, const char *string, size_t line_length);
+void place_float_to_left(char *line, float value, int decimals, size_t line_length);
+void place_float_centered(char *line, float value, int decimals, size_t line_length);
+void place_float_to_right(char *line, float value, int decimals, size_t line_length);
+void place_float_with_unit_to_right(char *line, float value, int decimals, const char *unit, size_t line_length);
 
 #endif // HMI_H

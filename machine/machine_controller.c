@@ -77,6 +77,7 @@ void machine_init(void) {
 
     // Cutter
     machine.params_ready = false;
+    machine.rows_to_cut = 0;
 
     // Machine states
     activate_manual_state();

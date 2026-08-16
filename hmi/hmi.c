@@ -22,31 +22,31 @@ struct standard_screen standard_screen1 = {
         .pos_cutter = 0.0,
         .pos_feeder = 0.0,
         .feeder_offset = 0.0,
-        .button_text_line_0_F1 = "",
-        .button_text_line_1_F1 = "",
-        .button_text_line_0_F2 = "",
-        .button_text_line_1_F2 = ""
+        .F1_0 = "",
+        .F1_1 = "",
+        .F2_0 = "",
+        .F2_1 = ""
 };
 
 struct input_screen input_screen1 = {
         .status = "Mode:",
         .sticker_row_height = 0.0,
-        .button_text_line_0_F1 = "",
-        .button_text_line_1_F1 = "",
-        .button_text_line_0_F2 = "",
-        .button_text_line_1_F2 = ""
+        .F1_0 = "",
+        .F1_1 = "",
+        .F2_0 = "",
+        .F2_1 = ""
 };
 
-void place_string_to_left(lcd_line_t line, const char *string) {
-    snprintf(line, LINE_LENGTH, "%-*s", LINE_LENGTH - 1, string);
+void place_string_to_left(char *line, const char *string, size_t line_length) {
+    snprintf(line, line_length, "%-*s", line_length - 1, string);
 }
 
-void place_string_centered(lcd_line_t line, const char *string) {
+void place_string_centered(char *line, const char *string, size_t line_length) {
     int len = strlen(string);
-    int max_len = LINE_LENGTH - 1;
+    int max_len = line_length - 1;
 
     if (len >= max_len) {
-        snprintf(line, LINE_LENGTH, "%s", string);
+        snprintf(line, line_length, "%s", string);
         return;
     }
 
@@ -54,28 +54,28 @@ void place_string_centered(lcd_line_t line, const char *string) {
     int left_pad = (max_len - len) / 2;
     int right_pad = max_len - len - left_pad;
 
-    snprintf(line, LINE_LENGTH, "%*s%s%*s", left_pad, "", string, right_pad, "");
+    snprintf(line, line_length, "%*s%s%*s", left_pad, "", string, right_pad, "");
 }
 
-void place_string_to_right(lcd_line_t line, const char *string) {
-    snprintf(line, LINE_LENGTH, "%*s", LINE_LENGTH - 1, string);
+void place_string_to_right(char *line, const char *string, size_t line_length) {
+    snprintf(line, line_length, "%*s", line_length - 1, string);
 }
 
-void place_float_to_left(lcd_line_t line, float value, int decimals, size_t line_length) {
+void place_float_to_left(char *line, float value, int decimals, size_t line_length) {
     snprintf(line, line_length, "%-*.*f", line_length - 1, decimals, value);
 }
 
-void place_float_centered(lcd_line_t line, float value, int decimals, size_t line_length) {
+void place_float_centered(char *line, float value, int decimals, size_t line_length) {
     char temp_buf[line_length];
     snprintf(temp_buf, line_length, "%.*f", decimals, value);
-    place_string_centered(line, temp_buf);
+    place_string_centered(line, temp_buf, line_length);
 }
 
-void place_float_to_right(lcd_line_t line, float value, int decimals, size_t line_length) {
+void place_float_to_right(char *line, float value, int decimals, size_t line_length) {
     snprintf(line, line_length, "%*.*f", line_length - 1, decimals, value);
 }
 
-void place_float_with_unit_to_right(lcd_line_t line, float value, int decimals, const char *unit, size_t line_length) {
+void place_float_with_unit_to_right(char *line, float value, int decimals, const char *unit, size_t line_length) {
     char temp_buf[line_length];
     snprintf(temp_buf, line_length, "%.*f%s", decimals, value, unit);
     snprintf(line, line_length, "%*s", line_length - 1, temp_buf);
@@ -121,8 +121,8 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     clear_screen(&hmi->actual_screen);
     
     // Welcome Screen
-    place_string_centered(hmi->welcome_screen.line[1], "Sticker Cutter");
-    place_string_to_right(hmi->welcome_screen.line[3], GIT_VERSION);
+    place_string_centered(hmi->welcome_screen.line[1], "Sticker Cutter", LINE_LENGTH);
+    place_string_to_right(hmi->welcome_screen.line[3], GIT_VERSION, LINE_LENGTH);
     
     // Standard Screen
        
@@ -143,9 +143,9 @@ void hmi_compute(hmi_t* hmi) {
 			break;
 		
 		case STANDARD_SCREEN:
-            place_string_to_left(hmi->standard_screen.line[0], standard_screen1.status);
-            merge_halfs_lines(hmi->standard_screen.line[2], standard_screen1.button_text_line_0_F1, standard_screen1.button_text_line_0_F2);
-            merge_halfs_lines(hmi->standard_screen.line[3], standard_screen1.button_text_line_1_F1, standard_screen1.button_text_line_1_F2);
+            place_string_to_left(hmi->standard_screen.line[0], standard_screen1.status, LINE_LENGTH);
+            merge_halfs_lines(hmi->standard_screen.line[2], standard_screen1.F1_0, standard_screen1.F2_0);
+            merge_halfs_lines(hmi->standard_screen.line[3], standard_screen1.F1_1, standard_screen1.F2_1);
             // place_float_to_left(hmi->standard_screen.line[2], 125.05, 2);
             lcd_halfline_t number_0;
             lcd_halfline_t number_1;
@@ -156,43 +156,19 @@ void hmi_compute(hmi_t* hmi) {
             // float_test
             hmi->actual_screen = hmi->standard_screen;
 
-            // if (machine.test != true) {
-
-            //     string2LCD(devices.lcd, 0, 0, machine.state_text_1);
-            //     if (machine.machine_error) {
-            //         string2LCD(devices.lcd, 0, 1, get_error_message());
-            //     }
-            //     else {
-            //         string2LCD(devices.lcd, 0, 1, machine.state_text_2);
-            //     }
-
-            //     float2LCD(devices.lcd, 0, 2, 8, 2, servo_get_position(devices.servo_cutter));
-            //     string2LCD(devices.lcd, 8, 2, "mm");
-                
-            //     float2LCD(devices.lcd, 10, 2, 8, 2, servo_get_position(devices.servo_feeder));
-            //     string2LCD(devices.lcd, 18, 2, "mm");
-
-            //     string2LCD(devices.lcd, 0, 3, machine.F1_text);
-            //     string2LCD(devices.lcd, 10, 3, machine.F2_text);
-
-            //     machine.position_cutter[0] = '\0';
-
-            //     // float2LCD(devices.lcd, 0, 1, 8, 1, get_rotary_encoder_position(devices.encoder));
-            // }
-
             break;
             
         case INPUT_SCREEN:
-            place_string_to_left(hmi->input_screen.line[0], "Nastav vysku nalepky:");
-            place_string_to_left(hmi->input_screen.line[1], "");
+            place_string_to_left(hmi->input_screen.line[0], "Nastav vysku nalepky:", LINE_LENGTH);
+            place_string_to_left(hmi->input_screen.line[1], "", LINE_LENGTH);
             place_float_with_unit_to_right(hmi->input_screen.line[2], input_screen1.sticker_row_height, 2, "mm    ", LINE_LENGTH);
 
-            place_string_to_left(hmi->input_screen.line[3], "Exit      Uloz vysku");
+            place_string_to_left(hmi->input_screen.line[3], "Exit      Uloz vysku", LINE_LENGTH);
             hmi->actual_screen = hmi->input_screen;
             break;
         
         case FAILURE_SCREEN:
-            place_string_centered(hmi->failure_screen.line[0], "* PORUCHA! *");
+            place_string_centered(hmi->failure_screen.line[0], "* PORUCHA! *", LINE_LENGTH);
             uint64_t elapsed = time_us_64() - hmi->start_us;
             
             // Determines toggle state: 0 = visible, 1 = hidden/blank
