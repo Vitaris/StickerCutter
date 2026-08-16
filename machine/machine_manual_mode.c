@@ -187,28 +187,32 @@ void handle_homing_state(void) {
 void param_config_state(void) {
     switch(param_substate) {
         case PARAM_START:
-            standard_screen1.button_text_line_0_F2 = "Set";
-            standard_screen1.button_text_line_1_F2 = "spodok";
-            if (button_raised(devices.F2)) {
-                machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
-                switch_screen(&hmi, INPUT_SCREEN);
-                param_substate = PARAM_STICKER_HEIGHT;
+            if (servo_get_position(devices.servo_feeder) - standard_screen1.feeder_offset == 0.0) {
+                standard_screen1.button_text_line_0_F2 = "";
+                standard_screen1.button_text_line_1_F2 = "Pokracuj";
+                if (button_raised(devices.F2)) {
+                    switch_screen(&hmi, INPUT_SCREEN);
+                    param_substate = PARAM_STICKER_HEIGHT;
+                }
+            } else {
+                standard_screen1.button_text_line_0_F2 = "Vynuluj";
+                standard_screen1.button_text_line_1_F2 = "feeder";
+                if (button_raised(devices.F2)) {
+                    machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
+                    standard_screen1.feeder_offset = servo_get_position(devices.servo_feeder);
+                }
             }
-
             servo_manual_movement_slow();
             break;
 
         case PARAM_STICKER_HEIGHT:
-            input_screen1.button_text_line_0_F2 = "Set vyska";
-            input_screen1.button_text_line_1_F2 = "nalepky";
-
-            input_screen1.sticker_row_height = rotary_encoder_get_position(devices.encoder);;
+            float sticker_height = rotary_encoder_get_position(devices.encoder);
+            input_screen1.sticker_row_height = sticker_height;
             if (button_raised(devices.F2)) {
-                machine.sticker_height = 0.0;
+                machine.sticker_height = sticker_height;
                 switch_screen(&hmi, STANDARD_SCREEN);
                 param_substate = PARAM_FINSIHED;
             }
-
             break;
 
         case PARAM_FINSIHED:
@@ -216,7 +220,7 @@ void param_config_state(void) {
             standard_screen1.button_text_line_1_F2 = "Automat";
                 if (button_raised(devices.F2)) {
                     servo_goto(devices.servo_cutter, -50, MANUAL_SPEED_FAST);
-                    // activate_automatic_state();
+                    activate_automatic_state();
                 }
             break;
     }
