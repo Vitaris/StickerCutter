@@ -72,7 +72,7 @@ void place_float_with_unit_to_right(char *line, float value, int decimals, const
 }
 
 void hmi_set_status(const char *status) {
-    place_string_to_left(standard_screen.status, status, LINE_LENGTH);
+    place_string_to_left(standard_screen.status, status, LINE_LENGTH_FULL);
 }
 
 void hmi_set_left_button(const char *top, const char *bottom) {
@@ -91,7 +91,7 @@ void hmi_clear_buttons(void) {
 }
 
 void clear_line(lcd_line_t line) {
-    memset(line, ' ', LINE_LENGTH - 1);
+    memset(line, ' ', LINE_LENGTH_FULL - 1);
     line[20] = '\0';
 }
 
@@ -102,14 +102,14 @@ void clear_screen(screen_buffer_t *screen) {
 }
 
 void merge_halfs_lines(lcd_line_t line, lcd_halfline_t half_first, lcd_halfline_t half_second) {
-    snprintf(line, LINE_LENGTH, "%-*.*s%-*.*s", 
+    snprintf(line, LINE_LENGTH_FULL, "%-*.*s%-*.*s", 
              LINE_LENGTH_HALF - 1, LINE_LENGTH_HALF - 1, half_first, 
              LINE_LENGTH_HALF - 1, LINE_LENGTH_HALF - 1, half_second);
 }
 
 void show_question(hmi_t* hmi, const char *question, float var, const char *units, const char *f1_0, const char *f1_1, const char *f2_0, const char *f2_1) {
-    place_string_to_left(hmi->input_screen_buffer.line[0], question, LINE_LENGTH);
-    place_float_centered(hmi->input_screen_buffer.line[1], var, 2, LINE_LENGTH);
+    place_string_to_left(hmi->input_screen_buffer.line[0], question, LINE_LENGTH_FULL);
+    place_float_centered(hmi->input_screen_buffer.line[1], var, 2, LINE_LENGTH_FULL);
 
     // button F1
     lcd_halfline_t line_half_0;
@@ -147,8 +147,8 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     clear_screen(&hmi->actual_screen_buffer);
     
     // Welcome Screen
-    place_string_centered(hmi->welcome_screen_buffer.line[1], "Sticker Cutter", LINE_LENGTH);
-    place_string_to_right(hmi->welcome_screen_buffer.line[3], GIT_VERSION, LINE_LENGTH);
+    place_string_centered(hmi->welcome_screen_buffer.line[1], "Sticker Cutter", LINE_LENGTH_FULL);
+    place_string_to_right(hmi->welcome_screen_buffer.line[3], GIT_VERSION, LINE_LENGTH_FULL);
     
     // Standard Screen
        
@@ -169,7 +169,7 @@ void hmi_compute(hmi_t* hmi) {
 			break;
 		
 		case STANDARD_SCREEN:
-            place_string_to_left(hmi->standard_screen_buffer.line[0], standard_screen.status, LINE_LENGTH);
+            place_string_to_left(hmi->standard_screen_buffer.line[0], standard_screen.status, LINE_LENGTH_FULL);
             merge_halfs_lines(hmi->standard_screen_buffer.line[2], standard_screen.F1_0, standard_screen.F2_0);
             merge_halfs_lines(hmi->standard_screen_buffer.line[3], standard_screen.F1_1, standard_screen.F2_1);
             // place_float_to_left(hmi->standard_screen_buffer.line[2], 125.05, 2);
@@ -189,9 +189,9 @@ void hmi_compute(hmi_t* hmi) {
             break;
         
         case FAILURE_SCREEN:
-            place_string_centered(hmi->failure_screen_buffer.line[0], "* PORUCHA! *", LINE_LENGTH);
-            place_string_centered(hmi->failure_screen_buffer.line[2], get_error_message(), LINE_LENGTH);
-            place_string_to_left(hmi->failure_screen_buffer.line[3], "Potvrdit", LINE_LENGTH);
+            place_string_centered(hmi->failure_screen_buffer.line[0], "* PORUCHA! *", LINE_LENGTH_FULL);
+            place_string_centered(hmi->failure_screen_buffer.line[2], get_error_message(), LINE_LENGTH_FULL);
+            place_string_to_left(hmi->failure_screen_buffer.line[3], "Potvrdit", LINE_LENGTH_FULL);
             uint64_t elapsed = time_us_64() - hmi->start_us;
             
             // Determines toggle state: 0 = visible, 1 = hidden/blank
