@@ -51,6 +51,7 @@ void machine_init(void) {
     // Init Rotary encoder
     int offset_1 = pio_add_program(pio1, &quadrature_encoder_program);
     devices.encoder = create_rotary_encoder(26, 28, 0, offset_1);
+    rotary_encoder_set_position(devices.encoder, 50.0);
 
     // Init servos
     machine.machine_error = false;

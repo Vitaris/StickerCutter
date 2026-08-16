@@ -1,9 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "pico/stdlib.h"
+#include <float.h>
+#include <math.h>
 
 #include "rotary_encoder.h"
 #include "../servo_motor/button.h"
+
+#define SCALE_FAST -40
+#define SCALE_SLOW -4
 
 struct rotary_encoder {
 	// Encoder
@@ -12,6 +17,8 @@ struct rotary_encoder {
     float delta_position;
     int32_t last_encoder_count;
     float scale;
+    float limit_max;
+    float limit_min;
     uint sm;
 
     button_t *knob_switch;
@@ -32,7 +39,12 @@ rotary_encoder_t* create_rotary_encoder(const uint8_t enc_pin_num, uint8_t switc
 
     encoder->knob_switch = create_button(switch_pin_num);
     gpio_pull_up(switch_pin_num);
-    encoder->scale = -40.0;
+    encoder->scale = SCALE_FAST;
+
+    encoder->limit_max = FLT_MAX;
+    // encoder->limit_min = -FLT_MAX;
+
+    encoder->limit_min = 0.0;
 
     return encoder;
 }
@@ -44,17 +56,17 @@ void rotary_encoder_compute(rotary_encoder_t* encoder) {
     int16_t delta = (int16_t)(raw_current - encoder->last_encoder_count);
     encoder->last_encoder_count = raw_current;
 
-    // encoder->position = (float)encoder->pos_raw / 40.0;
     encoder->delta_position = (float)delta / encoder->scale;
     encoder->position += encoder->delta_position;
+    encoder->position = fmaxf(encoder->limit_min, fminf(encoder->position, encoder->limit_max));
 
     // Update knob switch state
     button_compute(encoder->knob_switch);
     if (button_raised(encoder->knob_switch)) {
-        if (encoder->scale == 40.0) {
-            encoder->scale = 4.0;
+        if (encoder->scale == SCALE_FAST) {
+            encoder->scale = SCALE_SLOW;
         } else {
-            encoder->scale = 40.0;
+            encoder->scale = SCALE_FAST;
         }
     }
 }
