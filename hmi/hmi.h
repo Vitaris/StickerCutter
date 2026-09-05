@@ -80,6 +80,9 @@ void place_float_to_left(char *line, float value, int decimals, size_t line_leng
 void place_float_centered(char *line, float value, int decimals, size_t line_length);
 void place_float_to_right(char *line, float value, int decimals, size_t line_length);
 void place_float_with_unit_to_right(char *line, float value, int decimals, const char *unit, size_t line_length);
+void place_int_to_left(char *line, int value, size_t line_length);
+void place_int_centered(char *line, int value, size_t line_length);
+void place_int_to_right(char *line, int value, size_t line_length);
 
 void show_question(hmi_t* hmi, const char *question, float var, const char *units, const char *f1_0, const char *f1_1, const char *f2_0, const char *f2_1);
 void close_question(hmi_t* hmi);

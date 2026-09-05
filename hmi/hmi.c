@@ -71,6 +71,20 @@ void place_float_with_unit_to_right(char *line, float value, int decimals, const
     snprintf(line, line_length, "%*s", line_length - 1, temp_buf);
 }
 
+void place_int_to_left(char *line, int value, size_t line_length) {
+    snprintf(line, line_length, "%-*d", (int)(line_length - 1), value);
+}
+
+void place_int_centered(char *line, int value, size_t line_length) {
+    char temp_buf[line_length];
+    snprintf(temp_buf, line_length, "%d", value);
+    place_string_centered(line, temp_buf, line_length);
+}
+
+void place_int_to_right(char *line, int value, size_t line_length) {
+    snprintf(line, line_length, "%*d", (int)(line_length - 1), value);
+}
+
 void hmi_set_status(const char *status) {
     place_string_to_left(standard_screen.status, status, LINE_LENGTH_FULL);
 }
