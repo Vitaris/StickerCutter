@@ -3,6 +3,7 @@
 #include "machine_controller.h"
 #include "machine_automatic_mode.h"
 #include "machine_manual_mode.h"
+#include "../servo_motor/servo_motor.h"
 
 static const float STICKER_HEIGHT_TOLERNACE = 10.0; // 10mm tolerance for sticker height
 
@@ -10,6 +11,19 @@ typedef enum {
     IDLE,                           // Waiting for start command
     
     // Paper movement states
+    NAVIGATE_TO_LEAD_IN_RIGHT,    // 
+    MOVING_TO_LEAD_IN_RIGHT,
+    LEAD_IN_READY_RIGHT,
+
+    START_ENTRY_CUT_RIGHT,
+    ENTRY_CUT_IN_PROGRESS_RIGHT,
+    ENTRY_CUT_DONE_RIGHT,
+    ENTRY_CUT_RETURN_RIGHT,
+    RETURN_TO_LEAD_IN_RIGHT,
+    PERFORM_REST_OF_CUT_TO_RIGHT,
+    REST_OF_CUT_FROM_RIGHT_IN_PROGRESS,
+    REST_OF_CUT_FROM_RIGHT_DONE,
+
     PAPER_START_FEED,              // Begin feeding paper
     PAPER_AWAIT_SPEED,             // Waiting for stable paper feed
    
@@ -71,37 +85,88 @@ void handle_automatic_state(void) {
         activate_manual_state();
         return;
     }
-/*
+
     // Handle automatic state transitions
     switch(automatic_substate) {
         case IDLE:
-            standard_screen1.button_text_line_0_F2 = "";
-            standard_screen1.button_text_line_1_F2 = "Start";
+            hmi_set_right_button("", "Start");
+            knife_up();
             if (button_raised(devices.F2)) {
-                automatic_substate = MARK_SEEK_START;
+                automatic_substate = NAVIGATE_TO_LEAD_IN_RIGHT;
             }
             break;
 
 // ----------------------------------------------------------------------------------------------------------
 // Navigate cutting head to the mark position
-        case MARK_SEEK_START:
-            if (servo_is_idle(devices.servo_cutter)) {
-                servo_goto_delayed(devices.servo_cutter, machine.paper_right_mark_position, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
-                automatic_substate = MARK_SEEK_MOVING;
+        case NAVIGATE_TO_LEAD_IN_RIGHT:
+        hmi_set_right_button("", "1");
+            if (servo_is_idle(devices.servo_cutter) && servo_is_idle(devices.servo_feeder)) {
+                servo_goto_delayed(devices.servo_cutter, -machine.cut_overlap, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                servo_goto_delayed(devices.servo_feeder, servo_get_position(devices.servo_feeder) + machine.sticker_height, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                automatic_substate = MOVING_TO_LEAD_IN_RIGHT;
             }
             break;
 
-        case MARK_SEEK_MOVING:
-            set_text_10(machine.F2_text, "K znacke");
-            if (servo_is_idle(devices.servo_cutter)) {
-                automatic_substate = MARK_SEEK_READY;
+        case MOVING_TO_LEAD_IN_RIGHT:
+            hmi_set_right_button("", "2");
+            if (servo_is_idle(devices.servo_cutter) && servo_is_idle(devices.servo_feeder)) {
+                automatic_substate = LEAD_IN_READY_RIGHT;
             }
             break;
         
-        case MARK_SEEK_READY:
-            set_text_10(machine.F2_text, "Na znacke");
-            automatic_substate = PAPER_START_FEED;
+        case LEAD_IN_READY_RIGHT:
+            hmi_set_right_button("", "3");
+            automatic_substate = START_ENTRY_CUT_RIGHT;
             break;
+
+
+        case START_ENTRY_CUT_RIGHT:
+            hmi_set_right_button("", "4");
+            knife_down();
+            servo_goto_delayed(devices.servo_cutter, 0.0, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+            automatic_substate = ENTRY_CUT_IN_PROGRESS_RIGHT;
+            break;
+
+        case ENTRY_CUT_IN_PROGRESS_RIGHT:
+            hmi_set_right_button("", "5");
+            if (servo_is_idle(devices.servo_cutter)) {
+                automatic_substate = ENTRY_CUT_DONE_RIGHT;
+            }
+            break;
+
+        case ENTRY_CUT_DONE_RIGHT:
+            hmi_set_right_button("", "6");
+            knife_up();
+            servo_goto_delayed(devices.servo_cutter, -machine.cut_overlap, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+            automatic_substate = RETURN_TO_LEAD_IN_RIGHT;
+            break;
+
+        case RETURN_TO_LEAD_IN_RIGHT:
+            hmi_set_right_button("", "7");
+            if (servo_is_idle(devices.servo_cutter)) {
+                automatic_substate = PERFORM_REST_OF_CUT_TO_RIGHT;
+            }
+            break;
+
+        case PERFORM_REST_OF_CUT_TO_RIGHT:
+            hmi_set_right_button("", "8");
+            knife_down();
+            servo_goto_delayed(devices.servo_cutter, -machine.paper_width, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+            automatic_substate = REST_OF_CUT_FROM_RIGHT_IN_PROGRESS;
+            break;
+
+        case REST_OF_CUT_FROM_RIGHT_IN_PROGRESS:
+            hmi_set_right_button("", "9");
+            if (servo_is_idle(devices.servo_cutter)) {
+                automatic_substate = REST_OF_CUT_FROM_RIGHT_DONE;
+            }
+            break;
+
+        case REST_OF_CUT_FROM_RIGHT_DONE:
+            hmi_set_right_button("", "10");
+            break;
+
+            /*
             
 // ----------------------------------------------------------------------------------------------------------
 // Rolling paper at constant speed
@@ -109,6 +174,9 @@ void handle_automatic_state(void) {
             servo_goto_delayed(devices.servo_feeder, FAR_AWAY_DISTANCE, AUTOMAT_SPEED_SCAN, HALF_SECOND_DELAY);
             automatic_substate = PAPER_AWAIT_SPEED;
             break;
+
+
+        
 
         case PAPER_AWAIT_SPEED:
             if (servo_is_speed_reached(devices.servo_feeder)) {
@@ -296,4 +364,5 @@ void handle_automatic_state(void) {
             break;
     }
             */
+        }
 }

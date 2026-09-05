@@ -66,7 +66,8 @@ typedef struct {
 	float paper_right_mark_position;
 	float sticker_height;
 	float paper_width;
-	size_t rows_to_cut; 
+	size_t rows_to_cut;
+	float cut_overlap; 
 
 	bool test;
 } machine_t;
