@@ -24,6 +24,20 @@ typedef enum {
     REST_OF_CUT_FROM_RIGHT_IN_PROGRESS,
     REST_OF_CUT_FROM_RIGHT_DONE,
 
+    NAVIGATE_TO_LEAD_IN_LEFT,
+    MOVING_TO_LEAD_IN_LEFT,
+    LEAD_IN_READY_LEFT,
+
+    START_ENTRY_CUT_LEFT,
+    ENTRY_CUT_IN_PROGRESS_LEFT,
+    ENTRY_CUT_DONE_LEFT,
+    RETURN_TO_LEAD_IN_LEFT,
+    PERFORM_REST_OF_CUT_TO_LEFT,
+    REST_OF_CUT_FROM_LEFT_IN_PROGRESS,
+    REST_OF_CUT_FROM_LEFT_DONE,
+
+
+
     PAPER_START_FEED,              // Begin feeding paper
     PAPER_AWAIT_SPEED,             // Waiting for stable paper feed
    
@@ -99,7 +113,7 @@ void handle_automatic_state(void) {
 // ----------------------------------------------------------------------------------------------------------
 // Navigate cutting head to the mark position
         case NAVIGATE_TO_LEAD_IN_RIGHT:
-        hmi_set_right_button("", "1");
+        hmi_set_right_button("", "1R");
             if (servo_is_idle(devices.servo_cutter) && servo_is_idle(devices.servo_feeder)) {
                 servo_goto_delayed(devices.servo_cutter, -machine.cut_overlap, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
                 servo_goto_delayed(devices.servo_feeder, servo_get_position(devices.servo_feeder) + machine.sticker_height, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
@@ -108,64 +122,141 @@ void handle_automatic_state(void) {
             break;
 
         case MOVING_TO_LEAD_IN_RIGHT:
-            hmi_set_right_button("", "2");
+            hmi_set_right_button("", "2R");
             if (servo_is_idle(devices.servo_cutter) && servo_is_idle(devices.servo_feeder)) {
                 automatic_substate = LEAD_IN_READY_RIGHT;
             }
             break;
         
         case LEAD_IN_READY_RIGHT:
-            hmi_set_right_button("", "3");
+            hmi_set_right_button("", "3R");
             automatic_substate = START_ENTRY_CUT_RIGHT;
             break;
 
 
         case START_ENTRY_CUT_RIGHT:
-            hmi_set_right_button("", "4");
+            hmi_set_right_button("", "4R");
             knife_down();
             servo_goto_delayed(devices.servo_cutter, 0.0, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
             automatic_substate = ENTRY_CUT_IN_PROGRESS_RIGHT;
             break;
 
         case ENTRY_CUT_IN_PROGRESS_RIGHT:
-            hmi_set_right_button("", "5");
+            hmi_set_right_button("", "5R");
             if (servo_is_idle(devices.servo_cutter)) {
                 automatic_substate = ENTRY_CUT_DONE_RIGHT;
             }
             break;
 
         case ENTRY_CUT_DONE_RIGHT:
-            hmi_set_right_button("", "6");
+            hmi_set_right_button("", "6R");
             knife_up();
             servo_goto_delayed(devices.servo_cutter, -machine.cut_overlap, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
             automatic_substate = RETURN_TO_LEAD_IN_RIGHT;
             break;
 
         case RETURN_TO_LEAD_IN_RIGHT:
-            hmi_set_right_button("", "7");
+            hmi_set_right_button("", "7R");
             if (servo_is_idle(devices.servo_cutter)) {
                 automatic_substate = PERFORM_REST_OF_CUT_TO_RIGHT;
             }
             break;
 
         case PERFORM_REST_OF_CUT_TO_RIGHT:
-            hmi_set_right_button("", "8");
+            hmi_set_right_button("", "8R");
             knife_down();
             servo_goto_delayed(devices.servo_cutter, -machine.paper_width, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
             automatic_substate = REST_OF_CUT_FROM_RIGHT_IN_PROGRESS;
             break;
 
         case REST_OF_CUT_FROM_RIGHT_IN_PROGRESS:
-            hmi_set_right_button("", "9");
+            hmi_set_right_button("", "9R");
             if (servo_is_idle(devices.servo_cutter)) {
                 automatic_substate = REST_OF_CUT_FROM_RIGHT_DONE;
             }
             break;
 
         case REST_OF_CUT_FROM_RIGHT_DONE:
-            hmi_set_right_button("", "10");
+            hmi_set_right_button("", "10R");
+            automatic_substate = NAVIGATE_TO_LEAD_IN_LEFT;
             break;
 
+
+        // ----------------------------------------------------------------------------------------------------------
+// Navigate cutting head to the left lead-in position
+        case NAVIGATE_TO_LEAD_IN_LEFT:
+            hmi_set_right_button("", "1L");
+            if (servo_is_idle(devices.servo_cutter) && servo_is_idle(devices.servo_feeder)) {
+                // Navigate to the left side, offset inward by the cut overlap
+                servo_goto_delayed(devices.servo_cutter, -machine.paper_width + machine.cut_overlap, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                // Advance the paper by sticker height
+                servo_goto_delayed(devices.servo_feeder, servo_get_position(devices.servo_feeder) + machine.sticker_height, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                automatic_substate = MOVING_TO_LEAD_IN_LEFT;
+            }
+            break;
+
+        case MOVING_TO_LEAD_IN_LEFT:
+            hmi_set_right_button("", "2L");
+            if (servo_is_idle(devices.servo_cutter) && servo_is_idle(devices.servo_feeder)) {
+                automatic_substate = LEAD_IN_READY_LEFT;
+            }
+            break;
+        
+        case LEAD_IN_READY_LEFT:
+            hmi_set_right_button("", "3L");
+            automatic_substate = START_ENTRY_CUT_LEFT;
+            break;
+
+        case START_ENTRY_CUT_LEFT:
+            hmi_set_right_button("", "4L");
+            knife_down();
+            // Perform lead-in cut outward to the absolute left edge
+            servo_goto_delayed(devices.servo_cutter, -machine.paper_width, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+            automatic_substate = ENTRY_CUT_IN_PROGRESS_LEFT;
+            break;
+
+        case ENTRY_CUT_IN_PROGRESS_LEFT:
+            hmi_set_right_button("", "5L");
+            if (servo_is_idle(devices.servo_cutter)) {
+                automatic_substate = ENTRY_CUT_DONE_LEFT;
+            }
+            break;
+
+        case ENTRY_CUT_DONE_LEFT:
+            hmi_set_right_button("", "6L");
+            knife_up();
+            // Return cutter to the offset position for the main cut
+            servo_goto_delayed(devices.servo_cutter, -machine.paper_width + machine.cut_overlap, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+            automatic_substate = RETURN_TO_LEAD_IN_LEFT;
+            break;
+
+        case RETURN_TO_LEAD_IN_LEFT:
+            hmi_set_right_button("", "7L");
+            if (servo_is_idle(devices.servo_cutter)) {
+                automatic_substate = PERFORM_REST_OF_CUT_TO_LEFT;
+            }
+            break;
+
+        case PERFORM_REST_OF_CUT_TO_LEFT:
+            hmi_set_right_button("", "8L");
+            knife_down();
+            // Perform the rest of the cut all the way to the right edge
+            servo_goto_delayed(devices.servo_cutter, 0.0, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+            automatic_substate = REST_OF_CUT_FROM_LEFT_IN_PROGRESS;
+            break;
+
+        case REST_OF_CUT_FROM_LEFT_IN_PROGRESS:
+            hmi_set_right_button("", "9L");
+            if (servo_is_idle(devices.servo_cutter)) {
+                automatic_substate = REST_OF_CUT_FROM_LEFT_DONE;
+            }
+            break;
+
+        case REST_OF_CUT_FROM_LEFT_DONE:
+            hmi_set_right_button("", "10L");
+            // End of left cut sequence, ready to trigger right side or next sticker
+            automatic_substate = NAVIGATE_TO_LEAD_IN_RIGHT;
+            break;
             /*
             
 // ----------------------------------------------------------------------------------------------------------
