@@ -67,6 +67,7 @@ typedef struct {
 	float sticker_height;
 	float paper_width;
 	size_t rows_to_cut;
+	size_t rows_cut_performed;
 	float cut_overlap; 
 
 	bool test;
