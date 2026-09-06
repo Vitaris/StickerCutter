@@ -47,7 +47,10 @@ void activate_manual_state(void) {
     machine.paper_right_mark_position = 0.0;
     manual_substate = MANUAL_READY;
     machine_state = MANUAL;
+    servo_stop_positioning(devices.servo_cutter);
+    servo_stop_positioning(devices.servo_feeder);
     machine.enable = true;
+    knife_up();
 }
 
 void activate_param_state(void) {
