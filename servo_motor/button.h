@@ -39,5 +39,12 @@ bool button_raised(button_t* const button);
  */
 bool button_dropped(button_t* const button);
 
+/**
+ * @brief Sets a grace period during which further presses are ignored after a press
+ * @param button Pointer to the button instance
+ * @param grace_period_us Grace period duration in microseconds
+ */
+void button_set_grace_period(button_t* const button, const uint64_t grace_period_us);
+
 #endif
 // End of Header file

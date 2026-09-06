@@ -193,6 +193,7 @@ void param_config_state(void) {
                 if (button_raised(devices.F2)) {
                     hmi_request_screen(&hmi, INPUT_SCREEN);
                     param_substate = PARAM_STICKER_HEIGHT;
+                    rotary_encoder_set_scale(devices.encoder, -1.0);
                 }
             } else {
                 hmi_set_right_button("Vynuluj", "feeder");
@@ -211,6 +212,7 @@ void param_config_state(void) {
                 machine.sticker_height = sticker_height;
                 param_substate = PARAM_ROWS_TO_CUT;
                 rotary_encoder_set_position(devices.encoder, 1.0);
+                rotary_encoder_set_scale(devices.encoder, -1.0);
             }
             break;
             
