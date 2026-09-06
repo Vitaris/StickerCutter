@@ -138,6 +138,23 @@ void show_question(hmi_t* hmi, const char *question, float var, const char *unit
     merge_halfs_lines(hmi->input_screen_buffer.line[3], line_half_0, line_half_1);
 }
 
+void show_question_int(hmi_t* hmi, const char *question, int var, const char *units, const char *f1_0, const char *f1_1, const char *f2_0, const char *f2_1) {
+    place_string_to_left(hmi->input_screen_buffer.line[0], question, LINE_LENGTH_FULL);
+    place_int_centered(hmi->input_screen_buffer.line[1], var, LINE_LENGTH_FULL);
+
+    // button F1
+    lcd_halfline_t line_half_0;
+    lcd_halfline_t line_half_1;
+    place_string_to_left(line_half_0, f1_0, LINE_LENGTH_HALF);
+    place_string_to_right(line_half_1, f2_0, LINE_LENGTH_HALF);
+    merge_halfs_lines(hmi->input_screen_buffer.line[2], line_half_0, line_half_1);
+
+    // button F2
+    place_string_to_left(line_half_0, f1_1, LINE_LENGTH_HALF);
+    place_string_to_right(line_half_1, f2_1, LINE_LENGTH_HALF);
+    merge_halfs_lines(hmi->input_screen_buffer.line[3], line_half_0, line_half_1);
+}
+
 void draw_screen(hmi_t* hmi) {
     for (size_t i = 0; i < LINE_COUNT; i++) {
         string2LCD(hmi->lcd, 0, i, hmi->actual_screen_buffer.line[i]);
@@ -150,10 +167,15 @@ void switch_screen(hmi_t* hmi, screen_state_t screen_state) {
     clrscr(hmi->lcd);
 }
 
+void hmi_request_screen(hmi_t* hmi, screen_state_t screen_state) {
+    hmi->screen_request = (int32_t)screen_state;
+}
+
 void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     hard_assert(hmi != NULL);
 
     memset(hmi, 0, sizeof(hmi_t));
+    hmi->screen_request = -1;
     clear_screen(&hmi->welcome_screen_buffer);
     clear_screen(&hmi->standard_screen_buffer);
     clear_screen(&hmi->input_screen_buffer);
@@ -172,7 +194,12 @@ void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
 }
 
 void hmi_compute(hmi_t* hmi) {
-    
+    // Service any pending cross-core screen switch request (owns the LCD bus).
+    int32_t req = hmi->screen_request;
+    if (req >= 0) {
+        hmi->screen_request = -1;
+        switch_screen(hmi, (screen_state_t)req);
+    }
 
     switch(hmi->screen_state) {
         case WELCOME_SCREEN:

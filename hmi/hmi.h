@@ -52,6 +52,7 @@ extern screen_t input_screen;
 
 typedef struct hmi {
     screen_state_t screen_state;
+    volatile int32_t screen_request; // core0 -> core1 screen switch request; -1 = none
     uint64_t start_us; 
     screen_buffer_t welcome_screen_buffer;
     screen_buffer_t standard_screen_buffer;
@@ -65,6 +66,8 @@ typedef struct hmi {
 void hmi_init(hmi_t* hmi, const lcd_config_t* config);
 void hmi_compute(hmi_t* hmi);
 void switch_screen(hmi_t* hmi, screen_state_t screen_state);
+// Safe to call from core0: records a request that core1 services in hmi_compute.
+void hmi_request_screen(hmi_t* hmi, screen_state_t screen_state);
 
 // Standard-screen helpers: set the status line and the two soft-button
 // labels (F1 = left, F2 = right), each spanning two 10-character lines.
@@ -85,6 +88,7 @@ void place_int_centered(char *line, int value, size_t line_length);
 void place_int_to_right(char *line, int value, size_t line_length);
 
 void show_question(hmi_t* hmi, const char *question, float var, const char *units, const char *f1_0, const char *f1_1, const char *f2_0, const char *f2_1);
+void show_question_int(hmi_t* hmi, const char *question, int var, const char *units, const char *f1_0, const char *f1_1, const char *f2_0, const char *f2_1);
 void close_question(hmi_t* hmi);
 
 #endif // HMI_H
