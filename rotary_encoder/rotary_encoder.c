@@ -72,7 +72,11 @@ void rotary_encoder_compute(rotary_encoder_t* encoder) {
 }
 
 float rotary_encoder_get_position(rotary_encoder_t* encoder) {
-    return encoder->position;
+    return roundf(encoder->position * 100.0f) / 100.0f;
+}
+
+int rotary_encoder_get_position_int(rotary_encoder_t* encoder) {
+    return (int)lroundf(encoder->position);
 }
 
 void rotary_encoder_set_position(rotary_encoder_t* encoder, float new_position) {

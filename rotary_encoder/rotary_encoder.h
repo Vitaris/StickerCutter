@@ -15,6 +15,8 @@ void rotary_encoder_compute(rotary_encoder_t* encoder);
 
 float rotary_encoder_get_position(rotary_encoder_t* encoder);
 
+int rotary_encoder_get_position_int(rotary_encoder_t* encoder);
+
 void rotary_encoder_set_position(rotary_encoder_t* encoder, float new_position);
 
 void rotary_encoder_reset_position(rotary_encoder_t* encoder);
