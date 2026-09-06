@@ -127,7 +127,7 @@ void activate_failure_state(void) {
     machine_state = FAILURE;
     machine.enable = false;
     knife_up();
-    switch_screen(&hmi, FAILURE_SCREEN);
+    hmi_request_screen(&hmi, FAILURE_SCREEN);
 }
 
 void handle_failure_state(void) {
@@ -135,7 +135,7 @@ void handle_failure_state(void) {
         activate_manual_state();
         strcpy(machine.error_message, "OK");
         machine.machine_error = false;
-        switch_screen(&hmi, STANDARD_SCREEN);
+        hmi_request_screen(&hmi, STANDARD_SCREEN);
     }
 }
 

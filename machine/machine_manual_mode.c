@@ -188,7 +188,7 @@ void param_config_state(void) {
             if (servo_get_position(devices.servo_feeder) - standard_screen.feeder_offset == 0.0) {
                 hmi_set_right_button("", "Pokracuj");
                 if (button_raised(devices.F2)) {
-                    switch_screen(&hmi, INPUT_SCREEN);
+                    hmi_request_screen(&hmi, INPUT_SCREEN);
                     param_substate = PARAM_STICKER_HEIGHT;
                 }
             } else {
@@ -212,8 +212,8 @@ void param_config_state(void) {
             break;
             
         case PARAM_ROWS_TO_CUT:
-            float rows = rotary_encoder_get_position(devices.encoder);
-            show_question(&hmi, "Nastav pocet rezov:", rows, "ks", "", "Exit", "Uloz", "pocet");
+            int rows = rotary_encoder_get_position_int(devices.encoder);
+            show_question_int(&hmi, "Nastav pocet rezov:", rows, "ks", "", "Exit", "Uloz", "pocet");
             if (button_raised(devices.F2)) {
                 machine.rows_to_cut = (size_t)rows;
                 param_substate = PARAM_PAPER_WIDTH;
@@ -228,7 +228,7 @@ void param_config_state(void) {
             show_question(&hmi, "Nastav sirku papiera:", width, "ks", "", "Exit", "Uloz", "sirku");
             if (button_raised(devices.F2)) {
                 machine.paper_width = width;
-                switch_screen(&hmi, STANDARD_SCREEN);
+                hmi_request_screen(&hmi, STANDARD_SCREEN);
                 param_substate = PARAM_FINSIHED;
                 rotary_encoder_reset_position(devices.encoder);
                 rotary_encoder_set_scale(devices.encoder, -40.0);
