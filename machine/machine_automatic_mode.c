@@ -93,8 +93,8 @@ void handle_automatic_state(void) {
                                   -machine.cut_overlap : 
                                   -machine.paper_width + machine.cut_overlap;
                                   
-                servo_goto_delayed(devices.servo_cutter, start_pos, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
-                servo_goto_delayed(devices.servo_feeder, servo_get_position(devices.servo_feeder) + machine.sticker_height, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+                servo_goto_delayed(devices.servo_cutter, start_pos, AUTOMAT_SPEED_SLOW, HALF_SECOND_DELAY);
+                servo_goto_delayed(devices.servo_feeder, servo_get_position(devices.servo_feeder) + machine.sticker_height, AUTOMAT_SPEED_SLOW, HALF_SECOND_DELAY);
                 automatic_substate = MOVING_TO_LEAD_IN;
             }
             break;
@@ -102,6 +102,7 @@ void handle_automatic_state(void) {
         case MOVING_TO_LEAD_IN:
             if (servo_is_idle(devices.servo_cutter) && servo_is_idle(devices.servo_feeder)) {
                 automatic_substate = LEAD_IN_READY;
+                // automatic_substate = MOVING_TO_LEAD_IN;
             }
             break;
         
@@ -112,7 +113,7 @@ void handle_automatic_state(void) {
         case START_ENTRY_CUT: {
             knife_down();
             float edge_pos = is_cutting_from_right ? 0.0 : -machine.paper_width;
-            servo_goto_delayed(devices.servo_cutter, edge_pos, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+            servo_goto_delayed(devices.servo_cutter, edge_pos, AUTOMAT_SPEED_SLOW, HALF_SECOND_DELAY);
             automatic_substate = ENTRY_CUT_IN_PROGRESS;
             break;
         }
@@ -129,7 +130,7 @@ void handle_automatic_state(void) {
                                -machine.cut_overlap : 
                                -machine.paper_width + machine.cut_overlap;
                                
-            servo_goto_delayed(devices.servo_cutter, return_pos, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+            servo_goto_delayed(devices.servo_cutter, return_pos, AUTOMAT_SPEED_SLOW, HALF_SECOND_DELAY);
             automatic_substate = RETURN_TO_LEAD_IN;
             break;
         }
@@ -143,7 +144,7 @@ void handle_automatic_state(void) {
         case PERFORM_REST_OF_CUT: {
             knife_down();
             float final_pos = is_cutting_from_right ? -machine.paper_width : 0.0;
-            servo_goto_delayed(devices.servo_cutter, final_pos, AUTOMAT_SPEED_FAST, HALF_SECOND_DELAY);
+            servo_goto_delayed(devices.servo_cutter, final_pos, AUTOMAT_SPEED_SLOW, HALF_SECOND_DELAY);
             automatic_substate = REST_OF_CUT_IN_PROGRESS;
             break;
         }

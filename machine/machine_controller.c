@@ -57,11 +57,10 @@ void machine_init(void) {
     // Init servos
     machine.machine_error = false;
     machine.enable = false;
-    #ifndef SIMULATION_MODE
-        machine.homed = false;
-    #else
-        machine.homed = true;
-    #endif
+
+    // Force homed state on beginning
+    machine.homed = true;
+    
     strcpy(machine.error_message, "OK");
 
     // Init PIO

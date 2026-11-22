@@ -3,8 +3,6 @@
 #include "servo_motor.h"
 #include "../servo_motor/button.h"
 
-// #define SIMULATION_MODE
-
 #define CYCLE_TIME 0.001
 #define FOLLOWING_ERROR 1.0 // Maximum permisible position deviation
 
@@ -224,11 +222,8 @@ void servo_reset_all(servo_t* const servo) {
 void servo_compute(servo_t* const servo) { 
 	// Get current position, calculate velocity
 	int32_t enc_new = quadrature_encoder_get_count(pio0, servo->sm);
-	#ifndef SIMULATION_MODE
-		servo->enc_position = ((float)enc_new / 4000.0) - servo->enc_offset;
-	#else
-		servo->enc_position = servo->set_pos;
-	#endif
+	// servo->enc_position = servo->set_pos;
+	servo->enc_position = ((float)enc_new / 4000.0) - servo->enc_offset;
 	if (servo->set_zero) {
 		servo->enc_offset = servo->enc_position;
 		servo->enc_position = 0.0;
@@ -238,11 +233,8 @@ void servo_compute(servo_t* const servo) {
 		servo->set_zero = false;
 	}
 	
-	#ifndef SIMULATION_MODE
-		servo->enc_speed = enc2speed(enc_new - servo->enc_old);
-	#else
-		servo->enc_speed = servo->computed_speed;
-	#endif
+	// servo->enc_speed = servo->computed_speed;
+	servo->enc_speed = enc2speed(enc_new - servo->enc_old);
 	servo->enc_old = enc_new; // Needed for velocity calculation
 
 	if (*servo->enable) {
@@ -258,13 +250,11 @@ void servo_compute(servo_t* const servo) {
 
 		next_positon_compute(servo);
 
-		#ifndef SIMULATION_MODE
-			// PID Computation
-			pid_compute(servo->pid_pos);
-			servo->set_vel = servo->out_pos; // Positional --> Velocity PID
-			pid_compute(servo->pid_vel);
-		#endif
-		
+		// PID Computation
+		pid_compute(servo->pid_pos);
+		servo->set_vel = servo->out_pos; // Positional --> Velocity PID
+		pid_compute(servo->pid_vel);
+	
 		// set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
 		if (!*servo->error && servo->pos_error_internal) {
 			strcpy(*servo->error_message, servo->servo_name);
@@ -277,11 +267,7 @@ void servo_compute(servo_t* const servo) {
 			strcat(*servo->error_message, ": PID Error");
 			*servo->error = true;
 		}
-
-		#ifndef SIMULATION_MODE
-			// PWM output
-			set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
-		#endif
+		set_two_chans_pwm(servo->pwm_slice, servo->out_vel);
 	} else {
 		set_two_chans_pwm(servo->pwm_slice, 0.0);
 		servo->enable_previous = true;
