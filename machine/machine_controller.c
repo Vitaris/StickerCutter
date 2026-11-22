@@ -97,11 +97,7 @@ void machine_init(void) {
     // Init servos
     machine.machine_error = false;
     machine.enable = false;
-    #ifndef SIMULATION_MODE
-        machine.homed = false;
-    #else
-        machine.homed = true;
-    #endif
+
     strcpy(machine.error_message, "OK");
     machine.feeder_offset = 0.0f;
 
@@ -121,6 +117,9 @@ void machine_init(void) {
     machine.rows_to_cut = 0;
     machine.paper_width = 200.0;
     machine.cut_overlap = 10.0;
+
+    // Force homed state on beginning
+    machine.homed = true;
 
     // Machine states
     activate_manual_state();
