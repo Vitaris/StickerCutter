@@ -37,7 +37,49 @@ typedef enum {
 	FAILURE
 } machine_state_t;
 
+typedef enum {
+	MANUAL_IDLE,
+	MANUAL_READY
+} manual_substate_t;
+
+typedef enum {
+	HOMING_START,
+	HOMING_SCANNING,
+	HOMING_FOUND,
+	HOMING_RETURN_TO_ZERO,
+	HOMING_FINISHED
+} homing_substate_t;
+
+typedef enum {
+	PARAM_START,
+	PARAM_STICKER_HEIGHT,
+	PARAM_ROWS_TO_CUT,
+	PARAM_PAPER_WIDTH,
+	PARAM_FINSIHED
+} param_substate_t;
+
+typedef enum {
+	IDLE,
+	NAVIGATE_TO_LEAD_IN,
+	MOVING_TO_LEAD_IN,
+	LEAD_IN_READY,
+	START_ENTRY_CUT,
+	ENTRY_CUT_IN_PROGRESS,
+	ENTRY_CUT_DONE,
+	ENTRY_CUT_RETURN,
+	RETURN_TO_LEAD_IN,
+	PERFORM_REST_OF_CUT,
+	REST_OF_CUT_IN_PROGRESS,
+	REST_OF_CUT_DONE,
+	HOME_RETURN,
+	COMPLETE
+} automatic_substate_t;
+
 extern machine_state_t machine_state;
+extern manual_substate_t manual_substate;
+extern homing_substate_t homing_substate;
+extern param_substate_t param_substate;
+extern automatic_substate_t automatic_substate;
 
 typedef struct {
 	servo_t* servo_cutter;
@@ -60,6 +102,7 @@ typedef struct {
 	bool homed;
 	bool machine_error;
 	char error_message[21];
+	float feeder_offset;
 
 	// Cutter
 	bool params_ready;
@@ -75,10 +118,32 @@ typedef struct {
 
 extern machine_t machine;
 
+typedef struct {
+	machine_state_t state;
+	manual_substate_t manual_substate;
+	homing_substate_t homing_substate;
+	param_substate_t param_substate;
+	automatic_substate_t automatic_substate;
+	bool homed;
+	bool enabled;
+	bool paper_positions_set;
+	bool feeder_zeroed;
+	float pos_cutter;
+	float pos_feeder;
+	float feeder_offset;
+	float encoder_value;
+	int encoder_value_int;
+	size_t rows_to_cut;
+	size_t rows_cut_performed;
+	char error_message[21];
+} machine_display_snapshot_t;
+
 /**
  * @brief Initializes the machine controller
  */
 void machine_init(void);
+
+void machine_get_display_snapshot(machine_display_snapshot_t *snapshot);
 
 /**
  * @brief Main state machine computation function
@@ -117,12 +182,5 @@ void knife_down(void);
  * @param text Error message text
  */
 void raise_error(char text[]);
-
-/**
- * @brief Gets the current error message
- * @return Pointer to the error message text
- */
-char* get_error_message(void);
-
 
 #endif

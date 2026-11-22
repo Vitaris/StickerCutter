@@ -1,253 +1,286 @@
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "hmi.h"
-#include "pico/multicore.h"
-#include "hardware/timer.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
-#include <stdio.h>
-#include "../machine/machine_controller.h"
+#include "../core1_main.h"
 #include "../lcd/ant_lcd.h"
 
 #ifndef GIT_VERSION
 #define GIT_VERSION "unknown"
 #endif
 
-#define BLINK_INTERVAL_US 500000ULL // 0.5 seconds (500 ms)
-#define WELCOME_INTERVAL_US 2000000ULL // welcome screen duration
+#define BLINK_INTERVAL_US 500000ULL
+#define WELCOME_INTERVAL_US 2000000ULL
 
-screen_t standard_screen = {
-        .status = "Mode:",
-        .pos_cutter = 0.0,
-        .pos_feeder = 0.0,
-        .feeder_offset = 0.0,
-        .F1_0 = "",
-        .F1_1 = "",
-        .F2_0 = "",
-        .F2_1 = ""
-};
-
-void place_string_to_left(char *line, const char *string, size_t line_length) {
-    snprintf(line, line_length, "%-*s", line_length - 1, string);
+static void place_string_to_left(char *line, const char *string, size_t line_length) {
+    snprintf(line, line_length, "%-*s", (int)(line_length - 1), string);
 }
 
-void place_string_centered(char *line, const char *string, size_t line_length) {
-    int len = strlen(string);
-    int max_len = line_length - 1;
-
+static void place_string_centered(char *line, const char *string, size_t line_length) {
+    size_t max_len = line_length - 1;
+    size_t len = strlen(string);
     if (len >= max_len) {
         snprintf(line, line_length, "%s", string);
         return;
     }
 
-    // Calculate how many spaces belong on the left and right
-    int left_pad = (max_len - len) / 2;
-    int right_pad = max_len - len - left_pad;
-
-    snprintf(line, line_length, "%*s%s%*s", left_pad, "", string, right_pad, "");
+    size_t left_pad = (max_len - len) / 2;
+    size_t right_pad = max_len - len - left_pad;
+    snprintf(line, line_length, "%*s%s%*s", (int)left_pad, "", string, (int)right_pad, "");
 }
 
-void place_string_to_right(char *line, const char *string, size_t line_length) {
-    snprintf(line, line_length, "%*s", line_length - 1, string);
+static void place_string_to_right(char *line, const char *string, size_t line_length) {
+    snprintf(line, line_length, "%*s", (int)(line_length - 1), string);
 }
 
-void place_float_to_left(char *line, float value, int decimals, size_t line_length) {
-    snprintf(line, line_length, "%-*.*f", line_length - 1, decimals, value);
+static void place_float_centered(char *line, float value, int decimals, size_t line_length) {
+    char value_text[LINE_LENGTH_FULL];
+    snprintf(value_text, sizeof(value_text), "%.*f", decimals, value);
+    place_string_centered(line, value_text, line_length);
 }
 
-void place_float_centered(char *line, float value, int decimals, size_t line_length) {
-    char temp_buf[line_length];
-    snprintf(temp_buf, line_length, "%.*f", decimals, value);
-    place_string_centered(line, temp_buf, line_length);
+static void place_float_with_unit_to_right(char *line, float value, int decimals, const char *unit, size_t line_length) {
+    char value_text[LINE_LENGTH_FULL];
+    snprintf(value_text, sizeof(value_text), "%.*f%s", decimals, value, unit);
+    snprintf(line, line_length, "%*s", (int)(line_length - 1), value_text);
 }
 
-void place_float_to_right(char *line, float value, int decimals, size_t line_length) {
-    snprintf(line, line_length, "%*.*f", line_length - 1, decimals, value);
+static void place_int_centered(char *line, int value, size_t line_length) {
+    char value_text[LINE_LENGTH_FULL];
+    snprintf(value_text, sizeof(value_text), "%d", value);
+    place_string_centered(line, value_text, line_length);
 }
 
-void place_float_with_unit_to_right(char *line, float value, int decimals, const char *unit, size_t line_length) {
-    char temp_buf[line_length];
-    snprintf(temp_buf, line_length, "%.*f%s", decimals, value, unit);
-    snprintf(line, line_length, "%*s", line_length - 1, temp_buf);
-}
-
-void place_int_to_left(char *line, int value, size_t line_length) {
-    snprintf(line, line_length, "%-*d", (int)(line_length - 1), value);
-}
-
-void place_int_centered(char *line, int value, size_t line_length) {
-    char temp_buf[line_length];
-    snprintf(temp_buf, line_length, "%d", value);
-    place_string_centered(line, temp_buf, line_length);
-}
-
-void place_int_to_right(char *line, int value, size_t line_length) {
+static void place_int_to_right(char *line, int value, size_t line_length) {
     snprintf(line, line_length, "%*d", (int)(line_length - 1), value);
 }
 
-void hmi_set_status(const char *status) {
-    place_string_to_left(standard_screen.status, status, LINE_LENGTH_FULL);
-}
-
-void hmi_set_left_button(const char *top, const char *bottom) {
-    place_string_to_left(standard_screen.F1_0, top, LINE_LENGTH_HALF);
-    place_string_to_left(standard_screen.F1_1, bottom, LINE_LENGTH_HALF);
-}
-
-void hmi_set_right_button(const char *top, const char *bottom) {
-    place_string_to_right(standard_screen.F2_0, top, LINE_LENGTH_HALF);
-    place_string_to_right(standard_screen.F2_1, bottom, LINE_LENGTH_HALF);
-}
-
-void hmi_clear_buttons(void) {
-    hmi_set_left_button("", "");
-    hmi_set_right_button("", "");
-}
-
-void clear_line(lcd_line_t line) {
+static void clear_line(lcd_line_t line) {
     memset(line, ' ', LINE_LENGTH_FULL - 1);
-    line[20] = '\0';
+    line[LINE_LENGTH_FULL - 1] = '\0';
 }
 
-void clear_screen(screen_buffer_t *screen) {
+static void clear_screen(screen_buffer_t *screen) {
     for (size_t i = 0; i < LINE_COUNT; i++) {
         clear_line(screen->line[i]);
     }
 }
 
-void merge_halfs_lines(lcd_line_t line, lcd_halfline_t half_first, lcd_halfline_t half_second) {
-    snprintf(line, LINE_LENGTH_FULL, "%-*.*s%-*.*s", 
-             LINE_LENGTH_HALF - 1, LINE_LENGTH_HALF - 1, half_first, 
-             LINE_LENGTH_HALF - 1, LINE_LENGTH_HALF - 1, half_second);
+static void merge_halfs_lines(lcd_line_t line, const char *half_first, const char *half_second) {
+    snprintf(line, LINE_LENGTH_FULL, "%-10.10s%-10.10s", half_first, half_second);
 }
 
-void show_question(hmi_t* hmi, const char *question, float var, const char *units, const char *f1_0, const char *f1_1, const char *f2_0, const char *f2_1) {
-    place_string_to_left(hmi->input_screen_buffer.line[0], question, LINE_LENGTH_FULL);
-    place_float_centered(hmi->input_screen_buffer.line[1], var, 2, LINE_LENGTH_FULL);
+static void render_standard(screen_buffer_t *screen, const machine_display_snapshot_t *state) {
+    lcd_halfline_t left_top = {0};
+    lcd_halfline_t right_top = {0};
+    lcd_halfline_t left_bottom = {0};
+    lcd_halfline_t right_bottom = {0};
+    char number_0[LINE_LENGTH_HALF];
+    char number_1[LINE_LENGTH_HALF];
+    const char *status = "";
 
-    // button F1
-    lcd_halfline_t line_half_0;
-    lcd_halfline_t line_half_1;
-    place_string_to_left(line_half_0, f1_0, LINE_LENGTH_HALF);
-    place_string_to_right(line_half_1, f2_0, LINE_LENGTH_HALF);
-    merge_halfs_lines(hmi->input_screen_buffer.line[2], line_half_0, line_half_1);
+    switch (state->state) {
+        case MANUAL:
+            status = state->homed ? "Manual" : "Manual - NO Home";
+            place_string_to_left(left_top, "Motory", LINE_LENGTH_HALF);
+            place_string_to_left(left_bottom, state->enabled ? "vypnut" : "zapnut", LINE_LENGTH_HALF);
+            if (state->manual_substate == MANUAL_READY && state->homed) {
+                if (state->paper_positions_set) {
+                    place_string_to_left(right_top, "", LINE_LENGTH_HALF);
+                    place_string_to_right(right_bottom, "Automat", LINE_LENGTH_HALF);
+                } else {
+                    place_string_to_left(right_top, "Nastav", LINE_LENGTH_HALF);
+                    place_string_to_right(right_bottom, "parametre", LINE_LENGTH_HALF);
+                }
+            } else {
+                place_string_to_left(right_top, "", LINE_LENGTH_HALF);
+                place_string_to_right(right_bottom, "", LINE_LENGTH_HALF);
+            }
+            break;
+        case HOMING:
+            status = "HOMING";
+            place_string_to_left(left_top, "", LINE_LENGTH_HALF);
+            place_string_to_left(left_bottom, "Stop", LINE_LENGTH_HALF);
+            place_string_to_left(right_top, "", LINE_LENGTH_HALF);
+            place_string_to_right(right_bottom,
+                state->homing_substate == HOMING_SCANNING ? "Hlada sa->" : "", LINE_LENGTH_HALF);
+            break;
+        case PARAMS:
+            place_string_to_left(left_top, "", LINE_LENGTH_HALF);
+            place_string_to_left(left_bottom, "Exit", LINE_LENGTH_HALF);
+            if (state->param_substate == PARAM_START) {
+                if (state->feeder_zeroed) {
+                    place_string_to_left(right_top, "", LINE_LENGTH_HALF);
+                    place_string_to_right(right_bottom, "Pokracuj", LINE_LENGTH_HALF);
+                } else {
+                    place_string_to_left(right_top, "Vynuluj", LINE_LENGTH_HALF);
+                    place_string_to_right(right_bottom, "feeder", LINE_LENGTH_HALF);
+                }
+            } else {
+                place_string_to_left(right_top, "Zapnut", LINE_LENGTH_HALF);
+                place_string_to_right(right_bottom, "Automat", LINE_LENGTH_HALF);
+            }
+            break;
+        case AUTOMAT:
+            status = "Automat";
+            place_string_to_left(left_top, "", LINE_LENGTH_HALF);
+            place_string_to_left(left_bottom, "Stop", LINE_LENGTH_HALF);
+            if (state->automatic_substate == IDLE) {
+                place_string_to_left(right_top, "", LINE_LENGTH_HALF);
+                place_string_to_right(right_bottom, "Start", LINE_LENGTH_HALF);
+            } else if (state->automatic_substate == COMPLETE) {
+                place_string_to_left(right_top, "", LINE_LENGTH_HALF);
+                place_string_to_right(right_bottom, "Hotovo!", LINE_LENGTH_HALF);
+            } else {
+                place_int_to_right(right_top, (int)state->rows_to_cut, LINE_LENGTH_HALF);
+                place_int_to_right(right_bottom, (int)state->rows_cut_performed, LINE_LENGTH_HALF);
+            }
+            break;
+        case FAILURE:
+            break;
+    }
 
-    // button F2
-    place_string_to_left(line_half_0, f1_1, LINE_LENGTH_HALF);
-    place_string_to_right(line_half_1, f2_1, LINE_LENGTH_HALF);
-    merge_halfs_lines(hmi->input_screen_buffer.line[3], line_half_0, line_half_1);
+    place_string_to_left(screen->line[0], status, LINE_LENGTH_FULL);
+    place_float_with_unit_to_right(number_0, state->pos_cutter, 2, "mm", LINE_LENGTH_HALF);
+    place_float_with_unit_to_right(number_1, state->pos_feeder - state->feeder_offset, 2, "mm", LINE_LENGTH_HALF);
+    merge_halfs_lines(screen->line[1], number_0, number_1);
+    merge_halfs_lines(screen->line[2], left_top, right_top);
+    merge_halfs_lines(screen->line[3], left_bottom, right_bottom);
 }
 
-void show_question_int(hmi_t* hmi, const char *question, int var, const char *units, const char *f1_0, const char *f1_1, const char *f2_0, const char *f2_1) {
-    place_string_to_left(hmi->input_screen_buffer.line[0], question, LINE_LENGTH_FULL);
-    place_int_centered(hmi->input_screen_buffer.line[1], var, LINE_LENGTH_FULL);
+static void render_input(screen_buffer_t *screen, const machine_display_snapshot_t *state) {
+    const char *question;
+    const char *left_top = "";
+    const char *left_bottom = "Exit";
+    const char *right_top = "";
+    const char *right_bottom;
 
-    // button F1
-    lcd_halfline_t line_half_0;
-    lcd_halfline_t line_half_1;
-    place_string_to_left(line_half_0, f1_0, LINE_LENGTH_HALF);
-    place_string_to_right(line_half_1, f2_0, LINE_LENGTH_HALF);
-    merge_halfs_lines(hmi->input_screen_buffer.line[2], line_half_0, line_half_1);
+    switch (state->param_substate) {
+        case PARAM_STICKER_HEIGHT:
+            question = "Nastav vysku nalepky:";
+            right_bottom = "Uloz vysku";
+            place_float_centered(screen->line[1], state->encoder_value, 2, LINE_LENGTH_FULL);
+            break;
+        case PARAM_ROWS_TO_CUT:
+            question = "Nastav pocet rezov:";
+            right_top = "Uloz";
+            right_bottom = "pocet";
+            place_int_centered(screen->line[1], state->encoder_value_int, LINE_LENGTH_FULL);
+            break;
+        case PARAM_PAPER_WIDTH:
+            question = "Nastav sirku papiera:";
+            right_top = "Uloz";
+            right_bottom = "sirku";
+            place_float_centered(screen->line[1], state->encoder_value, 2, LINE_LENGTH_FULL);
+            break;
+        default:
+            question = "";
+            right_bottom = "";
+            clear_line(screen->line[1]);
+            break;
+    }
 
-    // button F2
-    place_string_to_left(line_half_0, f1_1, LINE_LENGTH_HALF);
-    place_string_to_right(line_half_1, f2_1, LINE_LENGTH_HALF);
-    merge_halfs_lines(hmi->input_screen_buffer.line[3], line_half_0, line_half_1);
+    place_string_to_left(screen->line[0], question, LINE_LENGTH_FULL);
+    lcd_halfline_t left;
+    lcd_halfline_t right;
+    place_string_to_left(left, left_top, LINE_LENGTH_HALF);
+    place_string_to_right(right, right_top, LINE_LENGTH_HALF);
+    merge_halfs_lines(screen->line[2], left, right);
+    place_string_to_left(left, left_bottom, LINE_LENGTH_HALF);
+    place_string_to_right(right, right_bottom, LINE_LENGTH_HALF);
+    merge_halfs_lines(screen->line[3], left, right);
 }
 
-void draw_screen(hmi_t* hmi) {
-    for (size_t i = 0; i < LINE_COUNT; i++) {
-        string2LCD(hmi->lcd, 0, i, hmi->actual_screen_buffer.line[i]);
+static screen_state_t screen_for_state(const machine_display_snapshot_t *state, bool welcome) {
+    if (state->state == FAILURE) {
+        return FAILURE_SCREEN;
+    }
+    if (welcome) {
+        return WELCOME_SCREEN;
+    }
+    if (state->state == PARAMS && state->param_substate != PARAM_START && state->param_substate != PARAM_FINSIHED) {
+        return INPUT_SCREEN;
+    }
+    return STANDARD_SCREEN;
+}
+
+static void render_frame(hmi_t *hmi, const machine_display_snapshot_t *state) {
+    clear_screen(&hmi->actual_screen_buffer);
+    bool welcome = time_us_64() - hmi->start_us <= WELCOME_INTERVAL_US;
+    screen_state_t next_screen = screen_for_state(state, welcome);
+
+    if (next_screen != hmi->screen_state) {
+        hmi->screen_state = next_screen;
+        lcd_reinitialize(hmi->lcd);
+        clear_screen(&hmi->displayed_screen_buffer);
+    }
+
+    switch (hmi->screen_state) {
+        case WELCOME_SCREEN:
+            hmi->actual_screen_buffer = hmi->welcome_screen_buffer;
+            break;
+        case STANDARD_SCREEN:
+            render_standard(&hmi->actual_screen_buffer, state);
+            break;
+        case INPUT_SCREEN:
+            render_input(&hmi->actual_screen_buffer, state);
+            break;
+        case FAILURE_SCREEN: {
+            place_string_centered(hmi->actual_screen_buffer.line[0], "* PORUCHA! *", LINE_LENGTH_FULL);
+            place_string_centered(hmi->actual_screen_buffer.line[2], state->error_message, LINE_LENGTH_FULL);
+            place_string_to_left(hmi->actual_screen_buffer.line[3], "Potvrdit", LINE_LENGTH_FULL);
+            bool blink_off = ((time_us_64() - hmi->start_us) / BLINK_INTERVAL_US) % 2;
+            if (blink_off) {
+                clear_line(hmi->actual_screen_buffer.line[0]);
+            }
+            break;
+        }
     }
 }
 
-void switch_screen(hmi_t* hmi, screen_state_t screen_state) {
-    hmi->screen_state = screen_state;
-    clear_screen(&hmi->actual_screen_buffer);
-    clrscr(hmi->lcd);
-}
+static void draw_changed_characters(hmi_t *hmi) {
+    for (uint8_t row = 0; row < LINE_COUNT; row++) {
+        uint8_t col = 0;
+        while (col < LINE_LENGTH_FULL - 1) {
+            while (col < LINE_LENGTH_FULL - 1 &&
+                   hmi->actual_screen_buffer.line[row][col] == hmi->displayed_screen_buffer.line[row][col]) {
+                col++;
+            }
+            if (col == LINE_LENGTH_FULL - 1) {
+                break;
+            }
 
-void hmi_request_screen(hmi_t* hmi, screen_state_t screen_state) {
-    hmi->screen_request = (int32_t)screen_state;
+            uint8_t start = col;
+            char changed[LINE_LENGTH_FULL];
+            size_t length = 0;
+            while (col < LINE_LENGTH_FULL - 1 &&
+                   hmi->actual_screen_buffer.line[row][col] != hmi->displayed_screen_buffer.line[row][col]) {
+                changed[length++] = hmi->actual_screen_buffer.line[row][col];
+                hmi->displayed_screen_buffer.line[row][col] = hmi->actual_screen_buffer.line[row][col];
+                col++;
+            }
+            changed[length] = '\0';
+            string2LCD(hmi->lcd, start, row, changed);
+        }
+    }
 }
 
 void hmi_init(hmi_t* hmi, const lcd_config_t* config) {
     hard_assert(hmi != NULL);
-
-    memset(hmi, 0, sizeof(hmi_t));
-    hmi->screen_request = -1;
+    memset(hmi, 0, sizeof(*hmi));
     clear_screen(&hmi->welcome_screen_buffer);
-    clear_screen(&hmi->standard_screen_buffer);
-    clear_screen(&hmi->input_screen_buffer);
-    clear_screen(&hmi->failure_screen_buffer);
-    clear_screen(&hmi->actual_screen_buffer);
-    
-    // Welcome Screen
     place_string_centered(hmi->welcome_screen_buffer.line[1], "Sticker Cutter", LINE_LENGTH_FULL);
     place_string_to_right(hmi->welcome_screen_buffer.line[3], GIT_VERSION, LINE_LENGTH_FULL);
-    
-    // Standard Screen
-       
-    // LCD screen
     hmi->lcd = lcd_create(config);
     hmi->start_us = time_us_64();
+    hmi->screen_state = WELCOME_SCREEN;
+    clear_screen(&hmi->displayed_screen_buffer);
 }
 
 void hmi_compute(hmi_t* hmi) {
-    // Service any pending cross-core screen switch request (owns the LCD bus).
-    int32_t req = hmi->screen_request;
-    if (req >= 0) {
-        hmi->screen_request = -1;
-        switch_screen(hmi, (screen_state_t)req);
-    }
-
-    switch(hmi->screen_state) {
-        case WELCOME_SCREEN:
-			hmi->actual_screen_buffer = hmi->welcome_screen_buffer;
-            if (time_us_64() - hmi->start_us > WELCOME_INTERVAL_US) {
-                switch_screen(hmi, STANDARD_SCREEN);
-            }
-			break;
-		
-		case STANDARD_SCREEN:
-            place_string_to_left(hmi->standard_screen_buffer.line[0], standard_screen.status, LINE_LENGTH_FULL);
-            merge_halfs_lines(hmi->standard_screen_buffer.line[2], standard_screen.F1_0, standard_screen.F2_0);
-            merge_halfs_lines(hmi->standard_screen_buffer.line[3], standard_screen.F1_1, standard_screen.F2_1);
-            // place_float_to_left(hmi->standard_screen_buffer.line[2], 125.05, 2);
-            lcd_halfline_t number_0;
-            lcd_halfline_t number_1;
-            place_float_with_unit_to_right(number_0, standard_screen.pos_cutter, 2, "mm", LINE_LENGTH_HALF);
-            place_float_with_unit_to_right(number_1, standard_screen.pos_feeder - standard_screen.feeder_offset, 2, "mm", LINE_LENGTH_HALF);
-            merge_halfs_lines(hmi->standard_screen_buffer.line[1], number_0, number_1);
-            // place_float_with_unit_to_right(hmi->standard_screen_buffer.line[2], standard_screen.pos_cutter, 2, "mm");
-            // float_test
-            hmi->actual_screen_buffer = hmi->standard_screen_buffer;
-
-            break;
-            
-        case INPUT_SCREEN:
-            hmi->actual_screen_buffer = hmi->input_screen_buffer;
-            break;
-        
-        case FAILURE_SCREEN:
-            place_string_centered(hmi->failure_screen_buffer.line[0], "* PORUCHA! *", LINE_LENGTH_FULL);
-            place_string_centered(hmi->failure_screen_buffer.line[2], get_error_message(), LINE_LENGTH_FULL);
-            place_string_to_left(hmi->failure_screen_buffer.line[3], "Potvrdit", LINE_LENGTH_FULL);
-            uint64_t elapsed = time_us_64() - hmi->start_us;
-            
-            // Determines toggle state: 0 = visible, 1 = hidden/blank
-            bool blink_off = (elapsed / BLINK_INTERVAL_US) % 2;
-            
-            // Start with base failure screen buffer
-            hmi->actual_screen_buffer = hmi->failure_screen_buffer;
-            
-            if (blink_off) {
-                clear_line(hmi->actual_screen_buffer.line[0]); 
-            }
-            // Exit is driven by the machine controller (operator confirmation).
-            break;
-    }
-
-    draw_screen(hmi);
-
-};
+    machine_display_snapshot_t state;
+    machine_get_display_snapshot(&state);
+    render_frame(hmi, &state);
+    draw_changed_characters(hmi);
+}

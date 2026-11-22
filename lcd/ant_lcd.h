@@ -75,7 +75,7 @@ void float2LCD(lcd_t* lcd, uint8_t x, uint8_t y, uint8_t max_length, uint8_t dec
  * @param string String to be displayed
  * 
  */
-void string2LCD(lcd_t* lcd, uint8_t x, uint8_t y, char string[]);
+void string2LCD(lcd_t* lcd, uint8_t x, uint8_t y, const char string[]);
 
 /**
  * @brief Clears the entire LCD screen
@@ -85,6 +85,11 @@ void string2LCD(lcd_t* lcd, uint8_t x, uint8_t y, char string[]);
  * @note This function will clear all characters and reset cursor to home position
  */
 void clrscr(lcd_t* lcd);
+
+/**
+ * @brief Re-synchronizes the LCD's 4-bit interface and clears its display.
+ */
+void lcd_reinitialize(lcd_t* lcd);
 
 #endif
 // End of Header file

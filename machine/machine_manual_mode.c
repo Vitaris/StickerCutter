@@ -1,8 +1,6 @@
-#include <stdio.h>
+#include <math.h>
 #include "pico/stdlib.h"
 
-#include "../core1_main.h"
-#include "../hmi/hmi.h"
 #include "machine_controller.h"
 #include "machine_manual_mode.h"
 #include "machine_automatic_mode.h"
@@ -12,31 +10,6 @@
 
 #define DESK_AREA_RIGHT -200.0
 #define DESK_AREA_LEFT -1300.0
-
-typedef enum {
-    MANUAL_IDLE,      // Motors disabled, waiting for enable command
-    MANUAL_READY,     // Motors enabled, ready for operations
-} manual_substate_t;
-
-typedef enum {
-    HOMING_START,             // Preparing to start homing sequence
-    HOMING_SCANNING,          // Moving servo while scanning for home position
-    HOMING_FOUND,            // Home position detected, stopping motion
-    HOMING_RETURN_TO_ZERO,   // Moving back to define zero position
-    HOMING_FINISHED          // Homing sequence completed
-} homing_substate_t;
-
-typedef enum {
-    PARAM_START,
-    PARAM_STICKER_HEIGHT,
-    PARAM_ROWS_TO_CUT,
-    PARAM_PAPER_WIDTH,
-    PARAM_FINSIHED,
-} param_substate_t;
-
-manual_substate_t manual_substate;
-homing_substate_t homing_substate;
-param_substate_t param_substate;
 
 void activate_homing_state(void) {
     manual_substate = HOMING_START;
@@ -77,10 +50,6 @@ int get_void_presence(void) {
 }
 
 void handle_manual_state(void) {
-    // Update machine
-    hmi_set_status(machine.homed ? "Manual" : "Manual - NO Home");
-    hmi_set_left_button("Motory", machine.enable ? "vypnut" : "zapnut");
-
     // Always able to switch on/off servos
     if (button_raised(devices.F1)) {
         if (manual_substate == MANUAL_IDLE) {
@@ -96,31 +65,23 @@ void handle_manual_state(void) {
     // Handle state transitions
     switch(manual_substate) {
         case MANUAL_IDLE:
-            hmi_set_right_button("", "");
             break;
 
         case MANUAL_READY:
             if (!machine.homed) {
                 if (get_void_absence()) {
-                    hmi_set_right_button("", "Home");
                     if (button_raised(devices.F2)) {
                         activate_homing_state();
                     }
                 } 
-                else {
-                    // Do not allow homing if cutter head is out of cutting table
-                    hmi_set_right_button("", "");
-                }
             }
             else {
                 if (is_paper_positions_set()) {
-                    hmi_set_right_button("", "Automat");
                     if (button_raised(devices.F2)) {
                         activate_automatic_state();
                     }
                 }
                 else {
-                    hmi_set_right_button("Nastav", "parametre");
                     if (button_raised(devices.F2)) {
                         activate_param_state();
                     }   
@@ -134,11 +95,6 @@ void handle_manual_state(void) {
 }
 
 void handle_homing_state(void) {
-    // Update machine
-    hmi_set_status("HOMING");
-    hmi_set_left_button("", "Stop");
-    hmi_set_right_button("", "");
-
     if (button_raised(devices.F1)) {
         activate_manual_state();
     }
@@ -153,7 +109,6 @@ void handle_homing_state(void) {
             break;
         
         case HOMING_SCANNING:
-            hmi_set_right_button("", "Hlada sa->");
             if (get_void_presence()) {
                 homing_substate = HOMING_FOUND;
             }
@@ -188,18 +143,15 @@ void handle_homing_state(void) {
 void param_config_state(void) {
     switch(param_substate) {
         case PARAM_START:
-            if (servo_get_position(devices.servo_feeder) - standard_screen.feeder_offset == 0.0) {
-                hmi_set_right_button("", "Pokracuj");
+            if (fabsf(servo_get_position(devices.servo_feeder) - machine.feeder_offset) < 0.01f) {
                 if (button_raised(devices.F2)) {
-                    hmi_request_screen(&hmi, INPUT_SCREEN);
                     param_substate = PARAM_STICKER_HEIGHT;
                     rotary_encoder_set_scale(devices.encoder, -1.0);
                 }
             } else {
-                hmi_set_right_button("Vynuluj", "feeder");
                 if (button_raised(devices.F2)) {
                     machine.paper_right_mark_position = servo_get_position(devices.servo_cutter);
-                    standard_screen.feeder_offset = servo_get_position(devices.servo_feeder);
+                    machine.feeder_offset = servo_get_position(devices.servo_feeder);
                 }
             }
             servo_manual_movement_slow();
@@ -207,7 +159,6 @@ void param_config_state(void) {
 
         case PARAM_STICKER_HEIGHT:
             float sticker_height = rotary_encoder_get_position(devices.encoder);
-            show_question(&hmi, "Nastav vysku nalepky:", sticker_height, "mm", "", "Exit", "", "Uloz vysku");
             if (button_raised(devices.F2)) {
                 machine.sticker_height = sticker_height;
                 param_substate = PARAM_ROWS_TO_CUT;
@@ -218,7 +169,6 @@ void param_config_state(void) {
             
         case PARAM_ROWS_TO_CUT:
             int rows = rotary_encoder_get_position_int(devices.encoder);
-            show_question_int(&hmi, "Nastav pocet rezov:", rows, "ks", "", "Exit", "Uloz", "pocet");
             if (button_raised(devices.F2)) {
                 machine.rows_to_cut = (size_t)rows;
                 param_substate = PARAM_PAPER_WIDTH;
@@ -230,10 +180,8 @@ void param_config_state(void) {
 
         case PARAM_PAPER_WIDTH:
             float width = rotary_encoder_get_position(devices.encoder);
-            show_question(&hmi, "Nastav sirku papiera:", width, "ks", "", "Exit", "Uloz", "sirku");
             if (button_raised(devices.F2)) {
                 machine.paper_width = width;
-                hmi_request_screen(&hmi, STANDARD_SCREEN);
                 param_substate = PARAM_FINSIHED;
                 rotary_encoder_reset_position(devices.encoder);
                 rotary_encoder_set_scale(devices.encoder, -40.0);
@@ -241,15 +189,12 @@ void param_config_state(void) {
             break;
 
         case PARAM_FINSIHED:
-            hmi_set_right_button("Zapnut", "Automat");
                 if (button_raised(devices.F2)) {
                     servo_goto(devices.servo_cutter, -50, MANUAL_SPEED_FAST);
                     activate_automatic_state();
                 }
             break;
     }
-    // button F1
-    hmi_set_left_button("", "Exit");
     if (button_raised(devices.F1)) {
         activate_manual_state();
     }

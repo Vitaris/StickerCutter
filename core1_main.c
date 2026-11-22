@@ -12,6 +12,7 @@
 #include "../lcd/ant_lcd.h"
 
 hmi_t hmi;
+volatile uint32_t core1_heartbeat;
 
 // LCD display configuration
 #define DISPLAY_COLS 20
@@ -40,25 +41,32 @@ static const lcd_config_t lcd_cfg = {
 
 // Internal state hidden from main
 static struct repeating_timer lcd_refresh_timer;
+static volatile bool lcd_refresh_pending;
 
-// Private timer callback
 static bool lcd_refresh_timer_callback(struct repeating_timer *t) {
-    hmi_compute(&hmi);
+    (void)t;
+    lcd_refresh_pending = true;
     return true;
 }
 
 // Private entry point for Core 1
 void core1_main(void) {
     
-    // Set up a repeating timer to refresh the LCD every 20 ms (50 Hz)
+    hmi_init(&hmi, &lcd_cfg);
+
+    // The timer only schedules rendering; LCD delays run in thread mode.
     static alarm_pool_t *core1_pool;
     core1_pool = alarm_pool_create(2, 4); // hw alarm 2, owned by core 1
     alarm_pool_add_repeating_timer_ms(core1_pool, -20, lcd_refresh_timer_callback, NULL, &lcd_refresh_timer);
 
-    // Initialize HMI
-    hmi_init(&hmi, &lcd_cfg);
+    lcd_refresh_pending = true;
 
     while (true) {
-        tight_loop_contents(); 
+        if (lcd_refresh_pending) {
+            lcd_refresh_pending = false;
+            hmi_compute(&hmi);
+            __atomic_add_fetch(&core1_heartbeat, 1, __ATOMIC_RELAXED);
+        }
+        tight_loop_contents();
     }
 }
